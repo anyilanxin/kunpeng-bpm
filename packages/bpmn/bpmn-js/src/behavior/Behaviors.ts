@@ -352,6 +352,16 @@ export class CollaborationBehavior extends CommandInterceptor {
     const bounds = horizontal
       ? { x: minX - header - pad, y: minY - pad, width: maxX - minX + header + 2 * pad, height: maxY - minY + 2 * pad }
       : { x: minX - pad, y: minY - header - pad, width: maxX - minX + 2 * pad, height: maxY - minY + header + 2 * pad };
+    // 包裹下限=池最小规格（Palette 缺省 POOL_W×POOL_H=634×250，恰容一条
+    // 最小泳道）：裸元素稀疏（如仅一个小事件）时按最小池落形，不再把池
+    // 缩成元素大小；位置仍锚内容 bbox（内容靠头带侧，剩余空间留给后续布局）
+    if (horizontal) {
+      bounds.width = Math.max(bounds.width, SIZES.POOL_W);
+      bounds.height = Math.max(bounds.height, SIZES.POOL_H);
+    } else {
+      bounds.width = Math.max(bounds.width, SIZES.POOL_H);
+      bounds.height = Math.max(bounds.height, SIZES.POOL_W);
+    }
     this.modeling.resizeShape(pool, bounds);
     for (const el of loose) {
       this.modeling.moveShape(el, { x: 0, y: 0 }, pool);
