@@ -1,0 +1,46 @@
+{
+  "name": "@kunpeng-io/bpmn-js-behaviors",
+  "version": "2026.10.4",
+  "description": "Camunda Platform 7 and 8 behaviors for @kunpeng-io/bpmn-js",
+  "type": "module",
+  "main": "lib/index.js",
+  "module": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "scripts": {},
+  "keywords": [
+    "bpmn",
+    "bpmn20",
+    "camunda",
+    "zeebe",
+    "modeling",
+    "bpmn-js"
+  ],
+  "author": {
+    "name": "Philipp Fromme",
+    "url": "https://github.com/philippfromme"
+  },
+  "contributors": [
+    {
+      "name": "bpmn.io contributors",
+      "url": "https://github.com/bpmn-io"
+    }
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "ids": "catalog:",
+    "min-dash": "catalog:",
+    "diagram-js": "catalog:",
+    "@kunpeng-io/bpmn-js": "workspace:*"
+  },
+  "files": [
+    "lib"
+  ],
+  "types": "./lib/index.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

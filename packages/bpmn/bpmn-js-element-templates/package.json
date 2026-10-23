@@ -1,0 +1,82 @@
+{
+  "name": "@kunpeng-io/bpmn-js-element-templates",
+  "version": "2026.10.4",
+  "description": "Element templates for bpmn-js",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.js"
+    },
+    "./core": {
+      "import": "./dist/core.esm.js",
+      "require": "./dist/core.js"
+    },
+    "./dist/assets/*.css": "./dist/assets/*.css",
+    "./dist/*.js": "./dist/*.js",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "rimraf dist && vite build",
+    "clean": "rimraf dist"
+  },
+  "engines": {
+    "node": "*"
+  },
+  "keywords": [
+    "bpmn-io",
+    "bpmn-js",
+    "properties",
+    "properties-panel",
+    "element-templates"
+  ],
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "author": {
+    "name": "Nico Rehwaldt",
+    "url": "https://github.com/nikku"
+  },
+  "contributors": [
+    {
+      "name": "bpmn.io contributors",
+      "url": "https://github.com/bpmn-io"
+    }
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@kunpeng-io/element-templates-validator": "workspace:*",
+    "@kunpeng-io/extract-process-variables": "workspace:*",
+    "bpmnlint": "catalog:",
+    "classnames": "catalog:",
+    "ids": "catalog:",
+    "min-dash": "catalog:",
+    "min-dom": "catalog:",
+    "preact-markup": "catalog:",
+    "semver": "catalog:",
+    "semver-compare": "catalog:",
+    "uuid": "catalog:",
+    "bpmn-moddle": "catalog:"
+  },
+  "devDependencies": {
+    "vite": "catalog:",
+    "vite-plugin-babel": "catalog:",
+    "@babel/plugin-transform-react-jsx": "catalog:",
+    "fs-extra": "catalog:",
+    "rimraf": "catalog:",
+    "@kunpeng-io/bpmn-js-properties-panel": "workspace:*",
+    "@kunpeng-io/kunpeng-bpmn-moddle": "workspace:*",
+    "@kunpeng-io/properties-panel": "workspace:*",
+    "@kunpeng-io/bpmn-js": "workspace:*"
+  },
+  "peerDependencies": {
+    "@kunpeng-io/bpmn-js": "*",
+    "diagram-js": ">= 11.9"
+  },
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

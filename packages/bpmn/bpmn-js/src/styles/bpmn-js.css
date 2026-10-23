@@ -1,0 +1,184 @@
+/*
+ * Copyright (c) 2026 anyilanxin zxh (anyilanxin@aliyun.com). All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  The copyright holder designates
+ * this particular file as subject to the "Classpath" exception as provided
+ * in the LICENSE file and licenses/ directory that accompany this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the licenses/ directory that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+/**
+ * @kunpeng-io/bpmn-js 组件自有功能样式。
+ *
+ * 使用方引入（必须在 diagram-js/assets/diagram-js.css 之后，同特异性靠后胜出）：
+ *   import 'diagram-js/assets/diagram-js.css';
+ *   import '@kunpeng-io/bpmn-js/styles';
+ *
+ * 收录约束（产品决策"观感 = diagram-js.css 默认"，唯弹框家族除外）：
+ * - 只放「功能性覆写」——影响布局/交互行为的规则，缺了组件功能不完整；
+ * - 皮肤类规则（配色/阴影/圆角等观感定制）不入此文件，由宿主自行覆盖；
+ * - 弹框家族（palette "…" 创建 / context pad 替换·追加·创建 / 对齐）皮肤
+ *   按产品给定样式收编为组件标准外观（见下「弹框家族外观」一节）；
+ * - 图标全部为组件内联自绘 SVG（src/icons/），本文件不承担图标样式。
+ */
+
+/* 元素面板单双列：完全交给引擎自动切换（Palette._needsCollapse：容器高 <
+   条目数×46+50 → 切 .two-column 双列 94px；足够高时单列 48px）。本组件
+   不覆写宽度——强制窄条会压坏双列布局；也不设 max-height/overflow——
+   双列即终态自适应高度，面板永不出现滚动条（产品要求）。 */
+
+/* 元素面板：条目内联自绘 SVG 垂直居中（记法缩样 26px / 工具图标 22px，
+   默认行高 46px，inline 基线对齐会沉底） */
+.djs-palette .entry svg { vertical-align: middle; }
+
+/* 弹框标题行循环特性切换钮：内联 SVG 与字体图标基线对齐 */
+.djs-popup-header .entry svg { vertical-align: middle; }
+
+/* 上下文面板布局：条目跨组连续流式三列换行——引擎默认 entry
+   inline-block 随条目数自然撑宽，分组宽度参差、面板右缘不齐；三列等宽
+   阵列（3×22px 钮 + 2×2px 缝 = 70px）与 palette/弹框的规整语言一致。
+   组退化为 display:contents 透明容器（分组语义保留，条目直排父级流），
+   避免各组独立换行在中间留下空位。
+   引擎 .djs-context-pad.open{display:block} 特异性高于容器规则，须
+   同名覆盖为 flex。 */
+.djs-context-pad,
+.djs-context-pad.open {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  width: 70px; /* 三列封行：append 族 6 项两行，工具族顺位续接 */
+}
+.djs-context-pad .group {
+  display: contents;
+}
+.djs-context-pad .entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0; /* 引擎 0 2px 2px 0 外距让位 flex gap */
+}
+
+/* 预览模式（BpmnMode）：隐藏元素面板与上下文面板——只读预览模型。
+ * 规则层（BpmnRules）同步否决全部编辑动作，此为 UI 防线而非唯一防线。 */
+.djs-container.bpmn-preview-mode .djs-palette,
+.djs-container.bpmn-preview-mode .djs-context-pad { display: none !important; }
+
+/* 连线拖拽预览：恢复实心箭头填充。diagram-js 影子样式对 .djs-dragger 容器
+   内全部图形强制 fill:none !important（线框化拖拽影子），但实心箭头是
+   方向语义而非形状轮廓——被线框化后会与空心箭头记法（消息流/数据关联，
+   规范 §8.4.3/§10.4.1）混淆，误传连线类型。本规则特异性 (0,2,1) 高于
+   引擎 .djs-dragger * 的 (0,1,1)，同处 important 层级靠特异性胜出；颜色
+   取拖拽主题色与预览线一致。正常态连线不在 .djs-dragger 容器，不受影响。 */
+.djs-dragger path.bpmn-arrow-filled {
+  fill: var(--element-dragger-color) !important;
+  stroke: var(--element-dragger-color) !important;
+}
+
+/* ── 弹框家族外观（产品给定样式：白底直角轻阴影、加粗标题、整宽搜索、
+      灰色分组头、单列「图标+文字」行、右侧细滚动条）──
+   取值为自有设计：按 48px palette 视觉密度自适配，非抄任何上游实现。 */
+
+/* 无边框线：柔和投影 + 一圈极淡发丝影界定边界，双线（边框+阴影）显重 */
+.djs-popup {
+  border: none;
+  border-radius: 3px; /* 轻圆角：直角生硬，大圆角与画布方角记法不配 */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+/* 标题：比条目主文大一档并加深（层级差），行距给足 */
+.djs-popup .djs-popup-header { margin: 12px 14px 8px; }
+.djs-popup .djs-popup-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* 标题行切换钮（替换弹框循环特性）：与条目同语言的轻底小方钮——
+   引擎默认是 18px 裸按钮（无底色无圆角），在统一皮肤里像外来控件。
+   取值为自有设计：24px 与搜索框 32px 同族的点击区梯度、3px 圆角与弹框
+   同语言、hover/active 6%/8% 灰与条目 hover 同族；active 文字色保持
+   引擎主题色高亮（选中态可辨识），仅补底与形态。 */
+.djs-popup .djs-popup-header-group { margin-left: auto; gap: 2px; }
+.djs-popup .djs-popup-header .entry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+}
+.djs-popup .djs-popup-header .entry:hover { background: rgba(0, 0, 0, 0.06); }
+.djs-popup .djs-popup-header .entry.active { background: rgba(0, 0, 0, 0.08); }
+
+/* 搜索框：整宽、加高（30px 量级），放大镜图标随高度居中 */
+.djs-popup .djs-popup-search { margin: 8px 14px 10px; }
+.djs-popup .djs-popup-search input {
+  padding: 6px 6px 6px 30px;
+  line-height: 18px;
+  border-radius: 3px;
+}
+.djs-popup .djs-popup-search-icon { left: 9px; top: 9px; }
+
+/* 结果区：左右留白收窄对齐搜索框，滚动条（细样式为引擎默认）贴右缘 */
+.djs-popup .djs-popup-results { margin: 2px 6px 8px 14px; }
+
+/* 分组头：灰一档且小于条目主文（次级层级），组间距略收紧 */
+.djs-popup .djs-popup-body .entry-header {
+  font-size: 12px;
+  color: #7f7f7f;
+}
+.djs-popup .djs-popup-body .entry-header:not(:first-child) { margin-top: 6px; }
+
+/* 条目行：舒展行高（参考样式行距明显大于默认 5px 紧排） */
+.djs-popup .djs-popup-body .entry { padding: 6px 8px; }
+
+/* ── 直编输入框外观 ──
+   diagram-js-direct-editing 的 TextBox 默认为内联「白底 + 1px #ccc 边」裸框
+   （该包不附任何 CSS），调整手柄更是无样式空 div——与弹框家族不配。
+   取值为自有设计，与弹框同语言：白底、轻圆角、无边框线（柔和投影 + 一圈
+   发丝影界定边界）、聚焦时发丝影加深为主题蓝描边感。内联样式为 normal
+   优先级，author 样式表 !important 可覆写。 */
+
+.djs-direct-editing-parent {
+  border: none !important;
+  border-radius: 3px !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.djs-direct-editing-parent:focus-within {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2), 0 0 0 1.5px rgba(28, 110, 224, 0.65);
+}
+
+/* 文字区：给行距与左右呼吸感（引擎默认紧贴边框），居中排版沿用内联设置 */
+.djs-direct-editing-parent .djs-direct-editing-content {
+  padding: 2px 6px;
+  line-height: 1.4;
+}
+
+/* 右下角拖拽调宽手柄（引擎空 div 无任何样式）：9px 可抓取热区 + 圆点
+   视觉记号，hover 加深提示可拖 */
+.djs-direct-editing-resize-handle {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+  cursor: nwse-resize;
+}
+.djs-direct-editing-resize-handle:hover {
+  background: rgba(28, 110, 224, 0.8);
+}

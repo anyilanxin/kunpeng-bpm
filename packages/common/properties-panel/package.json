@@ -1,0 +1,85 @@
+{
+  "name": "@kunpeng-io/properties-panel",
+  "version": "2026.10.5",
+  "description": "Library for creating bpmn-io properties panels.",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.js"
+    },
+    "./assets/*": "./assets/*",
+    "./preact": {
+      "default": "./preact/dist/preact.mjs"
+    },
+    "./preact/hooks": {
+      "default": "./preact/hooks/dist/hooks.mjs"
+    },
+    "./preact/compat": {
+      "default": "./preact/compat/dist/compat.mjs"
+    },
+    "./preact/jsx-runtime": {
+      "default": "./preact/jsx-runtime/dist/jsxRuntime.mjs"
+    },
+    "./preact/jsx-dev-runtime": {
+      "browser": "./preact/compat/jsx-dev-runtime.mjs",
+      "import": "./preact/compat/jsx-dev-runtime.mjs",
+      "require": "./preact/compat/jsx-dev-runtime.js"
+    },
+    "./preact/*": "./preact/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "assets",
+    "preact"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "clean": "rimraf dist preact"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "engines": {
+    "node": "*"
+  },
+  "author": "Niklas Kiefer <niklas.kiefer@camunda.com> (https://github.com/pinussilvestrus)",
+  "contributors": [
+    {
+      "name": "bpmn.io contributors",
+      "url": "https://github.com/bpmn-io"
+    }
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@carbon/icons": "catalog:",
+    "@codemirror/autocomplete": "catalog:",
+    "@codemirror/commands": "catalog:",
+    "@codemirror/lang-json": "catalog:",
+    "@codemirror/language": "catalog:",
+    "@codemirror/lint": "catalog:",
+    "@codemirror/state": "catalog:",
+    "@codemirror/view": "catalog:",
+    "classnames": "catalog:",
+    "focus-trap": "catalog:",
+    "min-dash": "catalog:",
+    "min-dom": "catalog:",
+    "@kunpeng-io/expression-editor": "workspace:*"
+  },
+  "devDependencies": {
+    "preact": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-babel": "catalog:",
+    "@babel/plugin-transform-react-jsx": "catalog:",
+    "babel-plugin-inline-react-svg": "catalog:",
+    "babel-plugin-module-resolver": "catalog:",
+    "replace-in-file": "catalog:",
+    "fs-extra": "catalog:",
+    "rimraf": "catalog:",
+    "@babel/core": "catalog:"
+  },
+  "types": "./dist/index.d.ts"
+}

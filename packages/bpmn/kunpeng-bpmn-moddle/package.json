@@ -1,0 +1,30 @@
+{
+  "name": "@kunpeng-io/kunpeng-bpmn-moddle",
+  "version": "2026.10.7",
+  "description": "Kunpeng 自有 BPMN 2.0 扩展元模型描述（kunpeng 命名空间；标准 BPMN 描述由 npm bpmn-moddle 资源提供）",
+  "keywords": [
+    "bpmn",
+    "moddle",
+    "bpmn20",
+    "kunpeng",
+    "meta-model"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "anyilanxin",
+    "email": "anyilanxin@aliyun.com"
+  },
+  "scripts": {},
+  "files": [
+    "resources",
+    "LICENSE"
+  ],
+  "exports": {
+    "./resources/*.json": "./resources/*.json",
+    "./resources/*": "./resources/*"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

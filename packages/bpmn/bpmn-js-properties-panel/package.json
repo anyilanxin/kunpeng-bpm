@@ -1,0 +1,60 @@
+{
+  "name": "@kunpeng-io/bpmn-js-properties-panel",
+  "version": "2026.10.4",
+  "description": "A simple properties panel for @kunpeng-io/bpmn-js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rimraf dist && vite build",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "bpmn-io",
+    "bpmn-js",
+    "properties",
+    "properties-panel"
+  ],
+  "engines": {
+    "node": "*"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "umd:main": "dist/bpmn-js-properties-panel.umd.js",
+  "author": {
+    "name": "Nico Rehwaldt",
+    "url": "https://github.com/nikku"
+  },
+  "contributors": [
+    {
+      "name": "bpmn.io contributors",
+      "url": "https://github.com/bpmn-io"
+    }
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "array-move": "catalog:",
+    "ids": "catalog:",
+    "min-dash": "catalog:",
+    "min-dom": "catalog:",
+    "@kunpeng-io/extract-process-variables": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "catalog:",
+    "vite-plugin-babel": "catalog:",
+    "@babel/plugin-transform-react-jsx": "catalog:",
+    "rimraf": "catalog:",
+    "@babel/core": "catalog:",
+    "@kunpeng-io/properties-panel": "workspace:*",
+    "@kunpeng-io/bpmn-js": "workspace:*"
+  },
+  "peerDependencies": {
+    "diagram-js": "*",
+    "@kunpeng-io/properties-panel": "*",
+    "@kunpeng-io/bpmn-js": "*"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

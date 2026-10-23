@@ -1,0 +1,272 @@
+import {
+  useState,
+  useMemo,
+  useEffect,
+  useCallback
+} from '@kunpeng-io/properties-panel/preact/hooks';
+
+import {
+  find,
+  isArray,
+  reduce
+} from 'min-dash';
+
+import { FeelLanguageContext, PropertiesPanel } from '@kunpeng-io/properties-panel';
+
+import {
+  BpmnPropertiesPanelContext
+} from '../context';
+
+import { PanelHeaderProvider } from './PanelHeaderProvider';
+import { PanelPlaceholderProvider } from './PanelPlaceholderProvider';
+
+{ /* Required to break up imports, see https://github.com/babel/babel/issues/15156 */ }
+
+const DEFAULT_FEEL_LANGUAGE_CONTEXT = {
+  parserDialect: 'kunpeng'
+};
+
+/**
+ * @param {Object} props
+ * @param {djs.model.Base|Array<djs.model.Base>} [props.element]
+ * @param {Injector} props.injector
+ * @param { (djs.model.Base) => Array<PropertiesProvider> } props.getProviders
+ * @param {Object} props.layoutConfig
+ * @param {Object} props.descriptionConfig
+ * @param {Object} props.tooltipConfig
+ * @param {HTMLElement} props.feelPopupContainer
+ * @param {Function} props.getFeelPopupLinks
+ */
+export default function BpmnPropertiesPanel(props) {
+  const {
+    element,
+    injector,
+    getProviders,
+    layoutConfig: initialLayoutConfig,
+    descriptionConfig,
+    tooltipConfig,
+    feelPopupContainer,
+    getFeelPopupLinks
+  } = props;
+
+  const canvas = injector.get('canvas');
+  const elementRegistry = injector.get('elementRegistry');
+  const eventBus = injector.get('eventBus');
+  const translate = injector.get('translate');
+
+  const [ state, setState ] = useState({
+    selectedElement: element
+  });
+
+  const selectedElement = state.selectedElement;
+
+  /**
+   * @param {Object} element
+   */
+  const _update = (element) => {
+
+    if (!element) {
+      return;
+    }
+
+    let newSelectedElement = element;
+
+    // handle labels
+    if (newSelectedElement && newSelectedElement.type === 'label') {
+      newSelectedElement = newSelectedElement.labelTarget;
+    }
+
+    setState({
+      ...state,
+      selectedElement: newSelectedElement
+    });
+
+    // notify interested parties on property panel updates
+    eventBus.fire('propertiesPanel.updated', {
+      element: newSelectedElement
+    });
+  };
+
+  // (2) react on element changes
+
+  // (2a) selection changed
+  useEffect(() => {
+    const onSelectionChanged = (e) => {
+      const { newSelection = [] } = e;
+
+      if (newSelection.length > 1) {
+        return _update(newSelection);
+      }
+
+      const newElement = newSelection[0];
+
+      const rootElement = canvas.getRootElement();
+
+      if (isImplicitRoot(rootElement)) {
+        return;
+      }
+
+      _update(newElement || rootElement);
+    };
+
+    eventBus.on('selection.changed', onSelectionChanged);
+
+    return () => {
+      eventBus.off('selection.changed', onSelectionChanged);
+    };
+  }, []);
+
+  // (2b) selected element changed
+  useEffect(() => {
+    const onElementsChanged = (e) => {
+      const elements = e.elements;
+
+      const updatedElement = findElement(elements, selectedElement);
+
+      if (updatedElement && elementExists(updatedElement, elementRegistry)) {
+        _update(updatedElement);
+      }
+    };
+
+    eventBus.on('elements.changed', onElementsChanged);
+
+    return () => {
+      eventBus.off('elements.changed', onElementsChanged);
+    };
+  }, [ selectedElement ]);
+
+  // (2c) import done
+  useEffect(() => {
+    const onImportDone = () => {
+      const rootElement = canvas.getRootElement();
+
+      _update(rootElement);
+    };
+
+    eventBus.on('import.done', onImportDone);
+
+    return () => {
+      eventBus.off('import.done', onImportDone);
+    };
+  }, []);
+
+  // (2d) provided entries changed
+  useEffect(() => {
+    const onProvidersChanged = () => {
+      _update(selectedElement);
+    };
+
+    eventBus.on('propertiesPanel.providersChanged', onProvidersChanged);
+
+    return () => {
+      eventBus.off('propertiesPanel.providersChanged', onProvidersChanged);
+    };
+  }, [ selectedElement ]);
+
+  // (2e) element templates changed
+  useEffect(() => {
+    const onTemplatesChanged = () => {
+      _update(selectedElement);
+    };
+
+    eventBus.on('elementTemplates.changed', onTemplatesChanged);
+
+    return () => {
+      eventBus.off('elementTemplates.changed', onTemplatesChanged);
+    };
+  }, [ selectedElement ]);
+
+  // (3) create properties panel context
+  const bpmnPropertiesPanelContext = {
+    selectedElement,
+    injector,
+    getService(type, strict) { return injector.get(type, strict); }
+  };
+
+  // (4) retrieve groups for selected element
+  const providers = getProviders(selectedElement);
+
+  const groups = useMemo(() => {
+    return reduce(providers, function(groups, provider) {
+
+      // do not collect groups for multi element state
+      if (isArray(selectedElement)) {
+        return [];
+      }
+
+      const updater = provider.getGroups(selectedElement);
+
+      return updater(groups);
+    }, []);
+  }, [ providers, selectedElement ]);
+
+  // (5) notify layout changes
+  const [ layoutConfig, setLayoutConfig ] = useState(initialLayoutConfig || {});
+
+  const onLayoutChanged = useCallback((newLayout) => {
+    eventBus.fire('propertiesPanel.layoutChanged', {
+      layout: newLayout
+    });
+  }, [ eventBus ]);
+
+  // React to external layout changes
+  useEffect(() => {
+    const cb = (e) => {
+      const { layout } = e;
+      setLayoutConfig(layout);
+    };
+
+    eventBus.on('propertiesPanel.setLayout', cb);
+    return () => eventBus.off('propertiesPanel.setLayout', cb);
+  }, [ eventBus, setLayoutConfig ]);
+
+  // (6) notify description changes
+  const onDescriptionLoaded = (description) => {
+    eventBus.fire('propertiesPanel.descriptionLoaded', {
+      description
+    });
+  };
+
+  // (7) notify tooltip changes
+  const onTooltipLoaded = (tooltip) => {
+    eventBus.fire('propertiesPanel.tooltipLoaded', {
+      tooltip
+    });
+  };
+
+  return (
+    <BpmnPropertiesPanelContext.Provider value={ bpmnPropertiesPanelContext }>
+      <FeelLanguageContext.Provider value={ DEFAULT_FEEL_LANGUAGE_CONTEXT }>
+        <PropertiesPanel
+          element={ selectedElement }
+          headerProvider={ PanelHeaderProvider(translate) }
+          placeholderProvider={ PanelPlaceholderProvider(translate) }
+          groups={ groups }
+          layoutConfig={ layoutConfig }
+          layoutChanged={ onLayoutChanged }
+          descriptionConfig={ descriptionConfig }
+          descriptionLoaded={ onDescriptionLoaded }
+          tooltipConfig={ tooltipConfig }
+          tooltipLoaded={ onTooltipLoaded }
+          feelPopupContainer={ feelPopupContainer }
+          getFeelPopupLinks={ getFeelPopupLinks }
+          eventBus={ eventBus } />
+      </FeelLanguageContext.Provider>
+    </BpmnPropertiesPanelContext.Provider>
+  );
+}
+
+
+// helpers //////////////////////////
+
+function isImplicitRoot(element) {
+  return element && element.isImplicit;
+}
+
+function findElement(elements, element) {
+  return find(elements, (e) => e === element);
+}
+
+function elementExists(element, elementRegistry) {
+  return element && elementRegistry.get(element.id);
+}

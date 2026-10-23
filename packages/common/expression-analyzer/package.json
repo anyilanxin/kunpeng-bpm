@@ -1,0 +1,60 @@
+{
+  "name": "@kunpeng-io/expression-analyzer",
+  "version": "2026.10.4",
+  "description": "Static FEEL expression analyzer",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "package.json"
+  ],
+  "scripts": {
+    "build": "rimraf dist && vite build",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@lezer/common": "catalog:",
+    "@kunpeng-io/lezer-expression": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "catalog:",
+    "rimraf": "catalog:"
+  },
+  "engines": {
+    "node": ">= 20"
+  },
+  "homepage": "https://github.com/bpmn-io/feel-analyzer#readme",
+  "bugs": {
+    "url": "https://github.com/bpmn-io/feel-analyzer/issues"
+  },
+  "author": {
+    "name": "Simon Steinrücken",
+    "url": "https://github.com/Buckwich"
+  },
+  "contributors": [
+    {
+      "name": "bpmn.io contributors",
+      "url": "https://github.com/bpmn-io"
+    }
+  ],
+  "keywords": [
+    "feel",
+    "bpmn-io",
+    "analyzer"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "name": "@kunpeng-io/element-templates-validator",
+  "version": "2026.10.4",
+  "description": "Validate element templates based on JSON Schema",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "source": "src/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rimraf dist && vite build",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "json-schema",
+    "json-schema-validator",
+    "element templates",
+    "validator",
+    "validation"
+  ],
+  "author": {
+    "name": "Maciej Barelkowski",
+    "email": "maciej.barelkowski@camunda.com",
+    "url": "https://github.com/barmac"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bpmn-io/element-templates-validator/issues"
+  },
+  "homepage": "https://github.com/bpmn-io/element-templates-validator#readme",
+  "devDependencies": {
+    "vite": "catalog:",
+    "rimraf": "catalog:",
+    "ajv": "catalog:",
+    "ajv-errors": "catalog:"
+  },
+  "dependencies": {
+    "@kunpeng-io/element-templates-json-schema": "workspace:*",
+    "json-source-map": "catalog:",
+    "min-dash": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

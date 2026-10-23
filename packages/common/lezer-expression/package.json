@@ -1,0 +1,41 @@
+{
+  "name": "@kunpeng-io/lezer-expression",
+  "version": "2026.10.4",
+  "description": "Lezer-based FEEL grammar",
+  "type": "module",
+  "source": "./src/index.js",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
+  "author": "Nico Rehwaldt <https://github.com/nikku>",
+  "license": "MIT",
+  "sideEffects": false,
+  "devDependencies": {
+    "@lezer/generator": "catalog:",
+    "vite": "catalog:",
+    "rimraf": "catalog:"
+  },
+  "dependencies": {
+    "@lezer/common": "catalog:",
+    "@lezer/highlight": "catalog:",
+    "@lezer/lr": "catalog:",
+    "min-dash": "catalog:"
+  },
+  "engines": {
+    "node": ">= 20.12.0"
+  },
+  "scripts": {
+    "build": "lezer-generator src/feel.grammar -o src/parser && rimraf dist && vite build",
+    "clean": "rimraf dist"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

@@ -1,0 +1,121 @@
+/* ============ 应用布局（对齐设计稿） ============ */
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #33383f;
+  background: #f5f6f8;
+  overflow: hidden;
+}
+
+#app { position: relative; height: 100vh; }
+
+/* 顶部悬浮工具栏（BPMN 画布专属）：下移让位顶部卡片标题栏（36px）
+ * 样式对齐 kunpeng-modeler CanvasToolbar：
+ * 10px 圆角卡 + 28×28 按钮 7px 圆角 + 48 viewBox 描边宽 4 线性图标 */
+.canvas-toolbar {
+  position: absolute;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #efeff5;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.ct-group { display: flex; align-items: center; gap: 2px; }
+.ct-sep { width: 1px; height: 18px; background: #efeff5; margin: 0 4px; }
+
+.ct-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #57607a;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ct-btn:hover { background: #eef0f4; color: #2c3345; }
+.ct-btn.ct-active { background: rgba(45, 113, 235, 0.12); color: #2d71eb; }
+
+.ct-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.ct-btn:disabled:hover { background: none; color: #57607a; }
+
+/* 视图切换分段选择器（流程图 | XML）样式已随组件移入 src/components/XmlViewCard.vue */
+
+.ct-zoom { font-size: 12px; color: #57607a; }
+
+.zoom-val {
+  min-width: 42px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ct-svg-icon { width: 18px; height: 18px; display: block; }
+
+/* 画布宿主尺寸由 App.vue scoped 样式负责；这里只透底色（网格背景=插件挂载点，核心不绘制） */
+.canvas-host .djs-container,
+#canvas-host .djs-container {
+  background: transparent;
+  /* diagram-js 不设定容器尺寸，须由宿主页面撑满 */
+  width: 100%;
+  height: 100%;
+}
+
+/* 元素面板（palette）观感全部用 diagram-js.css 默认；
+ * 单列窄条 + 条目区滚动两条功能性覆写属组件自有样式，
+ * 已收进 packages/bpmn-js/src/styles/bpmn-js.css（经 '@kunpeng-io/bpmn-js/styles' 引入）。 */
+
+/* ============ 示例插件：事件日志面板 ============ */
+.bpm-event-log {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 40;
+  width: 300px;
+  background: #fff;
+  border: 1px solid #e2e5ea;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(28, 34, 46, 0.1);
+  font-size: 12px;
+  overflow: hidden;
+}
+.bpm-event-log-title {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+  font-weight: 600;
+  border-bottom: 1px solid #eef1f6;
+  cursor: default;
+}
+.bpm-event-log-toggle { color: #4a7bd0; cursor: pointer; }
+.bpm-event-log-list { list-style: none; margin: 0; padding: 6px 10px; max-height: 180px; overflow-y: auto; }
+.bpm-event-log-list li { padding: 2px 0; color: #5a6472; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bpm-event-log.collapsed .bpm-event-log-list { display: none; }
+
+/* 示例插件 palette 条目 */
+.bpm-sample-stamp-entry {
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Crect x='8' y='8' width='20' height='14' rx='2' fill='%234a7bd0' opacity='.2' stroke='%234a7bd0'/%3E%3Cpath d='M10 26 H26 M12 30 H24' stroke='%234a7bd0' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 30px 30px;
+}
+

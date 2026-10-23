@@ -1,0 +1,51 @@
+{
+  "name": "@kunpeng-io/expression-lint",
+  "version": "2026.10.4",
+  "description": "Linter for FEEL expressions.",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "source": "./lib/index.js",
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rimraf dist && vite build",
+    "clean": "rimraf dist"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "keywords": [
+    "bpmn-io",
+    "feel",
+    "linter"
+  ],
+  "author": {
+    "name": "Martin Stamm",
+    "url": "https://github.com/marstamm"
+  },
+  "contributors": [
+    {
+      "name": "bpmn.io contributors",
+      "url": "https://github.com/bpmn-io"
+    }
+  ],
+  "engines": {
+    "node": "*"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "catalog:",
+    "rimraf": "catalog:"
+  },
+  "dependencies": {
+    "@codemirror/language": "catalog:",
+    "@kunpeng-io/lezer-expression": "workspace:*"
+  },
+  "types": "./dist/index.d.ts"
+}

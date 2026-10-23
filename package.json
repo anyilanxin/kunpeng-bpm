@@ -1,0 +1,19 @@
+{
+  "name": "kunpeng-bpm",
+  "private": true,
+  "version": "0.0.0",
+  "description": "BPMN 2.0 建模器 monorepo（组件 + moddle 扩展 + Vue 接入示例）",
+  "packageManager": "pnpm@10.18.2",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter bpmn-example dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0"
+  }
+}

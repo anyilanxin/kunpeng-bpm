@@ -1,0 +1,49 @@
+{
+  "name": "@kunpeng-io/bpmn-js",
+  "version": "0.1.0",
+  "description": "BPMN 2.0 标准化 Web 建模器组件（diagram-js 基座，插件化 / 事件通知 / 命令式操作 / kunpeng 扩展命名空间）",
+  "license": "GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0",
+  "type": "module",
+  "main": "./dist/bpmn-js.cjs",
+  "module": "./dist/bpmn-js.es.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/bpmn-js.es.js",
+      "require": "./dist/bpmn-js.cjs"
+    },
+    "./styles": "./dist/styles/bpmn-js.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "NOTICE",
+    "licenses"
+  ],
+  "scripts": {
+    "build": "vite build --config vite.lib.config.ts && tsc -p tsconfig.lib.json && node scripts/prepare-dist.mjs",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm run typecheck && pnpm run build"
+  },
+  "dependencies": {
+    "@kunpeng-io/kunpeng-bpmn-moddle": "workspace:*",
+    "bpmn-moddle": "^10.3.1",
+    "diagram-js": "^15.9.0",
+    "diagram-js-direct-editing": "^3.3.0",
+    "didi": "^11.0.1",
+    "htm": "^3.1.1",
+    "ids": "^3.0.0",
+    "inherits-browser": "^0.1.0",
+    "min-dash": "^5.0.0",
+    "min-dom": "^5.2.0",
+    "moddle": "^8.2.1",
+    "moddle-xml": "^12.3.1",
+    "tiny-svg": "^4.1.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0"
+  }
+}

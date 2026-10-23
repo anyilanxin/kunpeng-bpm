@@ -1,0 +1,24 @@
+{
+  "name": "@kunpeng-io/element-templates-json-schema",
+  "version": "2026.10.4",
+  "description": "JSON Schema for (Kunpeng) Element Templates",
+  "keywords": [
+    "json-schema",
+    "element-templates",
+    "camunda"
+  ],
+  "homepage": "https://github.com/camunda/element-templates-json-schema#readme",
+  "bugs": {
+    "url": "https://github.com/camunda/element-templates-json-schema/issues"
+  },
+  "license": "MIT",
+  "author": "Niklas Kiefer <niklas.kiefer@camunda.com (https://github.com/pinussilvestrus)",
+  "scripts": {},
+  "files": [
+    "resources"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

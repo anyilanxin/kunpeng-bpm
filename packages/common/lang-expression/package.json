@@ -1,0 +1,47 @@
+{
+  "name": "@kunpeng-io/lang-expression",
+  "version": "2026.10.4",
+  "description": "FEEL language support for the CodeMirror code editor",
+  "scripts": {
+    "build": "rimraf dist && vite build",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "editor",
+    "code"
+  ],
+  "author": {
+    "name": "Nico Rehwaldt",
+    "url": "https://github.com/nikku"
+  },
+  "type": "module",
+  "source": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "license": "MIT",
+  "dependencies": {
+    "@codemirror/autocomplete": "catalog:",
+    "@codemirror/language": "catalog:",
+    "@lezer/common": "catalog:",
+    "@kunpeng-io/lezer-expression": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "catalog:",
+    "rimraf": "catalog:"
+  },
+  "engines": {
+    "node": ">= 20.12.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

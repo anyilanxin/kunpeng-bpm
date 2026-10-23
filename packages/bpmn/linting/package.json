@@ -1,0 +1,41 @@
+{
+  "name": "@kunpeng-io/linting",
+  "version": "2026.10.4",
+  "description": "Linting for Camunda",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo \"No build step required\""
+  },
+  "keywords": [
+    "bpmnlint",
+    "kunpeng"
+  ],
+  "author": {
+    "name": "Philipp Fromme",
+    "url": "https://github.com/philippfromme"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@bpmn-io/diagram-js-ui": "catalog:",
+    "@kunpeng-io/kunpeng-bpmn-moddle": "workspace:*",
+    "@kunpeng-js/bpmnlint-plugin-kunpeng-compat": "2.59.0",
+    "bpmnlint": "catalog:",
+    "bpmnlint-utils": "catalog:",
+    "clsx": "catalog:",
+    "min-dash": "catalog:",
+    "min-dom": "catalog:",
+    "modeler-moddle": "catalog:",
+    "semver-compare": "catalog:",
+    "bpmn-moddle": "catalog:"
+  },
+  "files": [
+    "assets",
+    "lib",
+    "index.js",
+    "modeler.js"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

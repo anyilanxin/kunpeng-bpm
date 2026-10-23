@@ -1,0 +1,37 @@
+{
+  "name": "@kunpeng-io/expression-builtins",
+  "version": "2026.10.4",
+  "description": "Collection of builtin Camunda extensions for FEEL",
+  "type": "module",
+  "sideEffects": false,
+  "scripts": {
+    "build": "rimraf dist && vite build",
+    "clean": "rimraf dist"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "rimraf": "catalog:"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "author": "Camunda <https://camunda.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/camunda/feel-builtins/issues"
+  },
+  "homepage": "https://github.com/camunda/feel-builtins#readme",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

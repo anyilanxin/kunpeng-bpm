@@ -1,0 +1,4362 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "http://anyilanxin.com/schema/element-templates/1.0",
+  "title": "Element Template Schema",
+  "definitions": {
+    "properties": {
+      "allOf": [
+        {
+          "type": "array",
+          "description": "List of the template's properties.",
+          "allOf": [
+            {
+              "examples": [
+                [
+                  {
+                    "label": "Name",
+                    "type": "String",
+                    "binding": {
+                      "type": "property",
+                      "name": "name"
+                    }
+                  }
+                ]
+              ]
+            }
+          ],
+          "items": {
+            "type": "object",
+            "default": {},
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "Dropdown"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "choices"
+                  ]
+                }
+              },
+              {
+                "definitions": {
+                  "condition": {
+                    "type": "object",
+                    "required": [
+                      "property"
+                    ],
+                    "properties": {
+                      "type": {
+                        "$id": "#/condition/type",
+                        "const": "simple",
+                        "description": "Defines the type of the condition (always \"simple\").",
+                        "default": "simple"
+                      },
+                      "property": {
+                        "$id": "#/condition/property",
+                        "type": "string",
+                        "description": "Reference to the property used to evaluate the condition."
+                      }
+                    },
+                    "oneOf": [
+                      {
+                        "description": "Checks if the referenced property's value is in the list of values defined in the condition.",
+                        "properties": {
+                          "equals": {
+                            "description": "Checks if the referenced property's value is equal to the value defined in the condition.",
+                            "type": [
+                              "string",
+                              "number",
+                              "boolean"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "equals"
+                        ]
+                      },
+                      {
+                        "properties": {
+                          "oneOf": {
+                            "type": "array",
+                            "items": {
+                              "type": [
+                                "string",
+                                "number"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "oneOf"
+                        ]
+                      },
+                      {
+                        "properties": {
+                          "isActive": {
+                            "type": "boolean",
+                            "description": "Checks if the referenced property is currently active and not hidden by other conditions."
+                          }
+                        },
+                        "required": [
+                          "isActive"
+                        ]
+                      }
+                    ]
+                  },
+                  "conditionDependingOnId": {
+                    "required": [
+                      "property"
+                    ],
+                    "properties": {
+                      "property": {
+                        "const": {
+                          "$data": "2/id"
+                        }
+                      }
+                    }
+                  }
+                },
+                "allOf": [
+                  {
+                    "$comment": "property#condition should not depend on property#id",
+                    "if": {
+                      "required": [
+                        "id",
+                        "condition"
+                      ],
+                      "properties": {
+                        "condition": {
+                          "$ref": "#/definitions/properties/allOf/0/items/allOf/1/definitions/conditionDependingOnId"
+                        }
+                      }
+                    },
+                    "then": {
+                      "not": {
+                        "required": [
+                          "condition"
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Unique identifier of the property. Can be used to, for example, reference the property for checks."
+                  },
+                  "condition": {
+                    "type": "object",
+                    "description": "Object that defines when a property should be displayed in the properties panel and its value should be included in the XML.",
+                    "allOf": [
+                      {
+                        "examples": [
+                          {
+                            "type": "simple",
+                            "property": "httpMethod",
+                            "equals": "GET"
+                          },
+                          {
+                            "type": "simple",
+                            "property": "httpMethod",
+                            "oneOf": [
+                              "POST",
+                              "PUT",
+                              "DELETE"
+                            ]
+                          },
+                          {
+                            "allMatch": [
+                              {
+                                "type": "simple",
+                                "property": "authType",
+                                "equals": "Basic"
+                              },
+                              {
+                                "type": "simple",
+                                "property": "httpMethod",
+                                "oneOf": [
+                                  "POST",
+                                  "PUT",
+                                  "DELETE"
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ],
+                    "oneOf": [
+                      {
+                        "$ref": "#/definitions/properties/allOf/0/items/allOf/1/definitions/condition"
+                      },
+                      {
+                        "properties": {
+                          "allMatch": {
+                            "$id": "#/allMatch",
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/definitions/properties/allOf/0/items/allOf/1/definitions/condition"
+                            },
+                            "minItems": 1,
+                            "description": "List of conditions that must all be met for the property to be active."
+                          }
+                        },
+                        "required": [
+                          "allMatch"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "not": {
+                        "const": "Number"
+                      }
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": [
+                        "string",
+                        "boolean"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "oneOf": [
+                    {
+                      "properties": {
+                        "type": {
+                          "enum": [
+                            "String",
+                            "Text"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "type"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "placeholder": {
+                      "type": "string",
+                      "description": "Placeholder text shown in the property input field when it is empty. Can be used to show example input."
+                    }
+                  }
+                },
+                "else": {
+                  "not": {
+                    "required": [
+                      "placeholder"
+                    ]
+                  }
+                }
+              }
+            ],
+            "properties": {
+              "value": {
+                "$id": "#/properties/property/value",
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ],
+                "description": "Default value to be used if the user does not provide a value or if the type is Hidden."
+              },
+              "description": {
+                "$id": "#/properties/property/description",
+                "type": "string",
+                "description": "Hint text shown below the property input field."
+              },
+              "label": {
+                "$id": "#/properties/property/label",
+                "type": "string",
+                "description": "Label text shown above the property input field."
+              },
+              "type": {
+                "$id": "#/properties/property/type",
+                "type": "string",
+                "description": "The type of a control field."
+              },
+              "editable": {
+                "$id": "#/properties/property/editable",
+                "type": "boolean",
+                "description": "Defines whether users can edit the property in the properties panel. By default, all non-hidden properties are editable."
+              },
+              "choices": {
+                "$id": "#/properties/property/choices",
+                "type": "array",
+                "description": "List of choices for a dropdown field.",
+                "default": [],
+                "items": {
+                  "$id": "#/properties/property/choices/item",
+                  "type": "object",
+                  "default": {},
+                  "properties": {
+                    "name": {
+                      "$id": "#/properties/property/choices/item/name",
+                      "type": "string",
+                      "description": "Display name for a choice in a dropdown field. Shown to the user."
+                    },
+                    "value": {
+                      "$id": "#/properties/property/choices/item/value",
+                      "type": "string",
+                      "description": "Value for a choice in a dropdown field. Stored in the XML."
+                    },
+                    "condition": {
+                      "$ref": "#/definitions/properties/allOf/0/items/allOf/1/properties/condition"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "name"
+                  ]
+                }
+              },
+              "constraints": {
+                "$id": "#/properties/property/constraints",
+                "type": "object",
+                "description": "Object that contains rules to validate user input to the template.",
+                "allOf": [
+                  {
+                    "examples": [
+                      {
+                        "notEmpty": true
+                      }
+                    ]
+                  }
+                ],
+                "properties": {
+                  "notEmpty": {
+                    "$id": "#/properties/property/constraints/notEmpty",
+                    "type": "boolean",
+                    "description": "The control field must not be empty."
+                  },
+                  "minLength": {
+                    "$id": "#/properties/property/constraints/minLength",
+                    "type": "number",
+                    "description": "The minimal length of a control field value."
+                  },
+                  "maxLength": {
+                    "$id": "#/properties/property/constraints/maxLength",
+                    "type": "number",
+                    "description": "The maximal length for a control field value."
+                  },
+                  "pattern": {
+                    "$id": "#/properties/property/constraints/pattern",
+                    "description": "String or object that defines a regular expression that the user's input must match.",
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "default": {},
+                        "properties": {
+                          "value": {
+                            "$id": "#/properties/property/constraints/pattern/value",
+                            "type": "string",
+                            "description": "The value of the regular expression."
+                          },
+                          "message": {
+                            "$id": "#/properties/property/constraints/pattern/message",
+                            "type": "string",
+                            "description": "Custom error message to show when the user's input does not match the regular expression."
+                          }
+                        }
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  }
+                }
+              },
+              "group": {
+                "$id": "#/properties/property/group",
+                "type": "string",
+                "description": "Group in the properties panel that the property belongs to."
+              }
+            }
+          }
+        },
+        {
+          "$schema": "http://json-schema.org/draft-07/schema",
+          "type": "array",
+          "description": "List of properties of the element template.",
+          "items": {
+            "type": "object",
+            "default": {},
+            "required": [
+              "binding"
+            ],
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "const": "property"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "binding"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "String",
+                        "Text",
+                        "Hidden",
+                        "Dropdown",
+                        "Boolean",
+                        "Number"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "enum": [
+                            "kunpeng:input",
+                            "kunpeng:output",
+                            "kunpeng:property",
+                            "kunpeng:taskHeader",
+                            "kunpeng:taskDefinition:type",
+                            "bpmn:Message#property",
+                            "bpmn:Message#kunpeng:subscription#property",
+                            "kunpeng:taskDefinition",
+                            "kunpeng:calledElement",
+                            "kunpeng:linkedResource",
+                            "kunpeng:formDefinition",
+                            "kunpeng:calledDecision",
+                            "kunpeng:script",
+                            "kunpeng:assignmentDefinition",
+                            "kunpeng:priorityDefinition",
+                            "kunpeng:adHoc",
+                            "kunpeng:taskSchedule"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "binding"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "String",
+                        "Text",
+                        "Hidden",
+                        "Dropdown",
+                        "Boolean",
+                        "Number"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "optional": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "optional"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "enum": [
+                            "kunpeng:input",
+                            "kunpeng:output",
+                            "kunpeng:property",
+                            "kunpeng:taskHeader"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "optional": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "optional"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "constraints": {
+                      "properties": {
+                        "notEmpty": {
+                          "const": false
+                        }
+                      },
+                      "required": [
+                        "notEmpty"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "feel": {
+                      "not": {
+                        "const": null
+                      }
+                    }
+                  },
+                  "required": [
+                    "feel"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "String",
+                        "Text",
+                        "Number",
+                        "Boolean"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "language": {
+                      "not": {
+                        "const": null
+                      }
+                    }
+                  },
+                  "required": [
+                    "language"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "Text"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "required": [
+                    "value"
+                  ]
+                },
+                "then": {
+                  "not": {
+                    "required": [
+                      "generatedValue"
+                    ]
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "Boolean",
+                        "Dropdown"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "not": {
+                    "required": [
+                      "generatedValue"
+                    ]
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "String",
+                        "Text"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "feel"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "feel": {
+                      "enum": [
+                        "optional",
+                        "required"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "feel": {
+                      "const": "required"
+                    }
+                  },
+                  "required": [
+                    "feel"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^="
+                        },
+                        {
+                          "type": "string",
+                          "not": {
+                            "pattern": "^="
+                          },
+                          "deprecated": true
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:linkedResource"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "binding"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "linkName": {
+                          "type": "string"
+                        },
+                        "property": {
+                          "enum": [
+                            "resourceId",
+                            "resourceType",
+                            "bindingType",
+                            "versionTag"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "linkName",
+                        "property"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "type": {
+                              "enum": [
+                                "kunpeng:input",
+                                "kunpeng:output"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        },
+                        "type": {
+                          "enum": [
+                            "Boolean",
+                            "Number"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding",
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "feel": {
+                          "default": "static"
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "if": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:userTask"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "binding"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "Hidden"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:formDefinition"
+                        },
+                        "property": {
+                          "const": "formId"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "property"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "binding"
+                  ]
+                },
+                "then": {
+                  "not": {
+                    "required": [
+                      "feel"
+                    ]
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:formDefinition"
+                        },
+                        "property": {
+                          "enum": [
+                            "externalReference",
+                            "formId"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "property"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "binding"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "Hidden",
+                        "String",
+                        "Text",
+                        "Dropdown"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:calledDecision"
+                        },
+                        "property": {
+                          "const": "resultVariable"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "property"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "binding"
+                  ]
+                },
+                "then": {
+                  "not": {
+                    "required": [
+                      "feel"
+                    ]
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:calledDecision"
+                        },
+                        "property": {
+                          "enum": [
+                            "resultVariable",
+                            "decisionId"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "property"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "binding"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "Hidden",
+                        "String",
+                        "Text",
+                        "Dropdown"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:script"
+                        },
+                        "property": {
+                          "const": "resultVariable"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "property"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "binding"
+                  ]
+                },
+                "then": {
+                  "not": {
+                    "required": [
+                      "feel"
+                    ]
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "String",
+                        "Text"
+                      ]
+                    },
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:script"
+                        },
+                        "property": {
+                          "const": "expression"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "property"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "binding"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "feel": {
+                      "enum": [
+                        "required"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "feel"
+                  ]
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:script"
+                        },
+                        "property": {
+                          "enum": [
+                            "resultVariable",
+                            "expression"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "property"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "binding"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "Hidden",
+                        "String",
+                        "Text",
+                        "Dropdown"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "property": {
+                              "const": "bindingType"
+                            },
+                            "type": {
+                              "enum": [
+                                "kunpeng:calledDecision",
+                                "kunpeng:formDefinition",
+                                "kunpeng:calledElement",
+                                "kunpeng:linkedResource"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "property"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding"
+                      ]
+                    },
+                    "then": {
+                      "required": [
+                        "type",
+                        "value"
+                      ],
+                      "properties": {
+                        "choices": {
+                          "type": "array",
+                          "items": {
+                            "properties": {
+                              "value": {
+                                "enum": [
+                                  "latest",
+                                  "versionTag",
+                                  "deployment"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "type": {
+                          "enum": [
+                            "Hidden",
+                            "Dropdown"
+                          ]
+                        },
+                        "value": {
+                          "enum": [
+                            "latest",
+                            "versionTag",
+                            "deployment"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "property": {
+                              "const": "versionTag"
+                            },
+                            "type": {
+                              "enum": [
+                                "kunpeng:calledDecision",
+                                "kunpeng:formDefinition",
+                                "kunpeng:calledElement",
+                                "kunpeng:linkedResource"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "property"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding"
+                      ]
+                    },
+                    "then": {
+                      "allOf": [
+                        {
+                          "required": [
+                            "type"
+                          ],
+                          "properties": {
+                            "type": {
+                              "enum": [
+                                "Hidden",
+                                "Dropdown",
+                                "String",
+                                "Text"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "not": {
+                            "required": [
+                              "feel"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "if": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:assignmentDefinition"
+                        },
+                        "property": {
+                          "enum": [
+                            "assignee",
+                            "candidateUsers",
+                            "candidateGroups"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "property"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "binding"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "Hidden",
+                        "String",
+                        "Text",
+                        "Dropdown"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "allOf": [
+                  {
+                    "if": {
+                      "type": "object",
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "type": {
+                              "const": "kunpeng:priorityDefinition"
+                            },
+                            "property": {
+                              "const": "priority"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "property"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding"
+                      ]
+                    },
+                    "then": {
+                      "anyOf": [
+                        {
+                          "required": [
+                            "type"
+                          ],
+                          "properties": {
+                            "type": {
+                              "enum": [
+                                "Hidden",
+                                "Number",
+                                "Dropdown"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "required": [
+                            "type",
+                            "feel"
+                          ],
+                          "properties": {
+                            "type": {
+                              "enum": [
+                                "String",
+                                "Text"
+                              ]
+                            },
+                            "feel": {
+                              "const": "required"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "const": "Number"
+                        },
+                        "binding": {
+                          "properties": {
+                            "type": {
+                              "const": "kunpeng:priorityDefinition"
+                            },
+                            "property": {
+                              "const": "priority"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "property"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding",
+                        "value",
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "value": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "enum": [
+                            "Hidden",
+                            "Dropdown"
+                          ]
+                        },
+                        "binding": {
+                          "properties": {
+                            "type": {
+                              "const": "kunpeng:priorityDefinition"
+                            },
+                            "property": {
+                              "const": "priority"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "property"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding",
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "value": {
+                          "type": "string",
+                          "pattern": "^(100|[1-9]?[0-9])$"
+                        },
+                        "choices": {
+                          "items": {
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "pattern": "^(100|[1-9]?[0-9])$"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "allOf": [
+                  {
+                    "$comment": "AdHoc output properties require string-based types (Hidden, String, Text, or Dropdown)",
+                    "if": {
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "type": {
+                              "const": "kunpeng:adHoc"
+                            },
+                            "property": {
+                              "enum": [
+                                "outputCollection",
+                                "outputElement"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "property"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding"
+                      ]
+                    },
+                    "then": {
+                      "required": [
+                        "type"
+                      ],
+                      "properties": {
+                        "type": {
+                          "enum": [
+                            "Hidden",
+                            "String",
+                            "Text",
+                            "Dropdown"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "$comment": "outputCollection properties must not be FEEL expressions",
+                    "if": {
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "type": {
+                              "const": "kunpeng:adHoc"
+                            },
+                            "property": {
+                              "const": "outputCollection"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "property"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding"
+                      ]
+                    },
+                    "then": {
+                      "not": {
+                        "required": [
+                          "feel"
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "type": {
+                              "const": "kunpeng:taskSchedule"
+                            },
+                            "property": {
+                              "enum": [
+                                "dueDate",
+                                "followUpDate"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "property"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding"
+                      ]
+                    },
+                    "then": {
+                      "required": [
+                        "type"
+                      ],
+                      "properties": {
+                        "type": {
+                          "enum": [
+                            "Hidden",
+                            "String",
+                            "Dropdown",
+                            "Text"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "type": {
+                              "const": "kunpeng:taskSchedule"
+                            },
+                            "property": {
+                              "enum": [
+                                "dueDate",
+                                "followUpDate"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "property"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding",
+                        "value"
+                      ],
+                      "not": {
+                        "required": [
+                          "feel"
+                        ]
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "value": {
+                          "type": "string",
+                          "pattern": "^(?<date>\\d{4}-(?<month>0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]))T(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](Z|([+-](0[0-9]|1[0-3]):[0-5][0-9](\\[[^\\]]+\\])?))$",
+                          "description": "The value must be conforming to an ISO 8601 combined date and time representation."
+                        }
+                      },
+                      "required": [
+                        "value"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "if": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "const": "bpmn:Signal#property"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "binding"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "String",
+                        "Text",
+                        "Hidden",
+                        "Dropdown"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:calledElement"
+                        },
+                        "property": {
+                          "enum": [
+                            "propagateAllParentVariables",
+                            "propagateAllChildVariables"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "property"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "binding"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "Hidden",
+                        "Boolean"
+                      ]
+                    },
+                    "value": {
+                      "type": "boolean"
+                    }
+                  },
+                  "not": {
+                    "required": [
+                      "feel"
+                    ]
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "const": "bpmn:TimerEventDefinition#property"
+                        },
+                        "name": {
+                          "enum": [
+                            "timeDate",
+                            "timeDuration",
+                            "timeCycle"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "name"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "binding"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "Hidden",
+                        "String",
+                        "Text"
+                      ]
+                    }
+                  }
+                }
+              }
+            ],
+            "properties": {
+              "binding": {
+                "$id": "#/properties/property/binding",
+                "type": "object",
+                "description": "Specifying how the property is mapped to BPMN or Zeebe extension elements and attributes.",
+                "required": [
+                  "type"
+                ],
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "enum": [
+                            "property",
+                            "kunpeng:property",
+                            "kunpeng:input",
+                            "bpmn:Message#property",
+                            "bpmn:Message#kunpeng:subscription#property",
+                            "bpmn:Signal#property",
+                            "bpmn:TimerEventDefinition#property"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "required": [
+                        "name"
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:output"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "required": [
+                        "source"
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:taskHeader"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "required": [
+                        "key"
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:taskDefinition"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "property": {
+                          "enum": [
+                            "type",
+                            "retries"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "property"
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:taskDefinition:type"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "deprecated": true
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:calledElement"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "property": {
+                          "enum": [
+                            "processId",
+                            "bindingType",
+                            "versionTag",
+                            "propagateAllParentVariables",
+                            "propagateAllChildVariables"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "property"
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:script"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "property": {
+                          "enum": [
+                            "expression",
+                            "resultVariable"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "property"
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:formDefinition"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "property": {
+                          "enum": [
+                            "formId",
+                            "externalReference",
+                            "bindingType",
+                            "versionTag"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "property"
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:calledDecision"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "property": {
+                          "enum": [
+                            "decisionId",
+                            "resultVariable",
+                            "versionTag",
+                            "bindingType"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "property"
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:assignmentDefinition"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "property": {
+                          "enum": [
+                            "assignee",
+                            "candidateUsers",
+                            "candidateGroups"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "property"
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:priorityDefinition"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "property": {
+                          "const": "priority"
+                        }
+                      },
+                      "required": [
+                        "property"
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:adHoc"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "property": {
+                          "enum": [
+                            "activeElementsCollection",
+                            "outputCollection",
+                            "outputElement"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "property"
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "kunpeng:taskSchedule"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "property": {
+                          "enum": [
+                            "dueDate",
+                            "followUpDate"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "property"
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "bpmn:Signal#property"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "name": {
+                          "const": "name"
+                        }
+                      },
+                      "required": [
+                        "name"
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "type": {
+                          "const": "bpmn:TimerEventDefinition#property"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "name": {
+                          "enum": [
+                            "timeCycle",
+                            "timeDate",
+                            "timeDuration"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name"
+                      ]
+                    }
+                  },
+                  {
+                    "examples": [
+                      {
+                        "type": "property",
+                        "name": "name"
+                      },
+                      {
+                        "type": "kunpeng:input",
+                        "name": "input"
+                      },
+                      {
+                        "type": "kunpeng:output",
+                        "source": "output"
+                      },
+                      {
+                        "type": "kunpeng:property",
+                        "name": "property"
+                      },
+                      {
+                        "type": "kunpeng:taskHeader",
+                        "key": "key"
+                      },
+                      {
+                        "type": "kunpeng:taskDefinition",
+                        "property": "retries"
+                      },
+                      {
+                        "type": "kunpeng:taskDefinition",
+                        "property": "type"
+                      }
+                    ]
+                  }
+                ],
+                "properties": {
+                  "type": {
+                    "$id": "#/properties/property/binding/type",
+                    "type": "string",
+                    "description": "The type of a property binding.",
+                    "enum": [
+                      "property",
+                      "kunpeng:taskDefinition:type",
+                      "kunpeng:input",
+                      "kunpeng:output",
+                      "kunpeng:property",
+                      "kunpeng:taskHeader",
+                      "bpmn:Message#property",
+                      "bpmn:Message#kunpeng:subscription#property",
+                      "kunpeng:taskDefinition",
+                      "kunpeng:calledElement",
+                      "kunpeng:linkedResource",
+                      "kunpeng:userTask",
+                      "kunpeng:formDefinition",
+                      "kunpeng:calledDecision",
+                      "kunpeng:script",
+                      "kunpeng:assignmentDefinition",
+                      "kunpeng:priorityDefinition",
+                      "kunpeng:adHoc",
+                      "kunpeng:taskSchedule",
+                      "bpmn:Signal#property",
+                      "bpmn:TimerEventDefinition#property"
+                    ]
+                  },
+                  "name": {
+                    "$id": "#/properties/property/binding/name",
+                    "type": "string",
+                    "description": "The name of the property binding."
+                  },
+                  "source": {
+                    "$id": "#/properties/property/binding/source",
+                    "type": "string",
+                    "description": "Source of the output parameter for an output mapping (created with kunpeng:output)."
+                  },
+                  "key": {
+                    "$id": "#/properties/property/binding/key",
+                    "type": "string",
+                    "description": "Key of a task header (created with kunpeng:taskHeader)."
+                  },
+                  "property": {
+                    "$id": "#/properties/property/binding/property",
+                    "type": "string",
+                    "description": "Name of a binding property."
+                  },
+                  "linkName": {
+                    "$id": "#/properties/property/binding/linkName",
+                    "type": "string",
+                    "description": "The `linkName` of the element (kunpeng:linkedResource)."
+                  }
+                }
+              },
+              "optional": {
+                "$id": "#/optional",
+                "type": "boolean",
+                "description": "Indicates whether a property is optional. Optional bindings do not persist empty values in the underlying BPMN 2.0 XML."
+              },
+              "feel": {
+                "$id": "#/properties/property/feel",
+                "type": "string",
+                "description": "Defines whether the property supports FEEL expressions. Values can be \"optional\" (toggle), \"required\", or \"static\" (for Boolean/Number fields, persisted as FEEL).",
+                "enum": [
+                  "optional",
+                  "required",
+                  "static"
+                ]
+              },
+              "language": {
+                "$id": "#/properties/property/language",
+                "type": "string",
+                "description": "Indicates that the field is a custom language editor"
+              },
+              "generatedValue": {
+                "$id": "#/properties/property/generatedValue",
+                "type": "object",
+                "description": "Object that defines how a default value should be generated.",
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "uuid",
+                    "description": "Value is generated as UUID."
+                  }
+                }
+              },
+              "tooltip": {
+                "$id": "#/properties/property/tooltip",
+                "type": "string",
+                "description": "Hints for the control field."
+              }
+            }
+          }
+        }
+      ]
+    },
+    "template": {
+      "type": "object",
+      "allOf": [
+        {
+          "required": [
+            "name",
+            "id",
+            "appliesTo",
+            "properties"
+          ],
+          "properties": {
+            "$schema": {
+              "$id": "#/$schema",
+              "type": "string",
+              "description": "Reference to the Element Template JSON schema this document follows."
+            },
+            "name": {
+              "$id": "#/name",
+              "type": "string",
+              "description": "Template name. Shown during template selection and editing of a templated element. Required."
+            },
+            "id": {
+              "$id": "#/id",
+              "type": "string",
+              "description": "Template identifier. Required."
+            },
+            "description": {
+              "$id": "#/description",
+              "type": "string",
+              "description": "Template description. Shown during template selection and editing of a templated element."
+            },
+            "version": {
+              "$id": "#/version",
+              "type": "integer",
+              "description": "Optional version of the template. If you add a version to a template, it will be considered unique based on its ID and version. Two templates can have the same ID if their versions are different."
+            },
+            "isDefault": {
+              "$id": "#/isDefault",
+              "type": "boolean",
+              "description": "Indicates whether the element template is a default template."
+            },
+            "deprecated": {
+              "$id": "#/deprecated",
+              "type": [
+                "boolean",
+                "object"
+              ],
+              "description": "Marks the template as deprecated. Value can be either a boolean or an object with a message and a link to migration documentation.",
+              "properties": {
+                "message": {
+                  "$id": "#/deprecated/message",
+                  "type": "string",
+                  "description": "Optional message to describe migration path."
+                },
+                "documentationRef": {
+                  "$id": "#/deprecated/documentationRef",
+                  "type": "string",
+                  "pattern": "^(https|http)://.*",
+                  "description": "URL pointing to template documentation. Must be a valid http(s) URL."
+                }
+              }
+            },
+            "appliesTo": {
+              "$id": "#/appliesTo",
+              "type": "array",
+              "description": "List of BPMN types the template can be applied to. Required.",
+              "default": [],
+              "items": {
+                "$id": "#/appliesTo/items",
+                "type": "string",
+                "pattern": "^[\\w\\d]+:[\\w\\d]+$",
+                "allOf": [
+                  {
+                    "examples": [
+                      "bpmn:Task",
+                      "bpmn:ServiceTask",
+                      "bpmn:SequenceFlow",
+                      "bpmn:Process",
+                      "bpmn:StartEvent",
+                      "bpmn:Gateway"
+                    ]
+                  }
+                ]
+              }
+            },
+            "elementType": {
+              "$id": "#/elementType",
+              "type": "object",
+              "description": "Object that sets the type of the element. Some properties require a specific value for elementType.",
+              "default": {},
+              "required": [
+                "value"
+              ],
+              "properties": {
+                "value": {
+                  "$id": "#/elementType/value",
+                  "type": "string",
+                  "pattern": "^[\\w\\d]+:[\\w\\d]+$",
+                  "description": "Specifies the target BPMN element type. The element is replaced with the specified type when a user applies the template. Required if using elementType.",
+                  "allOf": [
+                    {
+                      "examples": [
+                        "bpmn:ServiceTask",
+                        "bpmn:UserTask",
+                        "bpmn:StartEvent",
+                        "bpmn:ExclusiveGateway",
+                        "bpmn:ParallelGateway"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "metadata": {
+              "$id": "#/metadata",
+              "type": "object",
+              "description": "Some custom properties for further configuration.",
+              "default": {}
+            },
+            "keywords": {
+              "$id": "#/keywords",
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of keywords to help users find the template. Used in search and filtering, but not displayed in the UI.",
+              "default": []
+            },
+            "entriesVisible": {
+              "$id": "#/entriesVisible",
+              "type": "boolean",
+              "description": "Defines whether all property input fields are shown, even those normally hidden by the template."
+            },
+            "groups": {
+              "$id": "#/groups",
+              "type": "array",
+              "description": "List of custom groups to organize related fields in the properties panel.",
+              "allOf": [
+                {
+                  "examples": [
+                    [
+                      {
+                        "id": "group-1",
+                        "label": "My Group"
+                      }
+                    ]
+                  ]
+                }
+              ],
+              "items": {
+                "$id": "#/groups/group",
+                "type": "object",
+                "default": {},
+                "required": [
+                  "id",
+                  "label"
+                ],
+                "properties": {
+                  "id": {
+                    "$id": "#/groups/group/id",
+                    "type": "string",
+                    "description": "Uniquely identifies a group object. Required if using groups."
+                  },
+                  "label": {
+                    "$id": "#/groups/group/label",
+                    "type": "string",
+                    "description": "The label of the group, shown as a section header in the properties panel. Required if using groups."
+                  }
+                }
+              }
+            },
+            "documentationRef": {
+              "$id": "#/documentationRef",
+              "type": "string",
+              "pattern": "^(https|http)://.*"
+            }
+          }
+        },
+        {
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "properties": {
+                    "contains": {
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "type": {
+                              "const": "bpmn:Message#property"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "properties"
+                ]
+              },
+              "then": {
+                "required": [
+                  "elementType"
+                ],
+                "properties": {
+                  "elementType": {
+                    "required": [
+                      "value"
+                    ],
+                    "properties": {
+                      "value": {
+                        "enum": [
+                          "bpmn:ReceiveTask",
+                          "bpmn:SendTask",
+                          "bpmn:StartEvent",
+                          "bpmn:IntermediateCatchEvent",
+                          "bpmn:IntermediateThrowEvent",
+                          "bpmn:BoundaryEvent",
+                          "bpmn:EndEvent"
+                        ]
+                      }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "value": {
+                              "enum": [
+                                "bpmn:StartEvent",
+                                "bpmn:IntermediateCatchEvent",
+                                "bpmn:IntermediateThrowEvent",
+                                "bpmn:BoundaryEvent",
+                                "bpmn:EndEvent"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "eventDefinition": {
+                            "const": "bpmn:MessageEventDefinition"
+                          },
+                          "required": [
+                            "eventDefinition"
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "properties": {
+                    "contains": {
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "type": {
+                              "const": "bpmn:Message#kunpeng:subscription#property"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "properties"
+                ]
+              },
+              "then": {
+                "required": [
+                  "elementType"
+                ],
+                "properties": {
+                  "elementType": {
+                    "required": [
+                      "value"
+                    ],
+                    "properties": {
+                      "value": {
+                        "enum": [
+                          "bpmn:ReceiveTask",
+                          "bpmn:StartEvent",
+                          "bpmn:IntermediateCatchEvent",
+                          "bpmn:IntermediateThrowEvent",
+                          "bpmn:BoundaryEvent",
+                          "bpmn:EndEvent"
+                        ]
+                      }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "value": {
+                              "enum": [
+                                "bpmn:StartEvent",
+                                "bpmn:IntermediateCatchEvent",
+                                "bpmn:IntermediateThrowEvent",
+                                "bpmn:BoundaryEvent",
+                                "bpmn:EndEvent"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "eventDefinition": {
+                            "const": "bpmn:MessageEventDefinition"
+                          },
+                          "required": [
+                            "eventDefinition"
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "properties": {
+                    "contains": {
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "type": {
+                              "const": "kunpeng:calledElement"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "properties"
+                ]
+              },
+              "then": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "elementType"
+                    ],
+                    "properties": {
+                      "elementType": {
+                        "required": [
+                          "value"
+                        ],
+                        "properties": {
+                          "value": {
+                            "const": "bpmn:CallActivity"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "required": [
+                      "appliesTo"
+                    ],
+                    "properties": {
+                      "appliesTo": {
+                        "const": [
+                          "bpmn:CallActivity"
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "properties": {
+                  "properties": {
+                    "contains": {
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "type": {
+                              "const": "kunpeng:calledElement"
+                            },
+                            "property": {
+                              "const": "processId"
+                            }
+                          },
+                          "required": [
+                            "property",
+                            "type"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "properties"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "properties": {
+                    "contains": {
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "type": {
+                              "const": "kunpeng:userTask"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "properties"
+                ]
+              },
+              "then": {
+                "required": [
+                  "elementType"
+                ],
+                "properties": {
+                  "elementType": {
+                    "required": [
+                      "value"
+                    ],
+                    "properties": {
+                      "value": {
+                        "const": "bpmn:UserTask"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "properties": {
+                    "contains": {
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "type": {
+                              "enum": [
+                                "kunpeng:formDefinition",
+                                "kunpeng:assignmentDefinition",
+                                "kunpeng:priorityDefinition",
+                                "kunpeng:taskSchedule"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "properties"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "properties": {
+                    "contains": {
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "type": {
+                              "const": "kunpeng:userTask"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "properties"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "properties": {
+                    "contains": {
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "type": {
+                              "const": "kunpeng:calledDecision"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "properties"
+                ]
+              },
+              "then": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "elementType"
+                    ],
+                    "properties": {
+                      "elementType": {
+                        "required": [
+                          "value"
+                        ],
+                        "properties": {
+                          "value": {
+                            "const": "bpmn:BusinessRuleTask"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "required": [
+                      "appliesTo"
+                    ],
+                    "properties": {
+                      "appliesTo": {
+                        "const": [
+                          "bpmn:BusinessRuleTask"
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "allOf": [
+                  {
+                    "properties": {
+                      "properties": {
+                        "contains": {
+                          "properties": {
+                            "binding": {
+                              "properties": {
+                                "property": {
+                                  "const": "decisionId"
+                                }
+                              },
+                              "required": [
+                                "property"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "binding"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "properties": {
+                        "contains": {
+                          "properties": {
+                            "binding": {
+                              "properties": {
+                                "property": {
+                                  "const": "resultVariable"
+                                }
+                              },
+                              "required": [
+                                "property"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "binding"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "properties": {
+                        "not": {
+                          "contains": {
+                            "properties": {
+                              "binding": {
+                                "properties": {
+                                  "type": {
+                                    "enum": [
+                                      "kunpeng:taskDefinition",
+                                      "kunpeng:taskDefinition:type"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "binding"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "required": [
+                      "properties"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "properties": {
+                    "contains": {
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "type": {
+                              "const": "kunpeng:script"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "properties"
+                ]
+              },
+              "then": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "elementType"
+                    ],
+                    "properties": {
+                      "elementType": {
+                        "required": [
+                          "value"
+                        ],
+                        "properties": {
+                          "value": {
+                            "const": "bpmn:ScriptTask"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "required": [
+                      "appliesTo"
+                    ],
+                    "properties": {
+                      "appliesTo": {
+                        "const": [
+                          "bpmn:ScriptTask"
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "allOf": [
+                  {
+                    "properties": {
+                      "properties": {
+                        "contains": {
+                          "properties": {
+                            "binding": {
+                              "properties": {
+                                "property": {
+                                  "const": "expression"
+                                }
+                              },
+                              "required": [
+                                "property"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "binding"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "properties": {
+                        "contains": {
+                          "properties": {
+                            "binding": {
+                              "properties": {
+                                "property": {
+                                  "const": "resultVariable"
+                                }
+                              },
+                              "required": [
+                                "property"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "binding"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "properties": {
+                        "not": {
+                          "contains": {
+                            "properties": {
+                              "binding": {
+                                "properties": {
+                                  "type": {
+                                    "enum": [
+                                      "kunpeng:taskDefinition",
+                                      "kunpeng:taskDefinition:type"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "binding"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "required": [
+                      "properties"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "properties": {
+                        "contains": {
+                          "properties": {
+                            "binding": {
+                              "properties": {
+                                "property": {
+                                  "const": "bindingType"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "kunpeng:calledDecision",
+                                    "kunpeng:formDefinition",
+                                    "kunpeng:calledElement",
+                                    "kunpeng:linkedResource"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "property",
+                                "type"
+                              ]
+                            },
+                            "value": {
+                              "const": "versionTag"
+                            }
+                          },
+                          "required": [
+                            "binding",
+                            "value"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "properties"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "properties": {
+                        "contains": {
+                          "properties": {
+                            "binding": {
+                              "properties": {
+                                "type": {
+                                  "enum": [
+                                    "kunpeng:calledDecision",
+                                    "kunpeng:formDefinition",
+                                    "kunpeng:calledElement",
+                                    "kunpeng:linkedResource"
+                                  ]
+                                },
+                                "property": {
+                                  "const": "versionTag"
+                                }
+                              },
+                              "required": [
+                                "property",
+                                "type"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "binding"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "properties"
+                    ]
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "properties": {
+                        "contains": {
+                          "properties": {
+                            "binding": {
+                              "properties": {
+                                "type": {
+                                  "enum": [
+                                    "kunpeng:calledDecision",
+                                    "kunpeng:calledElement",
+                                    "kunpeng:formDefinition",
+                                    "kunpeng:linkedResource"
+                                  ]
+                                },
+                                "property": {
+                                  "const": "versionTag"
+                                }
+                              },
+                              "required": [
+                                "property"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "binding"
+                          ],
+                          "not": {
+                            "required": [
+                              "condition"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "required": [
+                      "properties"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "properties": {
+                        "contains": {
+                          "properties": {
+                            "binding": {
+                              "properties": {
+                                "property": {
+                                  "const": "bindingType"
+                                }
+                              },
+                              "required": [
+                                "property"
+                              ]
+                            },
+                            "value": {
+                              "const": "versionTag"
+                            },
+                            "type": {
+                              "const": "Hidden"
+                            }
+                          },
+                          "required": [
+                            "binding",
+                            "value",
+                            "type"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "properties"
+                    ]
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "properties": {
+                        "contains": {
+                          "properties": {
+                            "binding": {
+                              "properties": {
+                                "property": {
+                                  "const": "bindingType"
+                                },
+                                "type": {
+                                  "const": "kunpeng:formDefinition"
+                                }
+                              },
+                              "required": [
+                                "property",
+                                "type"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "binding"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "properties"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "properties": {
+                        "contains": {
+                          "properties": {
+                            "binding": {
+                              "properties": {
+                                "type": {
+                                  "const": "kunpeng:formDefinition"
+                                },
+                                "property": {
+                                  "const": "formId"
+                                }
+                              },
+                              "required": [
+                                "property",
+                                "type"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "binding"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "properties"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "if": {
+                "properties": {
+                  "properties": {
+                    "contains": {
+                      "properties": {
+                        "binding": {
+                          "properties": {
+                            "property": {
+                              "const": "formId"
+                            },
+                            "type": {
+                              "const": "kunpeng:formDefinition"
+                            }
+                          },
+                          "required": [
+                            "property",
+                            "type"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "binding"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "properties"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "properties": {
+                    "not": {
+                      "contains": {
+                        "properties": {
+                          "binding": {
+                            "properties": {
+                              "type": {
+                                "const": "kunpeng:formDefinition"
+                              },
+                              "property": {
+                                "const": "externalReference"
+                              }
+                            },
+                            "required": [
+                              "property",
+                              "type"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "binding"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "properties"
+                ]
+              }
+            },
+            {
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "properties": {
+                        "contains": {
+                          "properties": {
+                            "binding": {
+                              "properties": {
+                                "type": {
+                                  "const": "kunpeng:adHoc"
+                                }
+                              },
+                              "required": [
+                                "type"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "binding"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "properties"
+                    ]
+                  },
+                  "then": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "elementType"
+                        ],
+                        "properties": {
+                          "elementType": {
+                            "required": [
+                              "value"
+                            ],
+                            "properties": {
+                              "value": {
+                                "const": "bpmn:AdHocSubProcess"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "required": [
+                          "appliesTo"
+                        ],
+                        "properties": {
+                          "appliesTo": {
+                            "const": [
+                              "bpmn:AdHocSubProcess"
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "$comment": "When kunpeng:adHoc output properties are used, both required bindings must be present together",
+                  "if": {
+                    "properties": {
+                      "properties": {
+                        "contains": {
+                          "properties": {
+                            "binding": {
+                              "properties": {
+                                "type": {
+                                  "const": "kunpeng:adHoc"
+                                },
+                                "property": {
+                                  "enum": [
+                                    "outputCollection",
+                                    "outputElement"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "property"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "binding"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "properties"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "properties": {
+                        "allOf": [
+                          {
+                            "contains": {
+                              "properties": {
+                                "binding": {
+                                  "properties": {
+                                    "type": {
+                                      "const": "kunpeng:adHoc"
+                                    },
+                                    "property": {
+                                      "const": "outputElement"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "property"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "binding"
+                              ]
+                            }
+                          },
+                          {
+                            "contains": {
+                              "properties": {
+                                "binding": {
+                                  "properties": {
+                                    "type": {
+                                      "const": "kunpeng:adHoc"
+                                    },
+                                    "property": {
+                                      "const": "outputCollection"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "property"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "binding"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "properties"
+                    ]
+                  }
+                },
+                {
+                  "$comment": "When kunpeng:taskDefinition is used, bpmn:cancelRemainingInstances, bpmn:completionCondition, and kunpeng:activeElementsCollection properties are not allowed",
+                  "if": {
+                    "allOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "required": [
+                              "elementType"
+                            ],
+                            "properties": {
+                              "elementType": {
+                                "required": [
+                                  "value"
+                                ],
+                                "properties": {
+                                  "value": {
+                                    "const": "bpmn:AdHocSubProcess"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "required": [
+                              "appliesTo"
+                            ],
+                            "properties": {
+                              "appliesTo": {
+                                "const": [
+                                  "bpmn:AdHocSubProcess"
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "properties": {
+                          "properties": {
+                            "contains": {
+                              "type": "object",
+                              "properties": {
+                                "binding": {
+                                  "properties": {
+                                    "type": {
+                                      "const": "kunpeng:taskDefinition"
+                                    },
+                                    "property": {
+                                      "const": "type"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "property"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "binding"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "properties"
+                        ]
+                      }
+                    ]
+                  },
+                  "then": {
+                    "allOf": [
+                      {
+                        "properties": {
+                          "properties": {
+                            "items": {
+                              "not": {
+                                "properties": {
+                                  "binding": {
+                                    "properties": {
+                                      "type": {
+                                        "const": "property"
+                                      },
+                                      "name": {
+                                        "enum": [
+                                          "cancelRemainingInstances",
+                                          "completionCondition"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "name"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "binding"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "required": [
+                          "properties"
+                        ]
+                      },
+                      {
+                        "properties": {
+                          "properties": {
+                            "items": {
+                              "not": {
+                                "properties": {
+                                  "binding": {
+                                    "properties": {
+                                      "type": {
+                                        "const": "kunpeng:adHoc"
+                                      },
+                                      "property": {
+                                        "const": "activeElementsCollection"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "property"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "binding"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "required": [
+                          "properties"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "properties": {
+                        "contains": {
+                          "properties": {
+                            "binding": {
+                              "properties": {
+                                "type": {
+                                  "const": "bpmn:Signal#property"
+                                }
+                              },
+                              "required": [
+                                "type"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "binding"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "properties"
+                    ]
+                  },
+                  "then": {
+                    "required": [
+                      "elementType"
+                    ],
+                    "properties": {
+                      "elementType": {
+                        "required": [
+                          "eventDefinition",
+                          "value"
+                        ],
+                        "properties": {
+                          "value": {
+                            "enum": [
+                              "bpmn:StartEvent",
+                              "bpmn:IntermediateCatchEvent",
+                              "bpmn:IntermediateThrowEvent",
+                              "bpmn:BoundaryEvent",
+                              "bpmn:EndEvent"
+                            ]
+                          },
+                          "eventDefinition": {
+                            "const": "bpmn:SignalEventDefinition"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "elementType": {
+                        "properties": {
+                          "eventDefinition": {
+                            "const": "bpmn:SignalEventDefinition"
+                          }
+                        },
+                        "required": [
+                          "eventDefinition"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "elementType"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "properties": {
+                        "contains": {
+                          "properties": {
+                            "binding": {
+                              "properties": {
+                                "type": {
+                                  "const": "bpmn:Signal#property"
+                                }
+                              },
+                              "required": [
+                                "type"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "binding"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "$defs": {
+                "timeDateProperty": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "const": "bpmn:TimerEventDefinition#property"
+                        },
+                        "name": {
+                          "const": "timeDate"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "name"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "binding"
+                  ]
+                },
+                "timeCycleProperty": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "const": "bpmn:TimerEventDefinition#property"
+                        },
+                        "name": {
+                          "const": "timeCycle"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "name"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "binding"
+                  ]
+                },
+                "timeDurationProperty": {
+                  "properties": {
+                    "binding": {
+                      "properties": {
+                        "type": {
+                          "const": "bpmn:TimerEventDefinition#property"
+                        },
+                        "name": {
+                          "const": "timeDuration"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "name"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "binding"
+                  ]
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "properties": {
+                        "contains": {
+                          "properties": {
+                            "binding": {
+                              "properties": {
+                                "type": {
+                                  "const": "bpmn:TimerEventDefinition#property"
+                                },
+                                "name": {
+                                  "enum": [
+                                    "timeDate",
+                                    "timeCycle",
+                                    "timeDuration"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "name"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "binding"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "properties"
+                    ]
+                  },
+                  "then": {
+                    "required": [
+                      "elementType"
+                    ],
+                    "properties": {
+                      "elementType": {
+                        "required": [
+                          "eventDefinition",
+                          "value"
+                        ],
+                        "properties": {
+                          "eventDefinition": {
+                            "const": "bpmn:TimerEventDefinition"
+                          },
+                          "value": {
+                            "enum": [
+                              "bpmn:StartEvent",
+                              "bpmn:IntermediateCatchEvent",
+                              "bpmn:BoundaryEvent"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "elementType": {
+                        "properties": {
+                          "eventDefinition": {
+                            "const": "bpmn:TimerEventDefinition"
+                          }
+                        },
+                        "required": [
+                          "eventDefinition"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "elementType"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "properties": {
+                        "oneOf": [
+                          {
+                            "contains": {
+                              "$ref": "#/definitions/template/allOf/1/allOf/11/$defs/timeDateProperty"
+                            }
+                          },
+                          {
+                            "contains": {
+                              "$ref": "#/definitions/template/allOf/1/allOf/11/$defs/timeCycleProperty"
+                            }
+                          },
+                          {
+                            "contains": {
+                              "$ref": "#/definitions/template/allOf/1/allOf/11/$defs/timeDurationProperty"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "properties"
+                    ]
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "elementType": {
+                        "properties": {
+                          "eventDefinition": {
+                            "const": "bpmn:TimerEventDefinition"
+                          },
+                          "value": {
+                            "const": "bpmn:IntermediateCatchEvent"
+                          }
+                        },
+                        "required": [
+                          "eventDefinition",
+                          "value"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "elementType"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "properties": {
+                        "not": {
+                          "contains": {
+                            "$ref": "#/definitions/template/allOf/1/allOf/11/$defs/timeCycleProperty"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "if": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "elementType"
+                    ],
+                    "properties": {
+                      "elementType": {
+                        "required": [
+                          "value"
+                        ],
+                        "properties": {
+                          "value": {
+                            "const": "bpmn:AdHocSubProcess"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "required": [
+                      "appliesTo"
+                    ],
+                    "properties": {
+                      "appliesTo": {
+                        "const": [
+                          "bpmn:AdHocSubProcess"
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "properties": {
+                  "properties": {
+                    "items": {
+                      "if": {
+                        "properties": {
+                          "binding": {
+                            "properties": {
+                              "type": {
+                                "const": "property"
+                              },
+                              "name": {
+                                "const": "completionCondition"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "name"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "binding"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "feel": {
+                            "const": "required"
+                          }
+                        },
+                        "required": [
+                          "feel"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "elementType"
+                    ],
+                    "properties": {
+                      "elementType": {
+                        "required": [
+                          "value"
+                        ],
+                        "properties": {
+                          "value": {
+                            "const": "bpmn:SequenceFlow"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "required": [
+                      "appliesTo"
+                    ],
+                    "properties": {
+                      "appliesTo": {
+                        "const": [
+                          "bpmn:SequenceFlow"
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "properties": {
+                  "properties": {
+                    "items": {
+                      "if": {
+                        "properties": {
+                          "binding": {
+                            "properties": {
+                              "type": {
+                                "const": "property"
+                              },
+                              "name": {
+                                "const": "conditionExpression"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "name"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "binding"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "feel": {
+                            "const": "required"
+                          }
+                        },
+                        "required": [
+                          "feel"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "elementType"
+                    ],
+                    "properties": {
+                      "elementType": {
+                        "required": [
+                          "value"
+                        ],
+                        "properties": {
+                          "value": {
+                            "const": "bpmn:ComplexGateway"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "required": [
+                      "appliesTo"
+                    ],
+                    "properties": {
+                      "appliesTo": {
+                        "const": [
+                          "bpmn:ComplexGateway"
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "properties": {
+                  "properties": {
+                    "items": {
+                      "if": {
+                        "properties": {
+                          "binding": {
+                            "properties": {
+                              "type": {
+                                "const": "property"
+                              },
+                              "name": {
+                                "const": "activationCondition"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "name"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "binding"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "feel": {
+                            "const": "required"
+                          }
+                        },
+                        "required": [
+                          "feel"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "elementType"
+                    ],
+                    "properties": {
+                      "elementType": {
+                        "required": [
+                          "value"
+                        ],
+                        "properties": {
+                          "value": {
+                            "const": "bpmn:AdHocSubProcess"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "required": [
+                      "appliesTo"
+                    ],
+                    "properties": {
+                      "appliesTo": {
+                        "const": [
+                          "bpmn:AdHocSubProcess"
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "properties": {
+                  "properties": {
+                    "items": {
+                      "if": {
+                        "properties": {
+                          "type": {
+                            "enum": [
+                              "String",
+                              "Text"
+                            ]
+                          },
+                          "binding": {
+                            "properties": {
+                              "type": {
+                                "const": "kunpeng:adHoc"
+                              },
+                              "property": {
+                                "const": "outputElement"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "property"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "binding",
+                          "type"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "feel": {
+                            "const": "required"
+                          }
+                        },
+                        "required": [
+                          "feel"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "properties": {
+          "$ref": "#/definitions/properties",
+          "$id": "#/properties"
+        },
+        "engines": {
+          "$id": "#/engines",
+          "type": "object",
+          "description": "Dictionary of environments compatible with the template. Environment version is specified with semantic versions range.",
+          "default": {},
+          "examples": [
+            {
+              "camunda": "^8.5"
+            }
+          ],
+          "properties": {
+            "camunda": {
+              "$id": "#/engines/camunda",
+              "type": "string",
+              "description": "Defines compatibility with Camunda orchestration cluster versions.",
+              "default": ""
+            },
+            "camundaDesktopModeler": {
+              "$id": "#/engines/camundaDesktopModeler",
+              "type": "string",
+              "description": "Defines compatibility with Desktop Modeler versions.",
+              "default": ""
+            },
+            "camundaWebModeler": {
+              "$id": "#/engines/camundaWebModeler",
+              "type": "string",
+              "description": "Defines compatibility with Web Modeler versions.",
+              "default": ""
+            }
+          }
+        },
+        "category": {
+          "$id": "#/category",
+          "type": "object",
+          "description": "Object that defines a custom category for grouping templates, for example, in a selection modal. If not defined, defaults to Templates.",
+          "default": {},
+          "example": {
+            "id": "custom-category",
+            "name": "Custom Category"
+          },
+          "properties": {
+            "id": {
+              "$id": "#/category/id",
+              "type": "string",
+              "description": "Unique identifier for a category object. Required if using category."
+            },
+            "name": {
+              "$id": "#/category/name",
+              "type": "string",
+              "description": "Display name of the category. Shown in the template selection modal. Required if using category."
+            }
+          },
+          "required": [
+            "id",
+            "name"
+          ]
+        },
+        "icon": {
+          "$id": "#/icon",
+          "type": "object",
+          "description": "Custom icon shown in the element template selection modal and the properties panel. Must be a valid data URI or HTTP(s) URL. Square icons recommended.",
+          "default": {},
+          "properties": {
+            "contents": {
+              "$id": "#/icon/contents",
+              "type": "string",
+              "description": "The URL of an icon.",
+              "pattern": "^(https?|data):.*"
+            }
+          },
+          "required": [
+            "contents"
+          ]
+        },
+        "elementType": {
+          "allOf": [
+            {
+              "allOf": [
+                {
+                  "properties": {
+                    "eventDefinition": {
+                      "$id": "#/elementType/eventDefinition",
+                      "description": "Define the event definition type for a typed event template. Otherwise, ignore.",
+                      "enum": [
+                        "bpmn:MessageEventDefinition",
+                        "bpmn:SignalEventDefinition",
+                        "bpmn:TimerEventDefinition"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "required": [
+                      "eventDefinition"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "enum": [
+                          "bpmn:StartEvent",
+                          "bpmn:IntermediateCatchEvent",
+                          "bpmn:IntermediateThrowEvent",
+                          "bpmn:BoundaryEvent",
+                          "bpmn:EndEvent"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "value"
+                    ]
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "eventDefinition": {
+                        "const": "bpmn:TimerEventDefinition"
+                      }
+                    },
+                    "required": [
+                      "eventDefinition"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "enum": [
+                          "bpmn:StartEvent",
+                          "bpmn:IntermediateCatchEvent",
+                          "bpmn:BoundaryEvent"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "value"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "groups": {
+          "items": {
+            "properties": {
+              "tooltip": {
+                "$id": "#/groups/group/tooltip",
+                "type": "string",
+                "description": "Tooltip shown when hovering over the group name in the properties panel."
+              },
+              "openByDefault": {
+                "$id": "#/groups/group/openByDefault",
+                "type": "boolean",
+                "description": "Controls whether the group is initially expanded in the properties panel. Optional; default is false.",
+                "default": false
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "description": "An element template configuration.",
+      "$ref": "#/definitions/template"
+    },
+    {
+      "type": "array",
+      "description": "A list of element template configurations.",
+      "items": {
+        "$ref": "#/definitions/template"
+      }
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+Source code in this repository is covered by (i) the MIT License or
+(ii) the GNU General Public License version 2 only with the Classpath
+Exception, in each case, as designated by this project. The default throughout
+the repository is the MIT License; the sole exception is the modeler core
+package @kunpeng-io/bpmn-js (packages/bpmn/bpmn-js), licensed under
+GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0.
+
+Full license texts are kept under licenses/. Modules with special licensing
+handling carry their own set: packages/bpmn/bpmn-js ships its own LICENSE,
+NOTICE and licenses/ directory, and every npm package carries its own LICENSE
+file that ships with its distribution.

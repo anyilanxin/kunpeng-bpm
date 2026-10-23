@@ -1,0 +1,32 @@
+import { styleTags, tags as t } from '@lezer/highlight';
+
+export const feelHighlighting = styleTags({
+  StringLiteral: t.string,
+  NumericLiteral: t.number,
+  BooleanLiteral: t.bool,
+  'AtLiteral!': t.special(t.string),
+  CompareOp: t.compareOperator,
+  ArithOp: t.arithmeticOperator,
+  'for if then else some every return': t.controlKeyword,
+  'in instance of and or satisfies between as': t.operatorKeyword,
+  function: t.definitionKeyword,
+  'Type/...': t.typeName,
+  'Wildcard!': t.modifier,
+  null: t.null,
+  LineComment: t.lineComment,
+  BlockComment: t.blockComment,
+  'VariableName!': t.variableName,
+  '"?"': t.self,
+  'DateTimeConstructor! SpecialFunctionName!': t.standard(t.function(t.variableName)),
+  'FunctionInvocation/VariableName!': t.function(t.variableName),
+  'Name!': t.definition(t.variableName),
+  'Key/Name! ContextEntryType/Name!': t.definition(t.propertyName),
+  'PathExpression/PathName!': t.propertyName,
+  'FormalParameter/ParameterName!': t.function(t.definition(t.variableName)),
+  '( )': t.paren,
+  '[ ]': t.squareBracket,
+  '{ }': t.brace,
+  '.': t.derefOperator,
+  ', ;': t.separator,
+  '..': t.punctuation
+});

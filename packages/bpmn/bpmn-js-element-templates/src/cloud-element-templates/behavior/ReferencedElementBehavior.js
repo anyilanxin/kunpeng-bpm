@@ -1,0 +1,210 @@
+import { getBusinessObject, is, isAny } from '@kunpeng-io/bpmn-js';
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+import { isString } from 'min-dash';
+
+import { findMessage, findSignal, getTemplateId, TEMPLATE_ID_ATTR } from '../Helper';
+import {
+  getReferringElement,
+  removeRootElement
+} from '../util/rootElementUtil';
+
+/**
+ * Handles referenced elements.
+ */
+export class ReferencedElementBehavior extends CommandInterceptor {
+  constructor(eventBus, elementTemplates, modeling, injector, moddleCopy, bpmnFactory) {
+    super(eventBus);
+
+    this._eventBus = eventBus;
+    this._elementTemplates = elementTemplates;
+    this._modeling = modeling;
+    this._injector = injector;
+
+    this.postExecuted([
+      'element.updateProperties', 'element.updateModdleProperties'
+    ], this._handlePropertiesUpdate, true, this);
+
+    this.postExecuted('shape.replace', this._handleReplacement, true, this);
+
+    this.postExecuted('shape.delete', this._handleRemoval, true, this);
+
+
+    // copy templated root element when pasting
+    eventBus.on('copyPaste.pasteElement', function(context) {
+      const {
+        referencedRootElement
+      } = context.descriptor;
+
+      if (!referencedRootElement) {
+        return;
+      }
+
+      if (!getTemplateId(referencedRootElement)) {
+        return;
+      }
+
+      context.descriptor.referencedRootElement = moddleCopy.copyElement(
+        referencedRootElement,
+        bpmnFactory.create(referencedRootElement.$type)
+      );
+    });
+  }
+
+  /**
+   * Unlink referenced element when template is unlinked.
+   */
+  _handlePropertiesUpdate(context) {
+    const { element, properties } = context;
+
+    if (!canHaveReferencedElement(element)) {
+      return;
+    }
+
+    if (!(TEMPLATE_ID_ATTR in properties) || isString(properties[TEMPLATE_ID_ATTR])) {
+      return;
+    }
+
+    const bo = getBusinessObject(element);
+    const referencedElement = findMessage(bo) || findSignal(bo);
+
+    if (referencedElement && getTemplateId(referencedElement)) {
+      this._modeling.updateModdleProperties(element, referencedElement, {
+        [TEMPLATE_ID_ATTR]: null
+      });
+    }
+  }
+
+  /**
+   * Remove referenced element when template is removed.
+   * Keep referenced element when template is replaced.
+   */
+  _handleReplacement(context) {
+    const { oldShape, newShape } = context;
+    const oldTemplate = getTemplateId(oldShape),
+          newTemplate = getTemplateId(newShape);
+
+    if (!canHaveReferencedElement(oldShape) || !oldTemplate) {
+      return;
+    }
+
+    const bo = getBusinessObject(oldShape);
+    const message = findMessage(bo);
+    const signal = findSignal(bo);
+
+    if (message && getTemplateId(message)) {
+      if (!newTemplate || !canHaveMessage(newShape)) {
+        removeRootElement(message, this._injector);
+      } else {
+        this._addMessage(newShape, message);
+      }
+    }
+
+    if (signal && getTemplateId(signal)) {
+      if (!newTemplate || !canHaveSignal(newShape)) {
+        removeRootElement(signal, this._injector);
+      } else {
+        this._addSignal(newShape, signal);
+      }
+    }
+  }
+
+  _handleRemoval(context) {
+    const { shape } = context;
+
+    if (isLabel(shape)) {
+      return;
+    }
+
+    if (!canHaveReferencedElement(shape)) {
+      return;
+    }
+
+    if (!getTemplateId(shape)) {
+      return;
+    }
+
+    const bo = getBusinessObject(shape);
+    const referencedElement = findMessage(bo) || findSignal(bo);
+
+    if (referencedElement && getTemplateId(referencedElement)) {
+      removeRootElement(referencedElement, this._injector);
+    }
+  }
+
+  _addMessage(element, message) {
+    const bo = getReferringElement(element);
+
+    this._modeling.updateModdleProperties(element, bo, {
+      'messageRef': message
+    });
+  }
+
+  _addSignal(element, signal) {
+    const bo = getReferringElement(element);
+
+    this._modeling.updateModdleProperties(element, bo, {
+      'signalRef': signal
+    });
+  }
+}
+
+ReferencedElementBehavior.$inject = [
+  'eventBus',
+  'elementTemplates',
+  'modeling',
+  'injector',
+  'moddleCopy',
+  'bpmnFactory'
+];
+
+function canHaveReferencedElement(element) {
+
+  // Blank-Events can't have referenced elements
+  if (is(element, 'bpmn:Event')) {
+    const bo = getBusinessObject(element);
+    return bo.get('eventDefinitions') && bo.get('eventDefinitions')[0];
+  }
+
+  return isAny(element, [
+    'bpmn:ReceiveTask',
+    'bpmn:SendTask'
+  ]);
+}
+
+function canHaveMessage(element) {
+  if (is(element, 'bpmn:ReceiveTask') || is(element, 'bpmn:SendTask')) {
+    return true;
+  }
+
+  if (is(element, 'bpmn:Event')) {
+    const bo = getBusinessObject(element);
+    const eventDefinitions = bo.get('eventDefinitions');
+
+    if (!eventDefinitions || !eventDefinitions.length) {
+      return false;
+    }
+
+    return is(eventDefinitions[0], 'bpmn:MessageEventDefinition');
+  }
+
+  return false;
+}
+
+function canHaveSignal(element) {
+  if (is(element, 'bpmn:Event')) {
+    const bo = getBusinessObject(element);
+    const eventDefinitions = bo.get('eventDefinitions');
+
+    if (!eventDefinitions || !eventDefinitions.length) {
+      return false;
+    }
+
+    return is(eventDefinitions[0], 'bpmn:SignalEventDefinition');
+  }
+
+  return false;
+}
+
+function isLabel(element) {
+  return element.type === 'label';
+}

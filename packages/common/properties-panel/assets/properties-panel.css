@@ -1,0 +1,4 @@
+/**
+ * Compatibility with @kunpeng-js/properties-panel < v3.4.0
+ */
+@import '../dist/assets/properties-panel.css';

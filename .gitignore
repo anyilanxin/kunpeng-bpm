@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist-demo/
+*.tsbuildinfo
+.turbo/
+.DS_Store
+.mimosa/
+.v2c/

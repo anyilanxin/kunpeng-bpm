@@ -1,0 +1,241 @@
+import { autocompletion, closeBrackets } from '@codemirror/autocomplete';
+import { defaultKeymap } from '@codemirror/commands';
+import { bracketMatching, indentOnInput } from '@codemirror/language';
+import { setDiagnosticsEffect } from '@codemirror/lint';
+import { Compartment, EditorState } from '@codemirror/state';
+import { EditorView, keymap, placeholder as placeholderExt, tooltips, } from '@codemirror/view';
+
+import mitt from 'mitt';
+
+import linter from './lint/index.js';
+import theme from './theme/index.js';
+
+import * as Core from './core/index.js';
+
+import { domifiedBuiltins } from './builtins/index.js'; /**
+ * @typedef { import('./core').Variable } Variable
+ */
+
+/**
+ * @typedef { import('./core').Variable } Variable
+ */
+
+/**
+ * @typedef { import('./language').Dialect } Dialect
+ * @typedef { import('./language').ParserDialect } ParserDialect
+ */
+
+const coreConf = new Compartment();
+const placeholderConf = new Compartment();
+
+/**
+ * Creates a FEEL editor in the supplied container
+ *
+ * @param {Object} config
+ * @param {DOMNode} config.container
+ * @param {Extension[]} [config.extensions]
+ * @param {Dialect} [config.dialect='expression']
+ * @param {ParserDialect} [config.parserDialect]
+ * @param {DOMNode|String} [config.tooltipContainer]
+ * @param {Function} [config.onChange]
+ * @param {(event: KeyboardEvent, view: import('@codemirror/view').EditorView) => boolean | void} [config.onKeyDown]
+ * @param {Function} [config.onLint]
+ * @param {Boolean} [config.readOnly]
+ * @param {String} [config.value]
+ * @param {Variable[]} [config.variables]
+ * @param {Variable[]} [config.builtins]
+ * @param {Object} [config.contentAttributes]
+ * @param {String} [config.placeholder]
+ */
+export function ExpressionEditor({
+  extensions: editorExtensions = [],
+  dialect = 'expression',
+  parserDialect,
+  container,
+  contentAttributes = {},
+  tooltipContainer,
+  onChange = () => {},
+  onKeyDown = () => {},
+  onLint = () => {},
+  placeholder = '',
+  readOnly = false,
+  value = '',
+  builtins = domifiedBuiltins,
+  variables = [],
+}) {
+  this._events = mitt();
+
+  const changeHandler = EditorView.updateListener.of((update) => {
+    if (update.docChanged) {
+      onChange(update.state.doc.toString());
+    }
+  });
+
+  const lintHandler = EditorView.updateListener.of((update) => {
+    const diagnosticEffects = update.transactions
+      .flatMap((t) => t.effects)
+      .filter((effect) => effect.is(setDiagnosticsEffect));
+
+    if (!diagnosticEffects.length) {
+      return;
+    }
+
+    const diagnostics = diagnosticEffects.flatMap((effect) => effect.value);
+
+    this._events.emit('lint', { diagnostics });
+  });
+
+  const keyHandler = EditorView.domEventObservers({
+    keydown: onKeyDown,
+  });
+
+  if (typeof tooltipContainer === 'string') {
+    tooltipContainer = /** @type {HTMLElement} */ (
+      document.querySelector(tooltipContainer)
+    );
+  }
+
+  const tooltipLayout = tooltipContainer
+    ? tooltips({
+        tooltipSpace: function () {
+          return /** @type {HTMLElement} */ (
+            tooltipContainer
+          ).getBoundingClientRect();
+        },
+      })
+    : [];
+
+  const extensions = [
+    autocompletion(),
+    coreConf.of(
+      Core.configure({
+        dialect,
+        builtins,
+        variables,
+        parserDialect,
+      }),
+    ),
+    bracketMatching(),
+    indentOnInput(),
+    closeBrackets(),
+    EditorView.contentAttributes.of(contentAttributes),
+    changeHandler,
+    keyHandler,
+    keymap.of([...defaultKeymap]),
+    linter,
+    lintHandler,
+    tooltipLayout,
+    placeholderConf.of(placeholderExt(placeholder)),
+    theme,
+    ...editorExtensions,
+  ];
+
+  if (readOnly) {
+    extensions.push(EditorView.editable.of(false));
+  }
+
+  this.on('lint', ({ diagnostics }) => onLint(diagnostics));
+
+  this._cmEditor = new EditorView({
+    state: EditorState.create({
+      doc: value,
+      extensions,
+    }),
+    parent: container,
+  });
+
+  return this;
+}
+
+/**
+ * Replaces the content of the Editor
+ *
+ * @param {String} value
+ */
+ExpressionEditor.prototype.setValue = function (value) {
+  this._cmEditor.dispatch({
+    changes: {
+      from: 0,
+      to: this._cmEditor.state.doc.length,
+      insert: value,
+    },
+  });
+};
+
+/**
+ * Sets the focus in the editor.
+ */
+ExpressionEditor.prototype.focus = function (position) {
+  const cmEditor = this._cmEditor;
+
+  // the Codemirror `focus` method always calls `focus` with `preventScroll`,
+  // so we have to focus + scroll manually
+  cmEditor.contentDOM.focus();
+  cmEditor.focus();
+
+  if (typeof position === 'number') {
+    const end = cmEditor.state.doc.length;
+    cmEditor.dispatch({
+      selection: { anchor: position <= end ? position : end },
+    });
+  }
+};
+
+/**
+ * @param {string} eventName
+ * @param {(event) => any} callback
+ */
+ExpressionEditor.prototype.on = function (eventName, callback) {
+  this._events.on(eventName, callback);
+};
+
+/**
+ * @param {string} eventName
+ * @param {(event) => any} [callback]
+ */
+ExpressionEditor.prototype.off = function (eventName, callback) {
+  this._events.off(eventName, callback);
+};
+
+/**
+ * Returns the current selection ranges. If no text is selected, a single
+ * range with the start and end index at the cursor position will be returned.
+ *
+ * @returns {import('@codemirror/state').EditorSelection} selection - Selection object with ranges array
+ */
+ExpressionEditor.prototype.getSelection = function () {
+  return this._cmEditor.state.selection;
+};
+
+/**
+ * Set variables to be used for autocompletion.
+ *
+ * @param {Variable[]} variables
+ */
+ExpressionEditor.prototype.setVariables = function (variables) {
+  const config = Core.get(this._cmEditor.state);
+
+  this._cmEditor.dispatch({
+    effects: [
+      coreConf.reconfigure(
+        Core.configure({
+          ...config,
+          variables,
+        }),
+      ),
+    ],
+  });
+};
+
+/**
+ * Update placeholder text.
+ *
+ * @param {string} placeholder
+ */
+ExpressionEditor.prototype.setPlaceholder = function (placeholder) {
+  this._cmEditor.dispatch({
+    effects: placeholderConf.reconfigure(placeholderExt(placeholder)),
+  });
+};
+
+export default ExpressionEditor;

@@ -1,0 +1,143 @@
+import { getBusinessObject } from '@kunpeng-io/bpmn-js';
+
+import { findExtension } from './Helper';
+import { createElement } from '../utils/ElementUtil';
+
+
+/**
+ * Create an input parameter representing the given
+ * binding and value.
+ *
+ * @param {PropertyBinding} binding
+ * @param {String} value
+ * @param {BpmnFactory} bpmnFactory
+ *
+ * @return {ModdleElement}
+ */
+export function createInputParameter(binding, value, bpmnFactory) {
+  const {
+    name
+  } = binding;
+
+  return bpmnFactory.create('kunpeng:Input', {
+    source: value,
+    target: name
+  });
+}
+
+/**
+ * Create an output parameter representing the given
+ * binding and value.
+ *
+ * @param {PropertyBinding} binding
+ * @param {String} value
+ * @param {BpmnFactory} bpmnFactory
+ *
+ * @return {ModdleElement}
+ */
+export function createOutputParameter(binding, value, bpmnFactory) {
+  const {
+    source
+  } = binding;
+
+  return bpmnFactory.create('kunpeng:Output', {
+    source,
+    target: value
+  });
+}
+
+/**
+ * Create a task header representing the given
+ * binding and value.
+ *
+ * @param {PropertyBinding} binding
+ * @param {String} value
+ * @param {BpmnFactory} bpmnFactory
+ *
+ * @return {ModdleElement}
+ */
+export function createTaskHeader(binding, value, bpmnFactory) {
+  const {
+    key
+  } = binding;
+
+  return bpmnFactory.create('kunpeng:Header', {
+    key,
+    value
+  });
+}
+
+/**
+ * Create a task definition representing the given value.
+ *
+ * @param {object} attrs
+ * @param {BpmnFactory} bpmnFactory
+ *
+ * @return {ModdleElement}
+ */
+export function createTaskDefinition(attrs = {}, bpmnFactory) {
+  return bpmnFactory.create('kunpeng:TaskDefinition', attrs);
+}
+
+/**
+ * Create kunpeng:Property from the given binding.
+ *
+ * @param {PropertyBinding} binding
+ * @param {String} value
+ * @param {BpmnFactory} bpmnFactory
+ *
+ * @return {ModdleElement}
+ */
+export function createKunpengProperty(binding, value = '', bpmnFactory) {
+  const { name } = binding;
+
+  return bpmnFactory.create('kunpeng:Property', {
+    name,
+    value
+  });
+}
+
+/**
+ * Retrieves whether an element should be updated for a given property.
+ *
+ * That matches once
+ * a) the property value is not empty, or
+ * b) the property is not optional
+ *
+ * @param {String} value
+ * @param {Object} property
+ * @returns {Boolean}
+ */
+export function shouldUpdate(value, property) {
+  const { optional } = property;
+
+  return value || !optional;
+}
+
+/**
+ * Gets or, in case not existent, creates extension element for given element.
+ *
+ * @param {djs.model.Base} element
+ * @param {String} type
+ * @param {BpmnFactory} bpmnFactory
+ * @returns {ModdleElement}
+ */
+export function ensureExtension(element, type, bpmnFactory) {
+  const businessObject = getBusinessObject(element);
+  let extensionElements = businessObject.get('extensionElements');
+
+  if (!extensionElements) {
+    extensionElements = createElement('bpmn:ExtensionElements', {}, businessObject, bpmnFactory);
+    businessObject.set('extensionElements', extensionElements);
+  }
+
+  let extension = findExtension(extensionElements, type);
+
+  if (!extension) {
+    extension = bpmnFactory.create(type);
+    extension.$parent = extensionElements;
+    extensionElements.get('values').push(extension);
+  }
+
+  return extension;
+}

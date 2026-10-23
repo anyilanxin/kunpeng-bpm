@@ -1,0 +1,169 @@
+import { getBusinessObject, is } from '@kunpeng-io/bpmn-js';
+
+import { isArray } from 'min-dash';
+
+import { getErrors, getReportEntryIds } from '../utils/properties-panel';
+
+export default class Linting {
+  constructor(canvas, config, elementRegistry, eventBus, injector, lintingAnnotations, selection) {
+    this._canvas = canvas;
+    this._elementRegistry = elementRegistry;
+    this._eventBus = eventBus;
+    this._injector = injector;
+    this._lintingAnnotations = lintingAnnotations;
+    this._selection = selection;
+
+    this._active = config && config.active || false;
+    this._reports = [];
+
+    eventBus.on('selection.changed', () => this._update());
+
+    eventBus.on('lintingAnnotations.click', ({ report }) => this.showError(report));
+  }
+
+  showError(report) {
+    const { id } = report;
+
+    const selectableElement = this._getSelectableElement(id);
+
+    if (selectableElement) {
+      this._canvas.scrollToElement(selectableElement);
+
+      if (selectableElement === this._canvas.getRootElement()) {
+        this._selection.select();
+      } else {
+        this._selection.select(selectableElement);
+      }
+    }
+
+    // let a properties panel listener resolve the entry from the report's moddle
+    // path (so a template-bound field opens its template entry), falling back to
+    // the statically derived ids; shared with `getErrors` so a report resolves
+    // to the same ids no matter the call site
+    const entryIds = getReportEntryIds(
+      report,
+      selectableElement,
+      (element, path) => this._resolveEntryId(element, path)
+    );
+
+    const entryId = entryIds[ Math.max(0, entryIds.length - 1) ];
+
+    // TODO(philippfromme): remove timeout once properties panel is fixed
+    setTimeout(() => {
+      this._eventBus.fire('propertiesPanel.showEntry', {
+        id: entryId
+      });
+    });
+  }
+
+  setErrors(reports) {
+    this._reports = reports;
+
+    this._update();
+  }
+
+  activate() {
+    this._active = true;
+
+    this._update();
+  }
+
+  deactivate() {
+    this._active = false;
+
+    this._update();
+  }
+
+  isActive() {
+    return this._active;
+  }
+
+  _update() {
+
+    // 仅在激活时（底部 ProblemsPanel 切到 Problems tab）才展示画布标注与属性面板错误，
+    // 否则清空——Output tab 不污染画布与元素属性面板。
+    const active = this.isActive();
+
+    // set annotations
+    this._lintingAnnotations.setErrors(active ? this._reports : []);
+
+    // set properties panel errors
+    const selectedElement = this._getSelectedElement();
+
+    this._eventBus.fire('propertiesPanel.setErrors', {
+      errors: active
+        ? getErrors(this._reports, selectedElement, (element, path) => this._resolveEntryId(element, path))
+        : []
+    });
+  }
+
+  /**
+   * Resolves the (rendered) entry ID through the properties panel.
+   *
+   * Returns `null` when the panel is absent or nothing resolves,
+   * so callers fall back to the statically derived ids.
+   *
+   * @param {Object} element
+   * @param {Array<string|number>} path
+   *
+   * @return {string|null}
+   */
+  _resolveEntryId(element, path) {
+    if (!element || !isArray(path) || !path.length) {
+      return null;
+    }
+
+    const propertiesPanel = this._injector && this._injector.get('propertiesPanel', false);
+
+    if (!propertiesPanel || typeof propertiesPanel.getEntryId !== 'function') {
+      return null;
+    }
+
+    return propertiesPanel.getEntryId(element, path) || null;
+  }
+
+  _getSelectableElement(id) {
+    let element = this._elementRegistry.get(id);
+
+    if (!element) {
+      element = this._elementRegistry.filter(element => {
+        const processRef = is(element, 'bpmn:Participant')
+          && getBusinessObject(element).get('processRef');
+
+        return processRef && processRef.get('id') === id;
+      })[ 0 ];
+    }
+
+    return element;
+  }
+
+  _getSelectedElement() {
+    const selection = this._selection.get();
+
+    if (!selection || !selection.length) {
+      return this._canvas.getRootElement();
+    }
+
+    const selectedElement = selection[ 0 ];
+
+    if (isLabel(selectedElement)) {
+      return selectedElement.labelTarget;
+    }
+
+    return selectedElement;
+  }
+}
+
+Linting.$inject = [
+  'canvas',
+  'config.linting',
+  'elementRegistry',
+  'eventBus',
+  'injector',
+  'lintingAnnotations',
+  'selection'
+];
+
+function isLabel(element) {
+  return !!element.labelTarget;
+}
