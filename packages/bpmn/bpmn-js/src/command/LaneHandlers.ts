@@ -231,7 +231,8 @@ export class AddLaneHandler implements CommandHandler {
   }
 
   private createLane(context: any, participant: any, rect: RectLike): any {
-    const laneBo = this.bpmnFactory.createLane({ name: '泳道' });
+    // 泳道不预置默认名：名称由用户直编或属性面板给出（与任务/事件一致）
+    const laneBo = this.bpmnFactory.createLane({});
     const lane = this.elementFactory.createShape({
       id: laneBo.id,
       businessObject: laneBo,

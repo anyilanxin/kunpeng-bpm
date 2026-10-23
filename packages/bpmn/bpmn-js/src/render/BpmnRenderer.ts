@@ -476,7 +476,8 @@ export class BpmnRenderer extends BaseRenderer {
       y: 0,
       width: shape.width,
       height: shape.height,
-      fill: 'none',
+      // 池体实底：内容区遮住画布网格（与业界设计器一致，头带同色靠分隔线区分）
+      fill: theme.fill,
       stroke: theme.stroke,
       'stroke-width': 2
     });
@@ -505,7 +506,8 @@ export class BpmnRenderer extends BaseRenderer {
       y: 0,
       width: shape.width,
       height: shape.height,
-      fill: 'none',
+      // 道体实底（同池体）：内容区不透网格，色板着色时道体随之变色
+      fill: theme.fill,
       stroke: theme.stroke,
       'stroke-width': 1.5
     });
