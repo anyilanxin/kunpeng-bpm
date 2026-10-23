@@ -22,9 +22,10 @@
 /**
  * 正交布线器（顺序流/数据关联走直角折线；消息流/关联走直线）。
  *
- * 端点锚位规则（自动布线统一吸附规范锚点）：取"朝向对端"最近的
+ * 端点锚位规则（折线类型统一吸附规范锚点）：取"朝向对端"最近的
  * bbox 四边中点——事件=圆的方位点、任务族=边的 midpoint、网关=菱形顶点，
- * 三类形状同公式。手动拖点走 connection.updateWaypoints，不经此布线器。
+ * 三类形状同公式；直线类型（消息流/关联）例外：沿中心连线裁剪到元素
+ * 边界（见 boundaryAlong）。手动拖点走 connection.updateWaypoints，不经此布线器。
  * 自有策略只负责中段肘形方向与中轴取两 bbox 间隙中点：肘形主流向轴
  * 朝向感知——水平模型目标在右走水平肘、垂直模型目标在下走垂直肘
  * （朝向决定两方向分支的判定次序，否则垂直模型里下方偏右的目标会被
@@ -64,7 +65,8 @@ export class BpmnLayouter extends BaseLayouter {
     const end = anchorOf(target, center(source)).point;
 
     if (STRAIGHT_TYPES.has(type)) {
-      return [start, end];
+      // 直线类型锚点见 boundaryAlong：沿中心连线裁剪到元素边界，而非中点锚
+      return [boundaryAlong(source, center(target)), boundaryAlong(target, center(source))];
     }
 
     if (hints?.connectionStart || hints?.connectionEnd) {
@@ -180,6 +182,37 @@ function center(element: any): { x: number; y: number } {
     return { x: (first.x + last.x) / 2, y: (first.y + last.y) / 2 };
   }
   return { x: element.x + element.width / 2, y: element.y + element.height / 2 };
+}
+
+/**
+ * 直线类型锚点（消息流/关联）：沿"本元素中心 → 对端中心"连线方向裁剪到
+ * 元素边界——事件=圆周交点（半径 w/2）、网关=菱形边交点（L1 等比）、其余
+ * =bbox 边交点。折线类型用四边中点规范锚（正交出入线天然贴边），但直线
+ * 类型若取中点锚，斜向连线会从横向边中点出线再斜插目标角落——起点悬在
+ * 源轮廓侧向、终点挂在目标角上，视觉断裂；边界裁剪让斜线两端都落在元素
+ * 轮廓上且贴中心轴（斜向直线的通行做法）。中心重叠（完全同心的退化
+ * 拖放）取 N 锚保持确定性。
+ */
+function boundaryAlong(element: any, toward: { x: number; y: number }): { x: number; y: number } {
+  const { x, y, width: w, height: h } = asRect(element);
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  const dx = toward.x - cx;
+  const dy = toward.y - cy;
+  if (!dx && !dy) {
+    return { x: cx, y };
+  }
+  const type = element.businessObject?.$type ?? '';
+  if (type.endsWith('Event')) {
+    const len = Math.hypot(dx, dy);
+    return { x: cx + (dx / len) * (w / 2), y: cy + (dy / len) * (h / 2) };
+  }
+  if (type.endsWith('Gateway')) {
+    const l1 = Math.abs(dx) / (w / 2) + Math.abs(dy) / (h / 2);
+    return { x: cx + dx / l1, y: cy + dy / l1 };
+  }
+  const t = Math.min(dx ? w / 2 / Math.abs(dx) : Infinity, dy ? h / 2 / Math.abs(dy) : Infinity);
+  return { x: cx + dx * t, y: cy + dy * t };
 }
 
 /**

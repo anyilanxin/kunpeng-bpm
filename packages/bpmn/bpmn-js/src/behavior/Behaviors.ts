@@ -81,11 +81,15 @@ export class AutoPlacementBehavior {
       return !occupied.some((e: any) => overlaps(box, e));
     };
 
-    // 文本注记惯例放源主流向正交侧（水平模型正上方 / 垂直模型正左侧，L 括号
-    // 角朝元素方向），被占则沿外侧逐级避让——注记不挤占流程流向空间
+    // 文本注记惯例放源斜角位（业界设计器通行布局）：L 括号朝源、Association
+    // 沿中心连线斜向直连、线入注记底边括号侧。水平模型右上 / 垂直模型左上。
+    // 横向净空 12（自有取值：仅留括号呼吸位，注记左缘列对齐源右缘）；纵向
+    // 取 APPEND_GAP 标准净空抬高，保证中心连线约 45° 入底边而非侧穿括号。
+    // 被占则沿竖向逐级上移避让（注记列不动，不挤占流程流向空间）
     if (shape.type === 'bpmn:TextAnnotation') {
+      const bracketGap = 12;
       if (this.orientationService.isHorizontal()) {
-        const cx = source.x + source.width / 2;
+        const cx = source.x + source.width + bracketGap + shape.width / 2;
         let y = source.y - SIZES.APPEND_GAP - shape.height / 2;
         for (let i = 0; i < 24; i++) {
           if (free(cx, y)) {
@@ -95,8 +99,8 @@ export class AutoPlacementBehavior {
         }
         return { x: cx, y };
       }
-      const cy = source.y + source.height / 2;
-      let x = source.x - SIZES.APPEND_GAP - shape.width / 2;
+      const cy = source.y - SIZES.APPEND_GAP - shape.height / 2;
+      let x = source.x - bracketGap - shape.width / 2;
       for (let i = 0; i < 24; i++) {
         if (free(x, cy)) {
           return { x, y: cy };
