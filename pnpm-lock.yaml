@@ -69,6 +69,9 @@ catalogs:
     babel-plugin-module-resolver:
       specifier: ^5.0.3
       version: 5.0.3
+    bpmn-js-color-picker:
+      specifier: ^0.7.2
+      version: 0.7.2
     bpmn-moddle:
       specifier: ^10.3.1
       version: 10.3.1
@@ -87,6 +90,9 @@ catalogs:
     diagram-js:
       specifier: ^15.28.0
       version: 15.28.1
+    diagram-js-grid:
+      specifier: ^2.1.0
+      version: 2.1.0
     focus-trap:
       specifier: ^8.2.3
       version: 8.2.3
@@ -164,9 +170,15 @@ importers:
       '@kunpeng-io/properties-panel':
         specifier: workspace:*
         version: link:../../packages/common/properties-panel
+      bpmn-js-color-picker:
+        specifier: 'catalog:'
+        version: 0.7.2(bpmn-js@18.31.1)
       diagram-js:
         specifier: ^15.9.0
         version: 15.28.1
+      diagram-js-grid:
+        specifier: 'catalog:'
+        version: 2.1.0
       vue:
         specifier: ^3.5.0
         version: 3.5.44(typescript@5.9.3)
@@ -1444,6 +1456,14 @@ packages:
   boolbase@1.0.0:
     resolution: {integrity: sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==}
 
+  bpmn-js-color-picker@0.7.2:
+    resolution: {integrity: sha512-V3Gusxgx+Y6uEh3gg2Jpqd92au0kjfad6ETSNa7U0p2/hqlpYj8RWGwqjUui9tghkTg0mlKaqs6KZ8Lvxzn0pg==}
+    peerDependencies:
+      bpmn-js: '>= 14'
+
+  bpmn-js@18.31.1:
+    resolution: {integrity: sha512-Hc7LzrgwfcBRUAdI/380Q2v1MJ115atGEVGadawLfDbHdo+r+IkmNj8fuYPFmWglUYt1KYIaC46OeX16HGTKQw==}
+
   bpmn-moddle@10.3.1:
     resolution: {integrity: sha512-xjJ8GzseRkjjM0MX/rODVB6iv+rhGLt8FCHJIovLAjJsDEAUjITfyiJZYczJ4pp3wmesbY3sQR7eRT+q5uroVA==}
 
@@ -1573,6 +1593,10 @@ packages:
     resolution: {integrity: sha512-zaXChbFqLccq+rji1fnKD9dL90kO7XLJoaENMVqFOxslax8QD7eumwBBpLYS36br7zva9R4bz3YTu0ey3mbHAA==}
     peerDependencies:
       diagram-js: '*'
+
+  diagram-js-grid@2.1.0:
+    resolution: {integrity: sha512-kKWwoG0sFDW7oq1DUzPvXS0N9dtxtWKXqKcDRakLrMJ/b5UbRMhVHq//yr+shRmutED7A8V+3+FnTRqScocNng==}
+    engines: {node: '>= 20'}
 
   diagram-js@15.28.1:
     resolution: {integrity: sha512-R90PKnpRL9prdiYxc9ndtqkxnn1dIZacWgq0cpz4ABse1AwhrXexD8sRUZkNdxj9Adz4k04DUee/J6l/uTVDfw==}
@@ -3160,6 +3184,23 @@ snapshots:
 
   boolbase@1.0.0: {}
 
+  bpmn-js-color-picker@0.7.2(bpmn-js@18.31.1):
+    dependencies:
+      bpmn-js: 18.31.1
+
+  bpmn-js@18.31.1:
+    dependencies:
+      bpmn-moddle: 10.3.1
+      diagram-js: 15.28.1
+      diagram-js-direct-editing: 3.6.0(diagram-js@15.28.1)
+      ids: 3.0.2
+      inherits-browser: 0.1.0
+      min-dash: 5.1.0
+      min-dom: 5.3.0
+      tiny-svg: 4.1.4
+    transitivePeerDependencies:
+      - preact-render-to-string
+
   bpmn-moddle@10.3.1:
     dependencies:
       min-dash: 5.1.0
@@ -3304,6 +3345,12 @@ snapshots:
       diagram-js: 15.28.1
       min-dash: 5.1.0
       min-dom: 5.3.0
+
+  diagram-js-grid@2.1.0:
+    dependencies:
+      min-dash: 5.1.0
+      min-dom: 5.3.0
+      tiny-svg: 4.1.4
 
   diagram-js@15.28.1:
     dependencies:

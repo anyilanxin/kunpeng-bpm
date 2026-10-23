@@ -5,7 +5,10 @@
  * - Modeler 挂载到 div ref，示例插件按 URL 参数加载（?plugin=0 关闭）
  * - 属性面板（@kunpeng-io/bpmn-js-properties-panel）：编辑态经 additionalModules
  *   装配，容器经 propertiesPanel.parent 透传（插件 config 键，组件不逐键白名单）
- * - 颜色插件：工具栏填充/描边取色器 + 清除，走 modeling.setColor（bioc:fill/stroke 往返）
+ * - 颜色插件：工具栏填充/描边取色器 + 清除，走 modeling.setColor（bioc:fill/stroke 往返）；
+ *   另接上游 bpmn-js-color-picker（contextPad 调色板弹窗，同一 setColor 通道），
+ *   色板经 colorPicker config 键透传
+ * - 上游 diagram-js-grid：画布背景网格层，随 gridSnapping 开关显隐，编辑态装配
  * - 流程图/XML 视图切换是示例自有的卡片组件（components/XmlViewCard.vue），
  *   只消费组件包公开 API（saveXML/importXML），组件包本身不含视图切换功能
  */
@@ -16,8 +19,12 @@ import {
   BpmnPropertiesProviderModule,
   KunpengPropertiesProviderModule
 } from '@kunpeng-io/bpmn-js-properties-panel';
+// 上游 bpmn-io 插件（纯 DI 模块声明，additionalModules 直插；color-picker 须走 /colors 子路径）
+import BpmnColorPickerModule from 'bpmn-js-color-picker/colors';
+import gridModule from 'diagram-js-grid';
 // kunpeng 业务协议由组件包内置（BpmnModdle 与上游 bpmn-moddle 标准资源一并注册），宿主无需注入
 import { SamplePluginModule } from './sample-plugin';
+import { CUSTOM_COLOR_PICKER_COLORS } from './color-palette';
 import { createInitialBpmn } from './bpmn-template';
 import XmlViewCard from './components/XmlViewCard.vue';
 
@@ -98,20 +105,27 @@ function getModeler(): Modeler | null {
 
 const usePlugin = new URLSearchParams(location.search).get('plugin') !== '0';
 
-/** 编辑态实例的模块装配：组件默认集 + 属性面板三模块（+示例插件） */
+/** 编辑态实例的模块装配：组件默认集 + 属性面板三模块 + grid/调色板插件（+示例插件） */
 function editorModules(): any[] {
-  const modules = [BpmnPropertiesPanelModule, BpmnPropertiesProviderModule, KunpengPropertiesProviderModule];
+  const modules = [
+    BpmnPropertiesPanelModule,
+    BpmnPropertiesProviderModule,
+    KunpengPropertiesProviderModule,
+    gridModule,
+    BpmnColorPickerModule
+  ];
   return usePlugin ? [...modules, SamplePluginModule] : modules;
 }
 
-/** 按形态建实例：编辑态挂属性面板（parent 容器 + 面板模块），只读态不装编辑类模块 */
+/** 按形态建实例：编辑态挂属性面板（parent 容器 + 面板模块）+ 调色板配置，只读态不装编辑类模块 */
 function createInstance(formKind: 'edit' | 'navigated' | 'view'): Modeler {
   const common = { container: canvasHost.value! };
   if (formKind === 'edit') {
     return new Modeler({
       ...common,
       additionalModules: editorModules(),
-      propertiesPanel: { parent: panelHost.value! }
+      propertiesPanel: { parent: panelHost.value! },
+      colorPicker: { colors: CUSTOM_COLOR_PICKER_COLORS }
     });
   }
   return formKind === 'navigated'

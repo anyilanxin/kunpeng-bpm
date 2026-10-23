@@ -23,3 +23,14 @@ declare module '@kunpeng-io/properties-panel' {
   export const TextAreaEntry: any;
   export const TextFieldEntry: any;
 }
+
+// 上游 bpmn-io 插件（JS 源码包，无类型声明）：didi 模块声明直插 additionalModules
+declare module 'bpmn-js-color-picker/colors' {
+  const colorPickerModule: any;
+  export default colorPickerModule;
+}
+
+declare module 'diagram-js-grid' {
+  const gridModule: any;
+  export default gridModule;
+}

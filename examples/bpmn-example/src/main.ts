@@ -9,6 +9,8 @@ import { createApp } from 'vue';
 import 'diagram-js/assets/diagram-js.css';
 import '@kunpeng-io/bpmn-js/styles';
 import '@kunpeng-io/properties-panel/assets/properties-panel.css';
+// 上游 color-picker 弹窗皮肤（grid 插件纯 SVG 绘制，无需样式）
+import 'bpmn-js-color-picker/colors/color-picker.css';
 import './app.css';
 import App from './App.vue';
 

@@ -32,6 +32,7 @@ catalog:
   diagram-js: ^15.28.0
   diagram-js-grid: ^2.1.0
   diagram-js-direct-editing: ^3.6.0
+  bpmn-js-color-picker: ^0.7.2
   bpmn-moddle: ^10.3.1
   bpmn-font: ^0.13.0
 
