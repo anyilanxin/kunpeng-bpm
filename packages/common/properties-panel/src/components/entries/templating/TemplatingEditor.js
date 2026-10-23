@@ -86,11 +86,15 @@ const TemplatingEditor = forwardRef((props, ref) => {
       lineWrap: true,
     });
 
+    // capture the mount node: unmount cleanups of passive effects are deferred
+    // past ref release, so inputRef.current may already be null in the cleanup
+    const containerNode = inputRef.current;
+
     setEditor(editor);
 
     return () => {
       onLint([]);
-      inputRef.current.innerHTML = '';
+      containerNode.innerHTML = '';
       setEditor(null);
     };
   }, []);
