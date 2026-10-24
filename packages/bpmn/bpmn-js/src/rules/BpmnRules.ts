@@ -32,17 +32,15 @@ import type Canvas from 'diagram-js/lib/core/Canvas';
 import type { BpmnMode } from '../mode/BpmnMode';
 import type { OrientationService } from '../meta/Orientation';
 import { ATTACH_EDGE_TOLERANCE, distanceToBorder } from '../util/AttachMath';
-
-const ACTIVITY_TYPES = new Set([
-  'bpmn:Task', 'bpmn:UserTask', 'bpmn:ServiceTask', 'bpmn:ScriptTask', 'bpmn:ManualTask',
-  'bpmn:SendTask', 'bpmn:ReceiveTask', 'bpmn:BusinessRuleTask', 'bpmn:CallActivity',
-  'bpmn:SubProcess', 'bpmn:Transaction', 'bpmn:AdHocSubProcess'
-]);
-
-const FLOW_NODE_EVENT = (t: string) => t.endsWith('Event');
-const GATEWAY = (t: string) => t.endsWith('Gateway');
-const DATA_TYPES = new Set(['bpmn:DataObjectReference', 'bpmn:DataStoreReference']);
-const ARTIFACT_TYPES = new Set(['bpmn:Group', 'bpmn:TextAnnotation']);
+import {
+  isActivityFamily,
+  isArtifactFamily,
+  isContainerType,
+  isDataFamily,
+  isFlowNodeType,
+  isPoolFamily,
+  isSubProcessFamily
+} from '../meta/ElementTypes';
 
 export class BpmnRules extends RuleProvider {
   static $inject = ['eventBus', 'canvas', 'bpmnMode', 'orientationService'];
@@ -81,7 +79,7 @@ export class BpmnRules extends RuleProvider {
     const type = target?.businessObject?.$type;
     if (!type) return false;
     if (type === 'bpmn:Participant' || type === 'bpmn:Group') return true;
-    if (type === 'bpmn:SubProcess' || type === 'bpmn:Transaction' || type === 'bpmn:AdHocSubProcess') {
+    if (isSubProcessFamily(type)) {
       return target.isExpanded !== false;
     }
     return false;
@@ -138,74 +136,110 @@ export class BpmnRules extends RuleProvider {
     return this.validateConnection(type, source, target);
   }
 
+  /**
+   * 连线类型推断（职责链）：按优先级依次过策略，首个命中者定类型，全不中 =
+   * 不可连。新增连线语义 = 插入一个策略函数，既有策略不动（开闭）。
+   */
+  private readonly connectionInferenceChain: Array<(source: any, target: any) => string | null> = [
+    (source, target) => this.inferMessageFlow(source, target),
+    (source, target) => this.inferDataAssociation(source, target),
+    (source, target) => this.inferAssociation(source, target),
+    (source, target) => this.inferSequenceFlow(source, target)
+  ];
+
   private inferConnectionType(source: any, target: any): string | null {
-    const st = source.businessObject?.$type;
-    const tt = target.businessObject?.$type;
-    if (!st || !tt) {
+    if (!source.businessObject?.$type || !target.businessObject?.$type) {
       return null;
     }
-
-    // 消息流：跨参与者（池↔池；池↔对端池内节点；规范 §8.4.3 Collaboration）
-    const crossPool =
-      st === 'bpmn:Participant' || tt === 'bpmn:Participant'
-        ? st !== tt || this.poolOf(source) !== this.poolOf(target)
-        : this.poolOf(source) !== this.poolOf(target);
-    if (crossPool && (st === 'bpmn:Participant' || tt === 'bpmn:Participant' || (this.isPoolLevelNode(source) && this.isPoolLevelNode(target)))) {
-      return 'bpmn:MessageFlow';
-    }
-
-    // 数据关联：数据对象 ↔ 活动
-    const dataInvolved = DATA_TYPES.has(st) || DATA_TYPES.has(tt);
-    if (dataInvolved) {
-      return 'bpmn:DataAssociation';
-    }
-
-    // 关联：制品（分组/注记）↔ 任意
-    if (ARTIFACT_TYPES.has(st) || ARTIFACT_TYPES.has(tt)) {
-      return 'bpmn:Association';
-    }
-
-    // 顺序流：同作用域流节点
-    if (this.isFlowNode(source) && this.isFlowNode(target) && this.poolOf(source) === this.poolOf(target)) {
-      return 'bpmn:SequenceFlow';
+    for (const infer of this.connectionInferenceChain) {
+      const type = infer(source, target);
+      if (type) {
+        return type;
+      }
     }
     return null;
   }
 
-  private validateConnection(type: string, source: any, target: any): boolean {
+  /** 消息流：跨参与者（池↔池；池↔对端池内节点；规范 §8.4.3 Collaboration） */
+  private inferMessageFlow(source: any, target: any): string | null {
     const st = source.businessObject?.$type;
     const tt = target.businessObject?.$type;
-    if (!st || !tt) {
+    const crossPool =
+      st === 'bpmn:Participant' || tt === 'bpmn:Participant'
+        ? st !== tt || this.poolOf(source) !== this.poolOf(target)
+        : this.poolOf(source) !== this.poolOf(target);
+    return crossPool && (st === 'bpmn:Participant' || tt === 'bpmn:Participant' || (this.isPoolLevelNode(source) && this.isPoolLevelNode(target)))
+      ? 'bpmn:MessageFlow'
+      : null;
+  }
+
+  /** 数据关联：数据对象 ↔ 活动 */
+  private inferDataAssociation(source: any, target: any): string | null {
+    const st = source.businessObject?.$type;
+    const tt = target.businessObject?.$type;
+    return isDataFamily(st) || isDataFamily(tt) ? 'bpmn:DataAssociation' : null;
+  }
+
+  /** 关联：制品（分组/注记）↔ 任意 */
+  private inferAssociation(source: any, target: any): string | null {
+    const st = source.businessObject?.$type;
+    const tt = target.businessObject?.$type;
+    return isArtifactFamily(st) || isArtifactFamily(tt) ? 'bpmn:Association' : null;
+  }
+
+  /** 顺序流：同作用域流节点 */
+  private inferSequenceFlow(source: any, target: any): string | null {
+    return this.isFlowNode(source) && this.isFlowNode(target) && this.poolOf(source) === this.poolOf(target)
+      ? 'bpmn:SequenceFlow'
+      : null;
+  }
+
+  /**
+   * 连线校验（策略表）：每类连线一个独立校验器；未登记类型放行（插件可加规则）。
+   * 各校验器职责单一，端点类型缺失的公共判定统一在前置守卫完成。
+   */
+  private readonly connectionValidators: Record<string, (source: any, target: any) => boolean> = {
+    'bpmn:SequenceFlow': (source, target) => this.validateSequenceFlow(source, target),
+    'bpmn:MessageFlow': (source, target) => this.validateMessageFlow(source, target),
+    'bpmn:Association': (source, target) =>
+      isArtifactFamily(source.businessObject?.$type) || isArtifactFamily(target.businessObject?.$type),
+    'bpmn:DataAssociation': (source, target) => {
+      const st = source.businessObject?.$type;
+      const tt = target.businessObject?.$type;
+      return (isDataFamily(st) || isDataFamily(tt)) && (isActivityFamily(st) || isActivityFamily(tt));
+    }
+  };
+
+  private validateConnection(type: string, source: any, target: any): boolean {
+    if (!source.businessObject?.$type || !target.businessObject?.$type) {
       return false;
     }
-    switch (type) {
-      case 'bpmn:SequenceFlow': {
-        if (!this.isFlowNode(source) || !this.isFlowNode(target)) {
-          return false;
-        }
-        if (st === 'bpmn:EndEvent') return false; // 结束事件无出边
-        if (tt === 'bpmn:StartEvent') return false; // 开始事件无入边
-        if (st === 'bpmn:BoundaryEvent' && this.isBoundaryHost(target, source)) return false;
-        if (tt === 'bpmn:BoundaryEvent') return false; // 边界事件不作为顺序流目标（其中间事件语义除外，简化）
-        return this.poolOf(source) === this.poolOf(target);
-      }
-      case 'bpmn:MessageFlow': {
-        const endpointsValid =
-          st === 'bpmn:Participant' || tt === 'bpmn:Participant' ||
-          (this.isPoolLevelNode(source) && this.isPoolLevelNode(target));
-        return endpointsValid && this.poolOf(source) !== this.poolOf(target);
-      }
-      case 'bpmn:Association': {
-        return ARTIFACT_TYPES.has(st) || ARTIFACT_TYPES.has(tt);
-      }
-      case 'bpmn:DataAssociation': {
-        const oneData = DATA_TYPES.has(st) || DATA_TYPES.has(tt);
-        const oneActivity = ACTIVITY_TYPES.has(st) || ACTIVITY_TYPES.has(tt);
-        return oneData && oneActivity;
-      }
-      default:
-        return true; // 扩展连线类型放行（插件可加规则）
+    const validate = this.connectionValidators[type];
+    return validate ? validate(source, target) : true;
+  }
+
+  /** 顺序流：两侧流节点；结束事件无出边、开始事件无入边、边界事件不作目标；同作用域 */
+  private validateSequenceFlow(source: any, target: any): boolean {
+    const st = source.businessObject?.$type;
+    const tt = target.businessObject?.$type;
+    if (!this.isFlowNode(source) || !this.isFlowNode(target)) {
+      return false;
     }
+    if (st === 'bpmn:EndEvent') return false;
+    if (tt === 'bpmn:StartEvent') return false;
+    if (st === 'bpmn:BoundaryEvent' && this.isBoundaryHost(target, source)) return false;
+    if (tt === 'bpmn:BoundaryEvent') return false; // 其中断语义由 attach 通道承载，不作顺序流目标
+    return this.poolOf(source) === this.poolOf(target);
+  }
+
+  /** 消息流：端点至少一端为池，或双端均为池级节点；且必须跨参与者 */
+  private validateMessageFlow(source: any, target: any): boolean {
+    const st = source.businessObject?.$type;
+    const tt = target.businessObject?.$type;
+    const endpointsValid =
+      st === 'bpmn:Participant' || tt === 'bpmn:Participant' ||
+      (this.isPoolLevelNode(source) && this.isPoolLevelNode(target));
+    return endpointsValid && this.poolOf(source) !== this.poolOf(target);
   }
 
   // ---------- 形状 ----------
@@ -232,7 +266,7 @@ export class BpmnRules extends RuleProvider {
       return isRoot;
     }
     if (type === 'bpmn:Lane') {
-      return target.businessObject?.$type === 'bpmn:Participant' || target.businessObject?.$type === 'bpmn:Lane';
+      return isPoolFamily(target.businessObject?.$type);
     }
     // 边界事件必须依附宿主活动（规范 §10.6.1 attachedToRef 必填）：
     // 普通 create 不放行，唯一创建入口=拖中间事件到活动上（shape.attach）
@@ -242,14 +276,10 @@ export class BpmnRules extends RuleProvider {
 
     if (isRoot) {
       // 协作存在时根上只放池；否则普通节点直接进流程平面
-      const hasPools = (this.canvas.getRootElement().children ?? []).some(
-        (c: any) => c.businessObject?.$type === 'bpmn:Participant'
-      );
-      return !hasPools && !this.dropPositionOccupied(context, target);
+      return !this.rootHasPools() && !this.dropPositionOccupied(context, target);
     }
 
-    const tt = target.businessObject?.$type;
-    const containerOk = tt === 'bpmn:Participant' || tt === 'bpmn:Lane' || ((tt === 'bpmn:SubProcess' || tt === 'bpmn:Transaction' || tt === 'bpmn:AdHocSubProcess') && target.isExpanded !== false);
+    const containerOk = isContainerType(target.businessObject?.$type, target.isExpanded);
     return containerOk && !this.dropPositionOccupied(context, target);
   }
 
@@ -291,7 +321,7 @@ export class BpmnRules extends RuleProvider {
     const tt = targetBo?.$type;
     // 宿主限定（规范 Table 10.91 attachedTo: Activity）：仅活动族；
     // 事件子流程不可挂边界事件（规范 §13.5.4 "they cannot have attached boundary Events"）
-    if (!tt || !ACTIVITY_TYPES.has(tt) || targetBo.triggeredByEvent === true) {
+    if (!tt || !isActivityFamily(tt) || targetBo.triggeredByEvent === true) {
       return false;
     }
     // 边线放置（规范 §10.6 "attached to the boundary of an Activity"）：
@@ -307,6 +337,47 @@ export class BpmnRules extends RuleProvider {
    * 缩放白名单：仅展开子流程、池/泳道、分组（尺寸承载内容的元素）。
    * 事件/网关/任务族/折叠子流程/数据/注记为定尺寸元素，不开放缩放。
    */
+  /**
+   * 缩放白名单（有序策略表）：依次找第一个 applies 的策略取其 allow 裁决；
+   * 无命中 = 定尺寸元素不可缩放。策略注释随策略就近维护，互不纠缠。
+   */
+  private readonly resizePolicies: Array<{
+    applies: (type: string) => boolean;
+    allow: (context: any, shape: any) => boolean;
+  }> = [
+    {
+      // 注记仅横向可调：宽度决定换行、高度随文字行数自适应（渲染后按
+      // 文字实测高度回写，见 TextAnnotationBehavior）。UI 拖拽方向非纯
+      // 横向（w/e）即拒；无 direction 的程序化 resizeShape 放行（高度
+      // 自适应回写走的正是该通道）
+      applies: (t) => t === 'bpmn:TextAnnotation',
+      allow: (ctx) => !ctx.direction || ctx.direction === 'w' || ctx.direction === 'e'
+    },
+    {
+      // 子流程族仅展开态可缩放（折叠态 = 任务盒定尺寸）
+      applies: (t) => isSubProcessFamily(t),
+      allow: (_ctx, shape) => shape.isExpanded !== false
+    },
+    {
+      // 泳道带只沿堆叠轴调边界（水平池 n/s、垂直池 w/e）——带在跨轴方向
+      // 永远铺满池内容区，跨轴尺寸归池所有（改池即重铺全部带）；无 direction
+      // 的程序化 resizeShape 放行（带边界语义由 LaneBandBehavior 收敛）
+      applies: (t) => t === 'bpmn:Lane',
+      allow: (ctx) => {
+        if (!ctx.direction) {
+          return true;
+        }
+        const stackDirs = this.orientationService.isHorizontal() ? 'ns' : 'we';
+        return [...ctx.direction].every((d: string) => stackDirs.includes(d));
+      }
+    },
+    {
+      // 池与分组：全向缩放（尺寸承载内容/范围语义）
+      applies: (t) => t === 'bpmn:Participant' || t === 'bpmn:Group',
+      allow: () => true
+    }
+  ];
+
   private canResize(context: any): boolean {
     if (!this.bpmnMode.isEditable()) return false;
     const shape = context.shape;
@@ -314,28 +385,8 @@ export class BpmnRules extends RuleProvider {
     if (!type) {
       return true;
     }
-    if (type === 'bpmn:TextAnnotation') {
-      // 注记仅横向可调：宽度决定换行、高度随文字行数自适应（渲染后按
-      // 文字实测高度回写，见 TextAnnotationBehavior）。UI 拖拽方向非纯
-      // 横向（w/e）即拒；无 direction 的程序化 resizeShape 放行（高度
-      // 自适应回写走的正是该通道）
-      const dir = context.direction;
-      return !dir || dir === 'w' || dir === 'e';
-    }
-    if (type === 'bpmn:SubProcess' || type === 'bpmn:Transaction' || type === 'bpmn:AdHocSubProcess') {
-      return shape.isExpanded !== false;
-    }
-    if (type === 'bpmn:Lane') {
-      // 泳道带只沿堆叠轴调边界（水平池 n/s、垂直池 w/e）——带在跨轴方向
-      // 永远铺满池内容区，跨轴尺寸归池所有（改池即重铺全部带）；无 direction
-      // 的程序化 resizeShape 放行（带边界语义由 LaneBandBehavior 收敛）
-      if (!context.direction) {
-        return true;
-      }
-      const stackDirs = this.orientationService.isHorizontal() ? 'ns' : 'we';
-      return [...context.direction].every((d: string) => stackDirs.includes(d));
-    }
-    return type === 'bpmn:Participant' || type === 'bpmn:Group';
+    const policy = this.resizePolicies.find((p) => p.applies(type));
+    return policy ? policy.allow(context, shape) : false;
   }
 
   private canMove(context: any): boolean | Record<string, unknown> {
@@ -361,48 +412,42 @@ export class BpmnRules extends RuleProvider {
     }
 
     const root = this.canvas.getRootElement();
-    for (const shape of shapes) {
-      const type = shape.businessObject?.$type;
-      if (type === 'bpmn:Participant') {
-        if (target !== root && target !== shape.parent) {
-          return false;
-        }
-        continue;
-      }
-      if (type === 'bpmn:BoundaryEvent') {
-        // 性质固定：边界事件不允许"落进容器/空白"的移动（脱离宿主即孤儿，
-        // 不退化为中间事件）；随宿主同动放行，重挂活动（AttachSupport→
-        // shape.attach）与沿宿主边线滑动除外——落点须在目标活动边线容差内
-        // （同创建语义），非边线落点整体拒绝（弹回），堵 updateAttachment(undefined) 脱离
-        if (!shapes.includes(shape.host)) {
-          if (target) {
-            if (!ACTIVITY_TYPES.has(target.businessObject?.$type ?? '')) {
-              return false;
-            }
-            const position = context.position;
-            if (position && distanceToBorder(target, position) > ATTACH_EDGE_TOLERANCE) {
-              return false;
-            }
-          }
-        }
-        continue;
-      }
-      if (!this.canContain(shape, target)) {
-        return false;
-      }
+    return shapes.every((shape) => this.canMoveShape(shape, target, root, shapes, context.position));
+  }
+
+  /** 单形状移动策略：池（仅根/原父）→ 边界事件（宿主规则）→ 其余（canContain） */
+  private canMoveShape(shape: any, target: any, root: any, shapes: any[], position: any): boolean {
+    const type = shape.businessObject?.$type;
+    if (type === 'bpmn:Participant') {
+      return target === root || target === shape.parent;
     }
-    return true;
+    if (type === 'bpmn:BoundaryEvent') {
+      return this.canMoveBoundaryEvent(shape, target, shapes, position);
+    }
+    return this.canContain(shape, target);
+  }
+
+  /**
+   * 边界事件移动：性质固定——不允许"落进容器/空白"的移动（脱离宿主即孤儿，
+   * 不退化为中间事件）；随宿主同动放行，重挂活动（AttachSupport→
+   * shape.attach）与沿宿主边线滑动除外——落点须在目标活动边线容差内
+   * （同创建语义），非边线落点整体拒绝（弹回），堵 updateAttachment(undefined) 脱离
+   */
+  private canMoveBoundaryEvent(shape: any, target: any, shapes: any[], position: any): boolean {
+    if (shapes.includes(shape.host)) {
+      return true;
+    }
+    if (!isActivityFamily(target.businessObject?.$type)) {
+      return false;
+    }
+    return !position || distanceToBorder(target, position) <= ATTACH_EDGE_TOLERANCE;
   }
 
   private canContain(shape: any, target: any): boolean {
-    const tt = target.businessObject?.$type;
     if (this.isRootElement(target)) {
-      const hasPools = (this.canvas.getRootElement().children ?? []).some(
-        (c: any) => c.businessObject?.$type === 'bpmn:Participant'
-      );
-      return !hasPools || shape.businessObject?.$type === 'bpmn:Participant';
+      return !this.rootHasPools() || shape.businessObject?.$type === 'bpmn:Participant';
     }
-    return tt === 'bpmn:Participant' || tt === 'bpmn:Lane' || ((tt === 'bpmn:SubProcess' || tt === 'bpmn:Transaction' || tt === 'bpmn:AdHocSubProcess') && target.isExpanded !== false);
+    return isContainerType(target.businessObject?.$type, target.isExpanded);
   }
 
   private canDelete(context: any): boolean {
@@ -412,6 +457,13 @@ export class BpmnRules extends RuleProvider {
   }
 
   // ---------- 作用域工具 ----------
+
+  /** 画布根上是否已有池（协作形态判定：根上只放池） */
+  private rootHasPools(): boolean {
+    return (this.canvas.getRootElement().children ?? []).some(
+      (c: any) => c.businessObject?.$type === 'bpmn:Participant'
+    );
+  }
 
   /** 元素归属的参与者作用域（池或根） */
   private poolOf(element: any): any {
@@ -441,7 +493,7 @@ export class BpmnRules extends RuleProvider {
       if (pt === 'bpmn:Participant' || pt === 'bpmn:Collaboration' || pt === 'bpmn:Process') {
         return true;
       }
-      if (pt === 'bpmn:SubProcess' || pt === 'bpmn:Transaction' || pt === 'bpmn:AdHocSubProcess') {
+      if (isSubProcessFamily(pt)) {
         return false;
       }
       parent = parent.parent;
@@ -450,9 +502,7 @@ export class BpmnRules extends RuleProvider {
   }
 
   private isFlowNode(element: any): boolean {
-    const t = element.businessObject?.$type;
-    if (!t) return false;
-    return ACTIVITY_TYPES.has(t) || FLOW_NODE_EVENT(t) || GATEWAY(t);
+    return isFlowNodeType(element.businessObject?.$type);
   }
 
   private isBoundaryHost(candidate: any, boundarySource: any): boolean {

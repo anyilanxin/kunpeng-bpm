@@ -32,6 +32,7 @@
  * 故几何一律为局部坐标，膨胀量与 Outline 默认 outlineOffset 对齐。
  */
 import { create, attr } from 'tiny-svg';
+import { isEventFamily, isGatewayFamily } from '../meta/ElementTypes';
 
 /** 描边与本体的留白，取 diagram-js Outline 默认 outlineOffset 同值（5px） */
 const OUTLINE_OFFSET = 5;
@@ -51,9 +52,9 @@ export class BpmnOutlineProvider {
     }
 
     let outline: SVGElement;
-    if (type.endsWith('Event')) {
+    if (isEventFamily(type)) {
       outline = create('circle');
-    } else if (type.endsWith('Gateway')) {
+    } else if (isGatewayFamily(type)) {
       outline = create('path');
     } else {
       outline = create('rect');

@@ -48,7 +48,7 @@ import type CommandHandler from 'diagram-js/lib/command/CommandHandler';
 import type Canvas from 'diagram-js/lib/core/Canvas';
 import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
 import type { OrientationService, ModelOrientation } from '../meta/Orientation';
-import { SIZES, isSubProcessContainer } from '../meta/ElementTypes';
+import { SIZES, isSubProcessFamily } from '../meta/ElementTypes';
 import { refitLaneBands } from '../util/PoolGeometry';
 
 /** 容器族：转置时随长轴换向（池/泳道/分组 + 展开子流程族） */
@@ -57,7 +57,7 @@ function isTransposingContainer(element: any): boolean {
   if (type === 'bpmn:Participant' || type === 'bpmn:Lane' || type === 'bpmn:Group') {
     return true;
   }
-  return isSubProcessContainer(type) && element.isExpanded !== false;
+  return isSubProcessFamily(type) && element.isExpanded !== false;
 }
 
 export class OrientationHandler implements CommandHandler {
@@ -262,7 +262,7 @@ export class OrientationHandler implements CommandHandler {
       const type: string = el.businessObject?.$type ?? el.type ?? '';
       if (
         type === 'bpmn:Participant' || type === 'bpmn:Lane' || type === 'bpmn:Group' ||
-        type === 'bpmn:TextAnnotation' || isSubProcessContainer(type)
+        type === 'bpmn:TextAnnotation' || isSubProcessFamily(type)
       ) {
         return;
       }
@@ -336,7 +336,7 @@ export class OrientationHandler implements CommandHandler {
       const el = state.element;
       const type: string = el.businessObject?.$type ?? el.type ?? '';
       const isPool = type === 'bpmn:Participant';
-      if (!isPool && !(isSubProcessContainer(type) && el.isExpanded !== false)) {
+      if (!isPool && !(isSubProcessFamily(type) && el.isExpanded !== false)) {
         return;
       }
       const pad = OrientationHandler.REFIT_PAD;

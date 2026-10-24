@@ -50,6 +50,7 @@ import {
   type StyleTheme
 } from '../render/Symbols';
 import { EventDefinitions } from '../meta/EventDefinitions';
+import { isEventFamily, isGatewayFamily } from '../meta/ElementTypes';
 import { loopKindOf, type LoopKind } from '../meta/LoopCharacteristics';
 import { iconSetSvg, type IconSetKey } from './IconSet';
 
@@ -254,7 +255,7 @@ export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20): string {
   const t = meta.type;
   const sym = meta.eventSymbol ?? '';
 
-  if (t.endsWith('Event')) {
+  if (isEventFamily(t)) {
     parts.push(canvasGroup(EVENT_K, 38, 38, (g) => {
       // 画布同款环重：开始/中间/边界 2，结束 4（规范 §10.2 线型）；中间·边界双环内圈 r-3
       const thick = t === 'bpmn:EndEvent' ? 4 : 2;
@@ -274,7 +275,7 @@ export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20): string {
         drawEventSymbol(g, sym, 19, 19, 15, theme, t === 'bpmn:EndEvent' || t === 'bpmn:IntermediateThrowEvent');
       }
     }));
-  } else if (t.endsWith('Gateway')) {
+  } else if (isGatewayFamily(t)) {
     parts.push(canvasGroup(GATEWAY_K, 52, 52, (g) => {
       // 画布同源 drawGatewayShape（闭合菱形，描边 2），标记占 0.72 半宽（drawGatewayMarker 同参）；
       // 未登记网关类型（如复杂网关）只画菱形不加标记——标记语义须类型明确，不默认顶替
@@ -356,7 +357,7 @@ export function iconOfElement(element: any, size = 20): string {
   const bo = element?.businessObject;
   const type: string = bo?.$type ?? element?.type ?? '';
   const meta: BpmnIconMeta = { type };
-  if (type.endsWith('Event')) {
+  if (isEventFamily(type)) {
     meta.eventSymbol = EventDefinitions.symbolOf(bo) || undefined;
     // 非中断变体（边界 cancelActivity=false / 事件子流程开始 isInterrupting=false）
     meta.nonInterrupting =

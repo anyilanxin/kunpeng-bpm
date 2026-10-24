@@ -30,7 +30,7 @@
  * 条目按 palette 分组展示分组头，多于 5 个时打开方（context pad / palette）传
  * search: true 出搜索框（diagram-js PopupMenu 契约）。
  */
-import { BpmnElementTypes, SIZES, metaId } from '../meta/ElementTypes';
+import { BpmnElementTypes, SIZES, isContainerType, metaId } from '../meta/ElementTypes';
 import type { ShapeTypeMeta } from '../meta/ElementTypes';
 import { bpmnIconHtml } from '../icons/BpmnIcons';
 import { poolInnerRect } from '../util/PoolGeometry';
@@ -176,10 +176,7 @@ export class BpmnCreateMenuProvider {
 
   getPopupMenuEntries(target: any): Record<string, any> {
     const type = target.businessObject?.$type;
-    const isContainer =
-      type === 'bpmn:Participant' ||
-      type === 'bpmn:Lane' ||
-      ((type === 'bpmn:SubProcess' || type === 'bpmn:Transaction' || type === 'bpmn:AdHocSubProcess') && target.isExpanded !== false);
+    const isContainer = isContainerType(type, target.isExpanded);
     // 画布根宿主（palette "…" 场景）：可视区中心落形
     const isRoot = target === this.canvas.getRootElement();
     if (!isContainer && !isRoot) {
@@ -276,10 +273,7 @@ export class BpmnCreateMenuProvider {
   private containerAt(point: { x: number; y: number }): any | null {
     const hits = this.elementRegistry.filter((el: any) => {
       const t = el.businessObject?.$type;
-      if (el.waypoints || el.labelTarget || (
-        t !== 'bpmn:Participant' && t !== 'bpmn:Lane' &&
-        !((t === 'bpmn:SubProcess' || t === 'bpmn:Transaction' || t === 'bpmn:AdHocSubProcess') && el.isExpanded !== false)
-      )) {
+      if (el.waypoints || el.labelTarget || !isContainerType(t, el.isExpanded)) {
         return false;
       }
       return point.x >= el.x && point.x <= el.x + el.width && point.y >= el.y && point.y <= el.y + el.height;

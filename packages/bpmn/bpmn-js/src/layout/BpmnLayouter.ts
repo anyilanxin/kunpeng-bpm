@@ -45,6 +45,7 @@ const STRAIGHT_TYPES = new Set(['bpmn:MessageFlow', 'bpmn:Association']);
 const ALIGN_TOLERANCE = 8;
 
 import type { OrientationService } from '../meta/Orientation';
+import { isEventFamily, isGatewayFamily } from '../meta/ElementTypes';
 
 export class BpmnLayouter extends BaseLayouter {
   static $inject = ['orientationService'];
@@ -99,7 +100,7 @@ export class BpmnLayouter extends BaseLayouter {
     // 让每条分支的主干清晰散开；水平肘 Z 形会在网关右侧把多分支挤成一束。
     // 末端锚强制取面向源的一侧中点（W/N）：L 末段是水平/垂直入线，按距离
     // 选锚会在深下目标上选中 N/S 锚，线贴着目标顶/底横过去，形态怪异
-    const isGateway = !!source.businessObject?.$type?.endsWith('Gateway');
+    const isGateway = isGatewayFamily(source.businessObject?.$type);
     if (isGateway) {
       if (horizontal) {
         const west = { x: t.x, y: t.y + t.height / 2 };
@@ -202,12 +203,12 @@ function boundaryAlong(element: any, toward: { x: number; y: number }): { x: num
   if (!dx && !dy) {
     return { x: cx, y };
   }
-  const type = element.businessObject?.$type ?? '';
-  if (type.endsWith('Event')) {
+  const type = element.businessObject?.$type;
+  if (isEventFamily(type)) {
     const len = Math.hypot(dx, dy);
     return { x: cx + (dx / len) * (w / 2), y: cy + (dy / len) * (h / 2) };
   }
-  if (type.endsWith('Gateway')) {
+  if (isGatewayFamily(type)) {
     const l1 = Math.abs(dx) / (w / 2) + Math.abs(dy) / (h / 2);
     return { x: cx + dx / l1, y: cy + dy / l1 };
   }

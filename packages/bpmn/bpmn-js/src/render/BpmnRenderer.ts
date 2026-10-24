@@ -51,7 +51,7 @@ import {
   EXTERNAL_FONT,
   INTERNAL_FONT
 } from '../label/LabelGeometry';
-import { SIZES } from '../meta/ElementTypes';
+import { SIZES, isEventFamily, isGatewayFamily } from '../meta/ElementTypes';
 
 export interface BpmnRendererConfig {
   defaultStrokeColor?: string;
@@ -160,10 +160,10 @@ export class BpmnRenderer extends BaseRenderer {
     const theme = this.themeFor(shape);
 
     switch (true) {
-      case type.endsWith('Event'):
+      case isEventFamily(type):
         this.drawEvent(visuals, shape, theme);
         break;
-      case type.endsWith('Gateway'):
+      case isGatewayFamily(type):
         this.drawGateway(visuals, shape, theme);
         break;
       case type === 'bpmn:Participant':
@@ -298,7 +298,7 @@ export class BpmnRenderer extends BaseRenderer {
         // 默认流判定：源元素 default 属性指向本流（XSD 契约；无独立标志位）
         const sourceDefault = bo.sourceRef?.default;
         const isDefaultFlow = sourceDefault === bo || sourceDefault?.id === bo.id;
-        if (bo.conditionExpression && !isDefaultFlow && !bo.sourceRef?.$type?.endsWith('Gateway')) {
+        if (bo.conditionExpression && !isDefaultFlow && !isGatewayFamily(bo.sourceRef?.$type)) {
           this.appendDiamondMarker(visuals, points[0], points[1] ?? points[0], stroke);
         }
         if (isDefaultFlow) {
@@ -314,14 +314,14 @@ export class BpmnRenderer extends BaseRenderer {
 
   override getShapePath(shape: any): string {
     const type = shape.businessObject?.$type ?? shape.type;
-    if (type?.endsWith('Event')) {
+    if (isEventFamily(type)) {
       return circlePath(
         shape.x + shape.width / 2,
         shape.y + shape.height / 2,
         shape.width / 2
       );
     }
-    if (type?.endsWith('Gateway')) {
+    if (isGatewayFamily(type)) {
       return diamondPath(
         shape.x + shape.width / 2,
         shape.y + shape.height / 2,

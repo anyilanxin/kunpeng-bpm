@@ -29,6 +29,7 @@
  */
 import type BaseLayouter from 'diagram-js/lib/layout/BaseLayouter';
 import type CommandHandler from 'diagram-js/lib/command/CommandHandler';
+import { isEventFamily } from '../meta/ElementTypes';
 import type { BpmnElementTypes, ShapeTypeMeta } from '../meta/ElementTypes';
 import type { BpmnFactory } from '../factory/BpmnFactory';
 import type { BpmnDocumentState } from '../xml/DocumentState';
@@ -82,7 +83,7 @@ export class ReplaceElementHandler implements CommandHandler {
       copyProperty(oldBo, newBo, 'attachedToRef');
     }
 
-    if (target.type.endsWith('Event')) {
+    if (isEventFamily(target.type)) {
       this.bpmnFactory.applyEventSymbol(newBo, target.eventSymbol);
       // 非中断变体（规范 §10.5）：边界 cancelActivity / 开始 isInterrupting
       if (target.nonInterrupting) {

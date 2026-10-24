@@ -66,17 +66,18 @@ export interface ShapeTypeMeta {
 }
 
 /**
- * 子流程容器族（规范 §10.3.2：SubProcess / Transaction / AdHocSubProcess
- * 均可嵌套 flowElements）。规则/工厂/读写器的容器分支统一消费此谓词。
+ * 子流程族（规范 §10.3.2：SubProcess / Transaction / AdHocSubProcess
+ * 均可嵌套 flowElements）。结构性类型集：不在类型表条目里派生（同 $type 多
+ * 形态共享族语义），各消费方判型一律经此谓词，禁止内联三元组字面量比较。
  */
-export const SUBPROCESS_CONTAINER_TYPES: readonly string[] = [
+export const SUBPROCESS_FAMILY_TYPES: readonly string[] = [
   'bpmn:SubProcess',
   'bpmn:Transaction',
   'bpmn:AdHocSubProcess'
 ];
 
-export function isSubProcessContainer(type: string): boolean {
-  return SUBPROCESS_CONTAINER_TYPES.includes(type);
+export function isSubProcessFamily(type: string | undefined | null): boolean {
+  return type != null && SUBPROCESS_FAMILY_TYPES.includes(type);
 }
 
 export interface ConnectionTypeMeta {
@@ -495,6 +496,60 @@ export const CONNECTION_TYPES: ConnectionTypeMeta[] = [
   { type: 'bpmn:Association', label: '关联', paletteGroup: 'connectors', order: 30, family: 'flow' },
   { type: 'bpmn:DataAssociation', label: '数据关联', paletteGroup: 'connectors', order: 40, family: 'flow' }
 ];
+
+// ---------------- 类型族谓词（单一事实源） ----------------
+// 族判定派生自类型表：新增类型只登记数据，规则/工厂/读写器/Provider/渲染各处
+// 判型自动跟随——禁止在消费方内联 $type 字面量比较或后缀匹配（本次收敛前
+// 子流程三元组散布 9 处、容器谓词 5 处、endsWith 判型 17 处、规则层硬编码
+// 集合 3 套）。结构性类型集（池族/子流程族）保持显式列举：Lane 不上注册表。
+
+/** $type → family（形状+连线全量；同 $type 多形态族恒同，Map 覆盖无副作用） */
+const FAMILY_BY_TYPE: ReadonlyMap<string, ElementFamily> = new Map(
+  [...SHAPE_TYPES, ...CONNECTION_TYPES].map((meta) => [meta.type, meta.family])
+);
+
+function familyOf(type: string | undefined | null, family: ElementFamily): boolean {
+  return type != null && FAMILY_BY_TYPE.get(type) === family;
+}
+
+export function isEventFamily(type?: string | null): boolean {
+  return familyOf(type, 'event');
+}
+
+export function isGatewayFamily(type?: string | null): boolean {
+  return familyOf(type, 'gateway');
+}
+
+export function isActivityFamily(type?: string | null): boolean {
+  return familyOf(type, 'activity');
+}
+
+export function isDataFamily(type?: string | null): boolean {
+  return familyOf(type, 'data');
+}
+
+export function isArtifactFamily(type?: string | null): boolean {
+  return familyOf(type, 'artifact');
+}
+
+/** 流节点（规范 §10.2 FlowNode = 事件/活动/网关）：连线类型推断与作用域判定 */
+export function isFlowNodeType(type?: string | null): boolean {
+  if (type == null) {
+    return false;
+  }
+  const family = FAMILY_BY_TYPE.get(type);
+  return family === 'event' || family === 'activity' || family === 'gateway';
+}
+
+/** 池族（Participant/Lane；Lane 不上注册表，显式列举） */
+export function isPoolFamily(type?: string | null): boolean {
+  return type === 'bpmn:Participant' || type === 'bpmn:Lane';
+}
+
+/** 落点容器（池/泳道/展开子流程）：创建/移动/菜单承载判定（折叠子流程不承载） */
+export function isContainerType(type?: string | null, isExpanded?: boolean): boolean {
+  return isPoolFamily(type) || (isSubProcessFamily(type) && isExpanded !== false);
+}
 
 /**
  * palette 快捷集：默认直接展示的条目（metaId 稳定 id，顺序即面板序）。

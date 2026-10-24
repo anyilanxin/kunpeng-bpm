@@ -25,6 +25,7 @@
  * 可整体替换（didi 组件 `contextPadProvider`）。
  */
 import type { BpmnElementTypes } from '../meta/ElementTypes';
+import { isContainerType } from '../meta/ElementTypes';
 import { BpmnAlignMenuProvider } from './BpmnAlignMenuProvider';
 import { BpmnAppendMenuProvider, BpmnCreateMenuProvider } from './BpmnElementMenuProvider';
 import { bpmnEntryHtml } from '../icons/BpmnIcons';
@@ -127,11 +128,7 @@ export class BpmnContextPadProvider {
     }
 
     // ---- "+"：容器内创建弹框（池/泳道/展开子流程） ----
-    const isContainer =
-      type === 'bpmn:Participant' ||
-      type === 'bpmn:Lane' ||
-      ((type === 'bpmn:SubProcess' || type === 'bpmn:Transaction' || type === 'bpmn:AdHocSubProcess') && element.isExpanded !== false);
-    if (isContainer && !this.popupMenu.isEmpty(element, BpmnCreateMenuProvider.MENU_ID)) {
+    if (isContainerType(type, element.isExpanded) && !this.popupMenu.isEmpty(element, BpmnCreateMenuProvider.MENU_ID)) {
       entries['create-inside'] = {
         group: 'edit',
         html: toolEntryHtml('plus'),

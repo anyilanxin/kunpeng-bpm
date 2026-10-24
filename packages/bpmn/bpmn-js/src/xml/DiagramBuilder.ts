@@ -33,8 +33,7 @@ import type { BpmnElementFactory } from '../factory/BpmnElementFactory';
 import type { BpmnElementTypes } from '../meta/ElementTypes';
 import type { BpmnParseResult } from './BpmnReader';
 import { absoluteLabelBox } from '../label/LabelGeometry';
-
-const CONTAINER_TYPES = new Set(['bpmn:Participant', 'bpmn:Lane', 'bpmn:SubProcess', 'bpmn:Transaction', 'bpmn:AdHocSubProcess']);
+import { isArtifactFamily, isDataFamily, isFlowNodeType, isPoolFamily, isSubProcessFamily } from '../meta/ElementTypes';
 
 /** moddle DI 节点的内部视图（Shape/Edge 统一形态） */
 interface DiView {
@@ -164,7 +163,7 @@ export class DiagramBuilder {
       if (bo.$type === 'bpmn:BoundaryEvent' || bo.$type === 'bpmn:SequenceFlow') {
         continue;
       }
-      if (bo.$type === 'bpmn:SubProcess' || bo.$type === 'bpmn:Transaction' || bo.$type === 'bpmn:AdHocSubProcess') {
+      if (isSubProcessFamily(bo.$type)) {
         const di = diById.get(bo.id);
         if (!di || di.kind !== 'shape') continue;
         const shape = this.addShape(bo, di, containerElement, created);
@@ -287,9 +286,7 @@ export class DiagramBuilder {
       y: di.bounds!.y,
       width: di.bounds!.width,
       height: di.bounds!.height,
-      ...(bo.$type === 'bpmn:SubProcess' || bo.$type === 'bpmn:Transaction' || bo.$type === 'bpmn:AdHocSubProcess'
-      ? { isExpanded: di.isExpanded !== false }
-      : {}),
+      ...(isSubProcessFamily(bo.$type) ? { isExpanded: di.isExpanded !== false } : {}),
       ...(di.colors ? { colors: di.colors } : {}),
       di: di.node
     });
@@ -339,7 +336,7 @@ export class DiagramBuilder {
     const visit = (parent: any): void => {
       for (const child of parent.children ?? []) {
         const bo = child.businessObject;
-        if (!bo || !CONTAINER_TYPES.has(bo.$type) || child === shape) {
+        if (!bo || !(isPoolFamily(bo.$type) || isSubProcessFamily(bo.$type)) || child === shape) {
           continue;
         }
         if (contains(child, cx, cy)) {
@@ -413,12 +410,8 @@ function contains(shape: any, x: number, y: number): boolean {
 
 function isNode(bo: any): boolean {
   const t = bo.$type;
-  return (
-    (t.endsWith('Task') || t === 'bpmn:CallActivity' ||
-     t.endsWith('Event') || t.endsWith('Gateway') ||
-     t === 'bpmn:DataObjectReference' || t === 'bpmn:DataStoreReference' ||
-     t === 'bpmn:Group' || t === 'bpmn:TextAnnotation')
-  );
+  // 流节点（事件/活动/网关）+ 数据 + 制品：族谓词单一事实源（见 meta/ElementTypes）
+  return isFlowNodeType(t) || isDataFamily(t) || isArtifactFamily(t);
 }
 
 function collectConnections(containerBo: any, fn: (bo: any) => void): void {
@@ -426,7 +419,7 @@ function collectConnections(containerBo: any, fn: (bo: any) => void): void {
     if ((bo as any).sourceRef && (bo.$type !== 'bpmn:Group' && bo.$type !== 'bpmn:TextAnnotation' && bo.$type !== 'bpmn:DataObjectReference' && bo.$type !== 'bpmn:DataStoreReference')) {
       fn(bo);
     }
-    if (bo.$type === 'bpmn:SubProcess' || bo.$type === 'bpmn:Transaction' || bo.$type === 'bpmn:AdHocSubProcess') {
+    if (isSubProcessFamily(bo.$type)) {
       collectConnections(bo, fn);
     }
   }

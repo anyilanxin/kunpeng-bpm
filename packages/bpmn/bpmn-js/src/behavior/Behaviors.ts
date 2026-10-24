@@ -30,6 +30,7 @@ import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
 import { SIZES } from '../meta/ElementTypes';
 import { adoptionBounds } from '../util/PoolGeometry';
 import type { OrientationService } from '../meta/Orientation';
+import { isContainerType } from '../meta/ElementTypes';
 import type { BpmnDocumentState } from '../xml/DocumentState';
 import type { BpmnFactory } from '../factory/BpmnFactory';
 
@@ -199,12 +200,7 @@ function isDropContainer(element: any): boolean {
   if (!element.parent) {
     return true; // 画布根
   }
-  const t = element.businessObject?.$type;
-  return (
-    t === 'bpmn:Participant' ||
-    t === 'bpmn:Lane' ||
-    ((t === 'bpmn:SubProcess' || t === 'bpmn:Transaction' || t === 'bpmn:AdHocSubProcess') && element.isExpanded !== false)
-  );
+  return isContainerType(element.businessObject?.$type, element.isExpanded);
 }
 
 /**

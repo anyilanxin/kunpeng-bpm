@@ -34,9 +34,7 @@ import type Canvas from 'diagram-js/lib/core/Canvas';
 import type { BpmnDocumentState } from '../xml/DocumentState';
 import type { BpmnFactory } from '../factory/BpmnFactory';
 import type { OrientationService } from '../meta/Orientation';
-
-const POOL_TYPES = new Set(['bpmn:Participant', 'bpmn:Lane']);
-const SUBPROCESS_TYPES = new Set(['bpmn:SubProcess', 'bpmn:Transaction', 'bpmn:AdHocSubProcess']);
+import { isPoolFamily, isSubProcessFamily } from '../meta/ElementTypes';
 
 export class BpmnUpdater extends CommandInterceptor {
   static $inject = ['eventBus', 'canvas', 'bpmnDocumentState', 'bpmnFactory', 'orientationService'];
@@ -315,10 +313,10 @@ export class BpmnUpdater extends CommandInterceptor {
         height: shape.height
       })
     });
-    if (POOL_TYPES.has(bo.$type)) {
+    if (isPoolFamily(bo.$type)) {
       di.isHorizontal = this.orientationService.isHorizontal();
     }
-    if (SUBPROCESS_TYPES.has(bo.$type) && shape.isExpanded !== undefined) {
+    if (isSubProcessFamily(bo.$type) && shape.isExpanded !== undefined) {
       di.isExpanded = shape.isExpanded;
     }
     const plane = this.state.plane;
@@ -362,11 +360,11 @@ export class BpmnUpdater extends CommandInterceptor {
         di.bounds.width = element.width;
         di.bounds.height = element.height;
       }
-      if (SUBPROCESS_TYPES.has(element.businessObject?.$type ?? '') && element.isExpanded !== undefined) {
+      if (isSubProcessFamily(element.businessObject?.$type) && element.isExpanded !== undefined) {
         di.isExpanded = element.isExpanded;
       }
       // 池/泳道头带方向：模型朝向是单一事实源，转置命令后经 elements.changed 收敛
-      if (POOL_TYPES.has(element.businessObject?.$type ?? '')) {
+      if (isPoolFamily(element.businessObject?.$type)) {
         di.isHorizontal = this.orientationService.isHorizontal();
       }
     } else if (Array.isArray(element.waypoints) && Array.isArray(di.waypoint)) {
@@ -600,7 +598,7 @@ export class BpmnUpdater extends CommandInterceptor {
       if (type === 'bpmn:Participant') {
         return current.businessObject.processRef;
       }
-      if (type === 'bpmn:SubProcess' || type === 'bpmn:Transaction' || type === 'bpmn:AdHocSubProcess') {
+      if (isSubProcessFamily(type)) {
         return current.businessObject;
       }
       current = current.parent;
@@ -615,7 +613,7 @@ export class BpmnUpdater extends CommandInterceptor {
     const walk = (containerBo: any): void => {
       containers.push(containerBo);
       for (const child of containerBo.flowElements ?? []) {
-        if (child.$type === 'bpmn:SubProcess' || child.$type === 'bpmn:Transaction' || child.$type === 'bpmn:AdHocSubProcess') {
+        if (isSubProcessFamily(child.$type)) {
           walk(child);
         }
       }
@@ -624,7 +622,7 @@ export class BpmnUpdater extends CommandInterceptor {
       if (root.$type === 'bpmn:Process') {
         walk(root);
       }
-      if (root.$type === 'bpmn:SubProcess' || root.$type === 'bpmn:Transaction' || root.$type === 'bpmn:AdHocSubProcess') {
+      if (isSubProcessFamily(root.$type)) {
         walk(root);
       }
     }
