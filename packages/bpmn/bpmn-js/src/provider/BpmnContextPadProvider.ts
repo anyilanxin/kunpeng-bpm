@@ -38,7 +38,8 @@ import type { BpmnMode } from '../mode/BpmnMode';
 const APPENDABLE_BY_FAMILY: Record<string, string[]> = {
   event: ['bpmn:Task', 'bpmn:ExclusiveGateway', 'bpmn:EndEvent'],
   activity: ['bpmn:Task', 'bpmn:ExclusiveGateway', 'bpmn:ParallelGateway', 'bpmn:EndEvent', 'bpmn:SubProcess'],
-  gateway: ['bpmn:Task', 'bpmn:EndEvent']
+  // 网关后可续网关：分支再分叉是常见建模形态（快捷集与其余类型一致含网关）
+  gateway: ['bpmn:Task', 'bpmn:ExclusiveGateway', 'bpmn:ParallelGateway', 'bpmn:EndEvent']
 };
 
 export class BpmnContextPadProvider {

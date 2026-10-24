@@ -61,9 +61,12 @@ export class BpmnLayouter extends BaseLayouter {
     const source = hints?.source ?? connection.source;
     const target = hints?.target ?? connection.target;
     const type = connection.businessObject?.$type ?? connection.type;
+    const horizontal = this.orientationService.isHorizontal();
 
-    const start = anchorOf(source, center(target)).point;
-    const end = anchorOf(target, center(source)).point;
+    // 朝向锚优先（见 facingAnchor）：主流向轴分离时端点恒取面对对端的边
+    // 中点，多源扇入同一目标全汇朝向锚（错位在间隙列完成）；未分离退最近锚
+    const start = facingAnchor(source, target, horizontal)?.point ?? anchorOf(source, center(target)).point;
+    const end = facingAnchor(target, source, horizontal)?.point ?? anchorOf(target, center(source)).point;
 
     if (STRAIGHT_TYPES.has(type)) {
       // 直线类型锚点见 boundaryAlong：沿中心连线裁剪到元素边界，而非中点锚
@@ -75,7 +78,7 @@ export class BpmnLayouter extends BaseLayouter {
         connectionStart: !!hints.connectionStart,
         connectionEnd: !!hints.connectionEnd
       });
-      return reSnapMovedAnchors(repaired, source, target, !!hints.connectionStart, !!hints.connectionEnd);
+      return reSnapMovedAnchors(repaired, source, target, !!hints.connectionStart, !!hints.connectionEnd, horizontal);
     }
 
     return this.routeOrthogonal(start, end, source, target);
@@ -245,6 +248,40 @@ function anchorOf(element: any, toward: { x: number; y: number }): { point: { x:
 }
 
 /**
+ * 朝向锚（正交连线端点的主取向）：两元素在主流向轴上分离（水平模型左右
+ * 分开 / 垂直模型上下分开）时，端点恒取"面对对端"的边中点——源 E↔目标
+ * W（水平）/ 源 S↔目标 N（垂直）。按最近距离选锚会让多源汇入同一目标
+ * （扇入）时极端侧源命中 N/S 锚，线绕到目标顶/底钩入、入口方向不一
+ * （业界通行形态是扇入全汇朝向锚，错位在两元素间隙列完成）。主流向轴
+ * 未分离（仅交叉轴上下、或水平重叠）返回 null，调用方退回最近锚选取。
+ */
+function facingAnchor(
+  element: any,
+  other: any,
+  horizontal: boolean
+): { point: { x: number; y: number }; axis: 'h' | 'v' } | null {
+  const e = asRect(element);
+  const o = asRect(other);
+  const { x, y, width: w, height: h } = e;
+  if (horizontal) {
+    if (o.x >= x + w) {
+      return { point: { x: x + w, y: y + h / 2 }, axis: 'h' }; // 对端在右 → E
+    }
+    if (x >= o.x + o.width) {
+      return { point: { x, y: y + h / 2 }, axis: 'h' };        // 对端在左 → W
+    }
+  } else {
+    if (o.y >= y + h) {
+      return { point: { x: x + w / 2, y: y + h }, axis: 'v' }; // 对端在下 → S
+    }
+    if (y >= o.y + o.height) {
+      return { point: { x: x + w / 2, y }, axis: 'v' };        // 对端在上 → N
+    }
+  }
+  return null;
+}
+
+/**
  * 基座修复的收尾：把移动侧端点从其 bbox 矩形投影 docking 夹回规范锚——
  * 投影对菱形（网关）会悬在形外、对矩形会偏离边线中点；中段弯点与对侧
  * 端点保留基座修复结果（未移动侧原样、手动弯点不丢）。存在相邻弯点时
@@ -256,14 +293,15 @@ function reSnapMovedAnchors(
   source: any,
   target: any,
   startMoved: boolean,
-  endMoved: boolean
+  endMoved: boolean,
+  horizontal: boolean
 ): { x: number; y: number }[] {
   const out = waypoints.map((p) => ({ x: p.x, y: p.y }));
   if (startMoved) {
-    snapEndpoint(out, source, target, 0);
+    snapEndpoint(out, source, target, 0, horizontal);
   }
   if (endMoved) {
-    snapEndpoint(out, target, source, out.length - 1);
+    snapEndpoint(out, target, source, out.length - 1, horizontal);
   }
   return out;
 }
@@ -272,9 +310,12 @@ function snapEndpoint(
   waypoints: { x: number; y: number }[],
   element: any,
   other: any,
-  index: number
+  index: number,
+  horizontal: boolean
 ): void {
-  const { point, axis } = anchorOf(element, center(other));
+  // 移动侧重锚同用朝向锚（与创建路径同取向）：扇入场景移动任一端后入口
+  // 侧保持一致，不退化为最近锚的 N/S 钩形绕入
+  const { point, axis } = facingAnchor(element, other, horizontal) ?? anchorOf(element, center(other));
   waypoints[index] = { x: point.x, y: point.y };
   if (waypoints.length > 2) {
     const j = index === 0 ? 1 : waypoints.length - 2;
