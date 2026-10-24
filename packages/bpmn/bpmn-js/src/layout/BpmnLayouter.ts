@@ -28,25 +28,29 @@
  * （事件=圆的方位点、任务族=边中点、网关=菱形顶点，顶点恰在边中点上，
  * 四个角按来线方向各自可达）。"沿一个方向计算"——主流向轴分离时端点
  * 恒取面对对端的边中点（水平模型源右缘中点 → 目标左缘中点；垂直模型
- * 源下缘 → 目标上缘），仅交叉轴分离时取交叉轴向（上下正对走 S→N）；
- * 完全重叠退最近中点。多源扇入同侧目标全汇朝向锚：对齐源直连、偏置
- * 源在间隙列 Z 肘错位汇流，方向一致、秩序井然。直线类型（消息流/关联）
- * 例外：沿中心连线裁剪到元素边界（见 boundaryAlong）。手动拖点走
- * connection.updateWaypoints，不经此布线器。
+ * 源下缘 → 目标上缘）；深偏置例外：交叉轴中心距超过主流向中心距
+ * （来线俯角超过 45°，已"更纵向而非横向"）时末端改取对端交叉轴顶点
+ * （下方来线入 S / 上方入 N；垂直模型右来入 E / 左来入 W），走两段 L
+ * ——Z 肘的竖向 jog 将长于横向主干，L 更自然且少一个直角。仅交叉轴
+ * 分离时取交叉轴向（上下正对走 S→N）；完全重叠退最近中点。多源扇入
+ * 同侧目标全汇朝向锚：对齐源直连、偏置源在间隙列 Z 肘错位汇流，方向
+ * 一致、秩序井然。直线类型（消息流/关联）例外：沿中心连线裁剪到元素
+ * 边界（见 boundaryAlong）。手动拖点走 connection.updateWaypoints，
+ * 不经此布线器。
  *
  * ② 正交布线（横平竖直、直角数取该锚对下的最小值、端向纯净）：弯点
  * 严格沿锚轴布置——同轴（水平↔水平 / 垂直↔垂直）近对齐收直段（0 折），
  * 否则出两元素间隙中点的 Z 形肘（水平↔水平带纵向错位时 2 折即最小，
- * 1 折 L 必然令一端轴向不纯）；异轴（仅完全重叠回退时出现）出两段 L。
+ * 1 折 L 必然令一端轴向不纯）；异轴（深偏置与回退场景）出两段 L（1 折）。
  * 端点入线方向必须与锚朝向一致（水平锚水平进出），杜绝竖直直插水平
  * 锚的断裂视觉。网关作源的扇出是特例：追加链沿交叉轴堆叠（见
  * AutoPlacementBehavior），交叉轴顶点出 L 让分支散开。
  *
  * 移动/缩放路径（diagram-js 各 Handler 带 connectionStart/End hints 调入）：
- * 只重锚移动侧（同①朝向准则），对侧锚点与既有弯点原样保留——复用
- * 基座 repairConnection 的修复语义；修复尾段与锚朝向相悖（竖直直插等）
- * 或产生斜段时按锚轴重走入线（平移弯点 / 插入转角 / 间隙列 Z 重建，
- * 见 snapEndpoint），内外段全程正交。
+ * 只重锚移动侧（同①朝向准则，端侧锚取连线方向 pair 的 end），对侧锚点
+ * 与既有弯点原样保留——复用基座 repairConnection 的修复语义；尾段与锚
+ * 朝向相悖（竖直直插、对角折返）或弯点越过锚点滞留目标跨度内时，按
+ * 锚轴最小形重建入线（见 snapEndpoint），内外段全程正交。
  */
 import BaseLayouter from 'diagram-js/lib/layout/BaseLayouter';
 import type { LayoutConnectionHints } from 'diagram-js/lib/layout/BaseLayouter';
@@ -231,9 +235,13 @@ function midAnchor(element: any, side: 'E' | 'W' | 'S' | 'N'): Anchor {
 /**
  * 朝向锚对（规划①主规则，"沿一个方向计算"）：主流向轴分离时端点恒取
  * 面对对端的边中点——水平模型 E→W / W→E，垂直模型 S→N / N→S（主流向
- * 优先，斜对位按主流向出线）；仅交叉轴分离时取交叉轴向中点；两轴都
- * 重叠（完全交叠的退化摆放）返回 null，调用方退回最近中点。多源扇入
- * 同侧目标在此规则下全汇朝向锚，偏置在两元素间隙列完成。
+ * 优先，斜对位按主流向出线）。深偏置例外：交叉轴中心距超过主流向中心
+ * 距（来线俯角超过 45°，"更纵向而非横向"）时末端改取对端的交叉轴顶点
+ * ——下方来线入 S、上方入 N（垂直模型右来入 E、左来入 W），走两段 L：
+ * 主流向 Z 肘的竖向 jog 将长于横向主干，视觉已是"从上下（左右）来"，
+ * 且 L 比 Z 少一个直角。仅交叉轴分离时取交叉轴向中点；两轴都重叠
+ * （完全交叠的退化摆放）返回 null，调用方退回最近中点。多源扇入同侧
+ * 目标在此规则下全汇朝向锚，偏置在两元素间隙列完成。
  */
 function facingPair(
   element: any,
@@ -246,11 +254,19 @@ function facingPair(
   const cross: ['E' | 'W' | 'S' | 'N', 'E' | 'W' | 'S' | 'N'] = horizontal ? ['S', 'N'] : ['E', 'W'];
   const mainFwd = horizontal ? o.x >= e.x + e.width : o.y >= e.y + e.height;
   const mainRev = horizontal ? e.x >= o.x + o.width : e.y >= o.y + o.height;
-  if (mainFwd) {
-    return { start: midAnchor(element, main[0]), end: midAnchor(other, main[1]) };
-  }
-  if (mainRev) {
-    return { start: midAnchor(element, main[1]), end: midAnchor(other, main[0]) };
+  if (mainFwd || mainRev) {
+    const start = midAnchor(element, mainFwd ? main[0] : main[1]);
+    let end = midAnchor(other, mainFwd ? main[1] : main[0]);
+    const dx = Math.abs(o.x + o.width / 2 - (e.x + e.width / 2));
+    const dy = Math.abs(o.y + o.height / 2 - (e.y + e.height / 2));
+    if ((horizontal ? dy : dx) > (horizontal ? dx : dy)) {
+      // 元素在对端下方/右侧 → 来线自下/自右 → 对端 S/E 顶点；上方/左侧 → N/W
+      const fromPositive = horizontal
+        ? e.y + e.height / 2 > o.y + o.height / 2
+        : e.x + e.width / 2 > o.x + o.width / 2;
+      end = midAnchor(other, fromPositive ? cross[0] : cross[1]);
+    }
+    return { start, end };
   }
   const crossFwd = horizontal ? o.y >= e.y + e.height : o.x >= e.x + e.width;
   const crossRev = horizontal ? e.y >= o.y + o.height : e.x >= o.x + o.width;
@@ -309,14 +325,15 @@ function reSnapMovedAnchors(
 }
 
 /**
- * 移动侧端点收尾：夹回朝向锚（同创建路径准则），并把入线方向对齐锚轴
- * （水平锚水平进出）——基座修复的矩形投影 docking 对菱形（网关）会悬
- * 在形外、对矩形会偏离边线中点；中段弯点与对侧端点保留修复结果（未
- * 移动侧原样、手动弯点不丢）。按锚轴重走入线的三档：弯点已在锚轴→不
- * 动；弯点平移到锚轴不斜断内侧段→平移；否则插入转角点。弯点与锚点同
- * 列（行）时修复会留下竖直直插水平锚的断裂视觉，改在内侧段的间隙列
- * 重建 Z 形入线（与创建路径同形）。仅两点连线没有可动弯点，直接换端点
- * ——轴向对齐场景换后仍是直线。
+ * 移动侧端点收尾：夹回朝向锚（与创建路径同准则，含深偏置交叉轴顶点；
+ * 端侧锚取"远端→本端"连线方向 pair 的 end），尾段按锚轴定形——弯点已在
+ * 锚轴带、位于来线一侧且内侧段正交时保留基座修复结果（未移动侧原样、
+ * 手动弯点不丢）；否则以锚轴最小形重建：同轴带直段 / 间隙列 Z 肘（列
+ * 优先沿用既有弯点的列，仅当其越过锚点落在目标跨度内/同列时改取内侧
+ * 点与锚点的中点）。端点入线方向恒与锚朝向一致、弯点不探进目标本体
+ * ——修复投影的悬空 docking、对角折返、竖直直插水平锚、换锚后旧弯列
+ * 滞留目标跨度内等尾段问题统一在此归位。仅两点连线没有可动弯点，直接
+ * 换端点（轴向对齐场景换后仍是直线）。
  */
 function snapEndpoint(
   waypoints: { x: number; y: number }[],
@@ -325,49 +342,40 @@ function snapEndpoint(
   index: number,
   horizontal: boolean
 ): void {
-  const { point, axis } = facingPair(element, other, horizontal)?.start ?? anchorOf(element, center(other));
+  const anchor = index === 0
+    ? facingPair(element, other, horizontal)?.start
+    : facingPair(other, element, horizontal)?.end;
+  const { point, axis } = anchor ?? anchorOf(element, center(other));
   waypoints[index] = { x: point.x, y: point.y };
   if (waypoints.length <= 2) {
     return;
   }
   const startSide = index === 0;
   const j = startSide ? 1 : waypoints.length - 2;
-  const onAxis = axis === 'h' ? waypoints[j].y === point.y : waypoints[j].x === point.x;
-  if (onAxis) {
+  const inner = waypoints[startSide ? 2 : j - 1];
+  const bend = waypoints[j];
+  const pos = axis === 'h' ? 'x' : 'y';
+  const lat = axis === 'h' ? 'y' : 'x';
+  const side = Math.sign(inner[pos] - point[pos]);
+  const tailPure = bend[lat] === point[lat]
+    && bend[pos] !== point[pos]
+    && Math.sign(bend[pos] - point[pos]) === side
+    && (inner.x === bend.x || inner.y === bend.y);
+  if (tailPure) {
     return;
   }
-  // 转角点：锚轴与既有弯点轴线的交点——端侧段贴锚轴、内侧段保原位
-  const corner = axis === 'h'
-    ? { x: waypoints[j].x, y: point.y }
-    : { x: point.x, y: waypoints[j].y };
-  if (corner.x === point.x && corner.y === point.y) {
-    // 弯点在锚点正上/正下（同列）：修复尾段竖直直插水平锚——在内侧段
-    // 的间隙列重建 Z 形入线（jog 列取内侧段起与锚点的中点），与创建路
-    // 径同形；内侧段须与弯点共线方可重建，否则保留正交入线不再加工
-    const prev = waypoints[startSide ? 2 : j - 1];
-    const innerAligned = prev && (axis === 'h'
-      ? prev.y === waypoints[j].y
-      : prev.x === waypoints[j].x);
-    if (innerAligned) {
-      if (axis === 'h') {
-        const jogX = (prev.x + point.x) / 2;
-        waypoints[j] = { x: jogX, y: waypoints[j].y };
-        waypoints.splice(startSide ? 1 : waypoints.length - 1, 0, { x: jogX, y: point.y });
-      } else {
-        const jogY = (prev.y + point.y) / 2;
-        waypoints[j] = { x: waypoints[j].x, y: jogY };
-        waypoints.splice(startSide ? 1 : waypoints.length - 1, 0, { x: point.x, y: jogY });
-      }
-    }
-    return;
+  const tail: { x: number; y: number }[] = [];
+  if (inner[lat] !== point[lat]) {
+    const keepCol = Math.sign(bend[pos] - point[pos]) === side
+      ? bend[pos]
+      : (inner[pos] + point[pos]) / 2;
+    tail.push(axis === 'h' ? { x: keepCol, y: inner.y } : { x: inner.x, y: keepCol });
+    tail.push(axis === 'h' ? { x: keepCol, y: point.y } : { x: point.x, y: keepCol });
   }
-  // 平移弯点到锚轴可保端段贴轴；但锚点换侧时基座修复的对角折返会被
-  // 平移斜断更内侧的段——此时改为在端点前插入转角点，内外段全正交
-  const far = waypoints[startSide ? 2 : j - 1];
-  if (far.x === corner.x || far.y === corner.y) {
-    waypoints[j] = corner;
+  if (startSide) {
+    waypoints.splice(0, 2, { x: point.x, y: point.y }, ...tail);
   } else {
-    waypoints.splice(startSide ? 1 : waypoints.length - 1, 0, corner);
+    waypoints.splice(j, 2, ...tail, { x: point.x, y: point.y });
   }
 }
 
