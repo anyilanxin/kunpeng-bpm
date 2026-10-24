@@ -78,8 +78,20 @@ export class DropTargetBehavior {
       }
     };
     // 数值优先级须高于 Create.js / Move.js 的默认监听（1000），在其读取
-    // event.hover 前完成改写
-    eventBus.on(['create.hover', 'create.move', 'shape.move.move'], 1500, normalize);
+    // event.hover 前完成改写。end/out/cleanup 收尾事件必须同样归一：
+    // Create.js/MovePreview 把 drop 标记加在归一后的承载容器上（如画布根），
+    // 而收尾事件携带的是原始命中元素——不归一会在错误元素上摘标记，
+    // drop-not-ok 永久残留在根层（diagram-js CSS 对 svg.drop-not-ok 整画布
+    // 上禁放底色且 .drop-not-ok * 全体 cursor:not-allowed，即"界面卡死在
+    // 禁止状态"的来源）
+    eventBus.on(
+      [
+        'create.hover', 'create.move', 'create.out', 'create.end', 'create.cleanup',
+        'shape.move.hover', 'shape.move.move', 'shape.move.out', 'shape.move.end', 'shape.move.cleanup'
+      ],
+      1500,
+      normalize
+    );
   }
 }
 
