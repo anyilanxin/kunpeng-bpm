@@ -34,11 +34,8 @@ import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
 import type EventBus from 'diagram-js/lib/core/EventBus';
 import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
 import type TextUtil from 'diagram-js/lib/util/Text';
-import { absoluteLabelBox, EXTERNAL_LABEL_WIDTH, EXTERNAL_FONT } from '../label/LabelGeometry';
+import { absoluteLabelBox, clampToMin, measureExternal } from '../label/LabelGeometry';
 import type { BpmnElementTypes } from '../meta/ElementTypes';
-
-/** 标签元素最小命中/占位尺寸（自有取值：12px 约一行 11px 文字高度） */
-const LABEL_MIN = 12;
 
 export class ExternalLabelBehavior extends CommandInterceptor {
   static $inject = ['eventBus', 'elementFactory', 'modeling', 'textRenderer', 'bpmnElementTypes'];
@@ -117,16 +114,13 @@ export class ExternalLabelBehavior extends CommandInterceptor {
     const wasHidden = label.hidden;
     label.hidden = !text;
     if (text) {
-      // 按文字量收敛宽高，保持当前中心（拖动后的位置不被文本编辑重置）
-      const dims = this.textUtil.getDimensions(text, {
-        box: { width: EXTERNAL_LABEL_WIDTH, height: 40 },
-        style: EXTERNAL_FONT,
-        padding: 0
-      });
+      // 按文字量收敛宽高（measureExternal/clampToMin 与标签几何派生同源），
+      // 保持当前中心（拖动后的位置不被文本编辑重置）
+      const size = clampToMin(measureExternal(this.textUtil, text));
       const cx = label.x + label.width / 2;
       const cy = label.y + label.height / 2;
-      label.width = Math.max(dims.width, LABEL_MIN);
-      label.height = Math.max(dims.height, LABEL_MIN);
+      label.width = size.width;
+      label.height = size.height;
       label.x = cx - label.width / 2;
       label.y = cy - label.height / 2;
     }

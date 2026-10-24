@@ -42,7 +42,7 @@ import type { Element, Shape } from 'diagram-js/lib/model/Types';
 import type { Rect } from 'diagram-js/lib/util/Types';
 
 import { is } from '../util/ModelUtil';
-import { refitLaneBands } from '../util/PoolGeometry';
+import { rectsEqual, refitLaneBands } from '../util/PoolGeometry';
 import { SIZES } from '../meta/ElementTypes';
 import type { OrientationService } from '../meta/Orientation';
 
@@ -119,5 +119,5 @@ export class BpmnAutoResize extends AutoResize {
 }
 
 function boundsChanged(a: { x: number; y: number; width: number; height: number }, b: Rect): boolean {
-  return a.x !== b.x || a.y !== b.y || a.width !== b.width || a.height !== b.height;
+  return !rectsEqual(a, b);
 }

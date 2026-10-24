@@ -31,6 +31,26 @@ export const EXTERNAL_LABEL_WIDTH = 92;
 export const EXTERNAL_FONT = { fontFamily: 'system-ui, sans-serif', fontSize: 11 };
 export const INTERNAL_FONT = { fontFamily: 'system-ui, sans-serif', fontSize: 12 };
 
+/** 外部标签宽高下限（与钳制同源：一行 11px 文字的最小命中/占位尺寸） */
+export const EXTERNAL_LABEL_MIN = 12;
+
+/** 外部标签文本测量（单一来源：标签几何派生与尺寸收敛共用同一 box/字体参数） */
+export function measureExternal(textUtil: TextUtil, text: string): { width: number; height: number } {
+  return textUtil.getDimensions(text, {
+    box: { width: EXTERNAL_LABEL_WIDTH, height: 40 },
+    style: EXTERNAL_FONT,
+    padding: 0
+  });
+}
+
+/** 宽高下限钳制（与 EXTERNAL_LABEL_MIN 同源）：返回钳制后的新尺寸对象，不改入参 */
+export function clampToMin(
+  size: { width: number; height: number },
+  min: number = EXTERNAL_LABEL_MIN
+): { width: number; height: number } {
+  return { width: Math.max(size.width, min), height: Math.max(size.height, min) };
+}
+
 /** 事件/网关外部标签：形心正下方，间距 6（自有取值） */
 const EXTERNAL_GAP = 6;
 
@@ -45,11 +65,7 @@ export function externalLabelBox(textUtil: TextUtil, text: string, host: { x: nu
   if (!text) {
     return null;
   }
-  const dims = textUtil.getDimensions(text, {
-    box: { width: EXTERNAL_LABEL_WIDTH, height: 40 },
-    style: EXTERNAL_FONT,
-    padding: 0
-  });
+  const dims = measureExternal(textUtil, text);
   return {
     x: host.width / 2 - dims.width / 2,
     y: host.height + EXTERNAL_GAP,
@@ -65,11 +81,7 @@ export function connectionLabelBox(textUtil: TextUtil, text: string, waypoints: 
   }
   const first = waypoints[0];
   const last = waypoints[waypoints.length - 1];
-  const dims = textUtil.getDimensions(text, {
-    box: { width: EXTERNAL_LABEL_WIDTH, height: 40 },
-    style: EXTERNAL_FONT,
-    padding: 0
-  });
+  const dims = measureExternal(textUtil, text);
   const mid = { x: (first.x + last.x) / 2, y: (first.y + last.y) / 2 };
   return {
     x: mid.x - dims.width / 2,
@@ -91,9 +103,6 @@ export function internalLabelBox(shape: { x: number; y: number; width: number; h
   };
 }
 
-/** 标签元素最小命中/占位尺寸（与 ExternalLabelBehavior 同值约定：一行 11px 文字高度） */
-export const LABEL_MIN = 12;
-
 /**
  * 外部标签元素的绝对坐标框（元素创建/导入建标签的默认几何）：
  * 连线=首末航点中点；形状=形心正下方派生；空文本给可命中的占位框
@@ -108,17 +117,17 @@ export function absoluteLabelBox(
   if (host.waypoints) {
     const box = connectionLabelBox(textUtil, text || ' ', host.waypoints);
     if (box) {
-      return { x: box.x, y: box.y, width: Math.max(box.width, LABEL_MIN), height: Math.max(box.height, LABEL_MIN) };
+      return { x: box.x, y: box.y, ...clampToMin(box) };
     }
   }
   const local = text ? externalLabelBox(textUtil, text, host) : null;
   if (local) {
-    return {
-      x: host.x + local.x,
-      y: host.y + local.y,
-      width: Math.max(local.width, LABEL_MIN),
-      height: Math.max(local.height, LABEL_MIN)
-    };
+    return { x: host.x + local.x, y: host.y + local.y, ...clampToMin(local) };
   }
-  return { x: host.x + host.width / 2 - LABEL_MIN, y: host.y + host.height + EXTERNAL_GAP, width: LABEL_MIN * 2, height: LABEL_MIN };
+  return {
+    x: host.x + host.width / 2 - EXTERNAL_LABEL_MIN,
+    y: host.y + host.height + EXTERNAL_GAP,
+    width: EXTERNAL_LABEL_MIN * 2,
+    height: EXTERNAL_LABEL_MIN
+  };
 }

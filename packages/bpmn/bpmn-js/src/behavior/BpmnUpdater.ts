@@ -35,6 +35,7 @@ import type { BpmnDocumentState } from '../xml/DocumentState';
 import type { BpmnFactory } from '../factory/BpmnFactory';
 import type { OrientationService } from '../meta/Orientation';
 import { isPoolFamily, isSubProcessFamily } from '../meta/ElementTypes';
+import { isArtifactType } from '../util/ModelUtil';
 
 export class BpmnUpdater extends CommandInterceptor {
   static $inject = ['eventBus', 'canvas', 'bpmnDocumentState', 'bpmnFactory', 'orientationService'];
@@ -73,13 +74,10 @@ export class BpmnUpdater extends CommandInterceptor {
     });
     this.on('shape.create', 'reverted', (event: any) => {
       const { shape } = event.context;
+      // orphan 内含 detachDi（摘 DI 节点+清引用）：清引用后 redo（executed
+      // 重放）里 ensureShapeDi 的 shape.di?.$type 守卫才会重建，否则 DI 永久
+      // 滞留 plane 外，序列化丢形
       this.orphan(shape);
-      // orphan 只把 DI 节点从 plane 摘除，引用仍挂在 shape 上；不清掉的话
-      // redo（executed 重放）里 ensureShapeDi 的 shape.di?.$type 守卫会跳过
-      // 重建——DI 永久滞留 plane 外，序列化丢形（同 elements.delete reverted 的处理）
-      if (!shape.labelTarget) {
-        shape.di = undefined;
-      }
     });
 
     this.on('elements.move', 'executed', (event: any) => {
@@ -103,10 +101,9 @@ export class BpmnUpdater extends CommandInterceptor {
     });
     this.on('connection.create', 'reverted', (event: any) => {
       const { connection } = event.context;
+      // unwireConnection → orphan 内含 detachDi：清引用后 redo 时 ensureEdgeDi
+      // 守卫才会重建，连线 DI 不滞留 plane 外
       this.unwireConnection(connection);
-      // 同 shape.create reverted：摘除后清引用，否则 redo 时 ensureEdgeDi
-      // 守卫跳过重建，连线 DI 滞留 plane 外
-      connection.di = undefined;
     });
 
     for (const hook of ['connection.reconnectStart', 'connection.reconnectEnd']) {
@@ -132,18 +129,18 @@ export class BpmnUpdater extends CommandInterceptor {
     });
 
     // 撤销删除：DeleteElementsHandler.revert 只恢复画布（不走 create 命令），
-    // 语义挂接/DI 节点在此对称重建（形状先就位，连线端点才可解析；被摘的
-    // element.di 已脱离 plane，先清引用让 ensure*Di 重建）
+    // 语义挂接/DI 节点在此对称重建（形状先就位，连线端点才可解析；detachDi
+    // 摘残留 DI 节点并清引用，让 ensure*Di 重建）
     this.on('elements.delete', 'reverted', (event: any) => {
       const elements: any[] = event.context.elements;
       for (const element of elements.filter((e) => !e.waypoints && !e.labelTarget && e.businessObject)) {
-        element.di = undefined;
+        this.detachDi(element);
         this.adopt(element);
         this.ensureShapeDi(element);
         this.bpmnFactory.reclaim(element.businessObject);
       }
       for (const element of elements.filter((e) => e.waypoints && e.businessObject)) {
-        element.di = undefined;
+        this.detachDi(element);
         this.wireConnection(element, element.source, element.target);
         this.ensureEdgeDi(element);
         this.bpmnFactory.reclaim(element.businessObject);
@@ -215,17 +212,14 @@ export class BpmnUpdater extends CommandInterceptor {
         removeFrom(laneSet.lanes, bo);
       }
     }
-    // 子泳道：全树 childLaneSet 内摘除
+    // 子泳道：全树 childLaneSet 内摘除（childLaneSet 是 Lane 专属属性，通递归
+    // 分支的摘除已覆盖专项分支的同义操作——递归进入时再摘自身一级）
     const walk = (containerBo: any): void => {
       for (const child of containerBo.flowElements ?? []) {
         const set = child.childLaneSet;
         if (set) {
           removeFrom(set.lanes, bo);
           walk(child);
-        }
-        if (child.$type === 'bpmn:Lane') {
-          const sub = child.childLaneSet;
-          if (sub) removeFrom(sub.lanes, bo);
         }
       }
       const self = containerBo.childLaneSet;
@@ -401,6 +395,16 @@ export class BpmnUpdater extends CommandInterceptor {
 
   // ---------- 挂接 ----------
 
+  /**
+   * DI 摘除单出口：从平面摘 DI 节点并清 element.di 引用（revert 后重执行由
+   * ensure*Di 重建；不清引用会让 ensure*Di 的 di?.$type 守卫跳过重建，DI
+   * 永久滞留 plane 外、序列化丢形）。
+   */
+  private detachDi(element: any): void {
+    removeFrom(this.state.plane?.planeElement, element.di);
+    element.di = undefined;
+  }
+
   private adopt(shape: any): void {
     // 标签元素共享宿主 bo（挂接/摘除都会破坏宿主语义树归属）
     if (shape.labelTarget) {
@@ -439,7 +443,7 @@ export class BpmnUpdater extends CommandInterceptor {
     // 制品（注记/分组/关联）：XSD 挂承载容器的 artifacts（协作根→
     // collaboration.artifacts；池内/子流程内→process/subProcess.artifacts），
     // 不进 flowElements（Artifact 与 FlowElement 是并列基类）
-    if (type === 'bpmn:Group' || type === 'bpmn:TextAnnotation' || type === 'bpmn:Association') {
+    if (isArtifactType(type)) {
       if (this.state.collaboration && this.canvas.getRootElement() === shape.parent) {
         if (!this.state.collaboration.artifacts.includes(bo)) {
           this.state.collaboration.artifacts.push(bo);
@@ -461,8 +465,8 @@ export class BpmnUpdater extends CommandInterceptor {
     if (!bo) {
       return;
     }
-    // DI 节点随语义一并摘除（revert 后重执行会重建）
-    removeFrom(this.state.plane?.planeElement, shape.di);
+    // DI 节点随语义一并摘除并清引用（detachDi 单出口：revert 后重执行会重建）
+    this.detachDi(shape);
     removeFrom(this.state.collaboration?.participants, bo);
     removeFrom(this.state.collaboration?.messageFlows, bo);
     removeFrom(this.state.collaboration?.artifacts, bo);
@@ -491,7 +495,7 @@ export class BpmnUpdater extends CommandInterceptor {
       bo.attachedToRef = shape.host?.businessObject ?? null;
     }
     // 语义父级漂移（跨容器移动）；制品族比对/挂靠 artifacts 数组
-    const isArtifact = bo.$type === 'bpmn:Group' || bo.$type === 'bpmn:TextAnnotation' || bo.$type === 'bpmn:Association';
+    const isArtifact = isArtifactType(bo.$type);
     const parentBo = this.semanticParentBo(shape);
     const settled = isArtifact ? arrayHas(parentBo?.artifacts, bo) : arrayHas(parentBo?.flowElements, bo);
     if (parentBo && !settled) {

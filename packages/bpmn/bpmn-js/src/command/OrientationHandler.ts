@@ -50,6 +50,7 @@ import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
 import type { OrientationService, ModelOrientation } from '../meta/Orientation';
 import { SIZES, isSubProcessFamily } from '../meta/ElementTypes';
 import { refitLaneBands } from '../util/PoolGeometry';
+import { applyRect, snapshotWaypoints } from '../util/Geometry';
 
 /** 容器族：转置时随长轴换向（池/泳道/分组 + 展开子流程族） */
 function isTransposingContainer(element: any): boolean {
@@ -127,7 +128,7 @@ export class OrientationHandler implements CommandHandler {
     connections.forEach((connection: any) => {
       context.connectionStates.push({
         element: connection,
-        waypoints: connection.waypoints.map((p: any) => ({ x: p.x, y: p.y }))
+        waypoints: snapshotWaypoints(connection)
       });
       connection.waypoints = this.layouter.layoutConnection(connection, {
         source: connection.source,
@@ -154,10 +155,7 @@ export class OrientationHandler implements CommandHandler {
 
     const changed: any[] = [];
     (context.shapeStates ?? []).forEach((state: any) => {
-      state.element.x = state.x;
-      state.element.y = state.y;
-      state.element.width = state.width;
-      state.element.height = state.height;
+      applyRect(state.element, state);
       changed.push(state.element);
     });
     (context.connectionStates ?? []).forEach((state: any) => {
@@ -246,8 +244,7 @@ export class OrientationHandler implements CommandHandler {
     const crossSizeKey = crossKey === 'x' ? 'width' : 'height';
     const clear = OrientationHandler.SPREAD_CLEAR;
 
-    const stateOf = new Map<any, any>();
-    (context.shapeStates ?? []).forEach((state: any) => stateOf.set(state.element, state));
+    const stateOf = this.stateIndexOf(context.shapeStates);
 
     // 参与消解的元素：有界流节点。标签（宿主渲染派生）、挂靠形状（随宿
     // 主）、注记（侧栏制品不挤占流向空间）、分组（框架性制品）与容器
@@ -365,14 +362,16 @@ export class OrientationHandler implements CommandHandler {
       // 随新内容区铺满——对照扩展前池界才能算出增量
       const newBounds = { x: el.x, y: el.y, width: el.width, height: el.height };
       refitLaneBands(lanes, oldBounds, newBounds, SIZES.POOL_HEADER, horizontal).forEach(
-        ({ lane, bounds: band }: { lane: any; bounds: any }) => {
-          lane.x = band.x;
-          lane.y = band.y;
-          lane.width = band.width;
-          lane.height = band.height;
-        }
+        ({ lane, bounds: band }: { lane: any; bounds: any }) => applyRect(lane, band)
       );
     });
+  }
+
+  /** 形状状态索引：element → 转置前快照（间距展开与共线拉直两处扫描共用同一建法） */
+  private stateIndexOf(shapeStates: any[] | undefined): Map<any, any> {
+    const stateOf = new Map<any, any>();
+    (shapeStates ?? []).forEach((state: any) => stateOf.set(state.element, state));
+    return stateOf;
   }
 
   /** 容器后代（含泳道内）在指定轴上的最远端；标签无独立几何语义不参与 */
@@ -396,8 +395,7 @@ export class OrientationHandler implements CommandHandler {
    */
   private straightenColinearLinks(context: any): void {
     const wasHorizontal = context.oldOrientation !== 'vertical';
-    const stateOf = new Map<any, any>();
-    (context.shapeStates ?? []).forEach((state: any) => stateOf.set(state.element, state));
+    const stateOf = this.stateIndexOf(context.shapeStates);
 
     const oldMainCenter = (element: any): number => {
       const state = stateOf.get(element);

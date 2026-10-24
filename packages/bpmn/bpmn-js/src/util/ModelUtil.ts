@@ -113,3 +113,18 @@ export function getShapeIdFromPlane(element: any): string | undefined {
   if (!isPlane(element)) return undefined;
   return getBusinessObject(element)?.id;
 }
+
+/**
+ * 制品类型三元判定（Group/TextAnnotation/Association）：命令层语义挂接与
+ * 父级漂移比对用。注意 Association 是连线（注册表 family='flow'），规则层
+ * 的 isArtifactFamily（仅 family='artifact'，不含 Association）与此不同，
+ * 勿混用。
+ */
+export function isArtifactType(type: string | undefined | null): boolean {
+  return type === 'bpmn:Group' || type === 'bpmn:TextAnnotation' || type === 'bpmn:Association';
+}
+
+/** 纯形状制品二元判定（Group/TextAnnotation，不含连线形态 Association）：建图侧识别制品形状用 */
+export function isAnnotationArtifact(type: string | undefined | null): boolean {
+  return type === 'bpmn:Group' || type === 'bpmn:TextAnnotation';
+}

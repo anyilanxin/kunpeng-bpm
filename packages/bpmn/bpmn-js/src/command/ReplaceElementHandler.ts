@@ -33,6 +33,7 @@ import { isEventFamily } from '../meta/ElementTypes';
 import type { BpmnElementTypes, ShapeTypeMeta } from '../meta/ElementTypes';
 import type { BpmnFactory } from '../factory/BpmnFactory';
 import type { BpmnDocumentState } from '../xml/DocumentState';
+import { snapshotWaypoints } from '../util/Geometry';
 
 export class ReplaceElementHandler implements CommandHandler {
   static $inject = ['bpmnElementTypes', 'bpmnFactory', 'eventBus', 'bpmnDocumentState', 'layouter'];
@@ -62,7 +63,7 @@ export class ReplaceElementHandler implements CommandHandler {
     // 替换前航点快照：revert 原样恢复（可能含用户手动弯点，重布会丢失）
     context.oldWaypoints = this.attached(element).map((connection: any) => ({
       connection,
-      waypoints: connection.waypoints.map((p: any) => ({ x: p.x, y: p.y }))
+      waypoints: snapshotWaypoints(connection)
     }));
 
     // 目标类型重建（id 保留；claim 幂等）

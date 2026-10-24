@@ -33,6 +33,7 @@ import type { BpmnElementFactory } from '../factory/BpmnElementFactory';
 import type { BpmnElementTypes } from '../meta/ElementTypes';
 import type { BpmnParseResult } from './BpmnReader';
 import { absoluteLabelBox } from '../label/LabelGeometry';
+import { isAnnotationArtifact } from '../util/ModelUtil';
 import { isArtifactFamily, isDataFamily, isFlowNodeType, isPoolFamily, isSubProcessFamily } from '../meta/ElementTypes';
 
 /** moddle DI 节点的内部视图（Shape/Edge 统一形态） */
@@ -129,7 +130,7 @@ export class DiagramBuilder {
 
     // 协作级制品（注记/分组）；消息流所在连线最后统一建
     for (const artifact of collab.artifacts ?? []) {
-      if (artifact.$type === 'bpmn:Group' || artifact.$type === 'bpmn:TextAnnotation') {
+      if (isAnnotationArtifact(artifact.$type)) {
         const di = diById.get(artifact.id);
         if (di && di.kind === 'shape') {
           this.addShape(artifact, di, root, created);
@@ -184,7 +185,7 @@ export class DiagramBuilder {
     // 第二遍：容器级制品（注记/分组；XSD 挂 artifacts，process/subProcess 均可；
     // 关联连线在 buildAllConnections 统一建）
     for (const artifact of containerBo.artifacts ?? []) {
-      if (artifact.$type === 'bpmn:Group' || artifact.$type === 'bpmn:TextAnnotation') {
+      if (isAnnotationArtifact(artifact.$type)) {
         const di = diById.get(artifact.id);
         if (di && di.kind === 'shape') {
           this.addShape(artifact, di, containerElement, created);

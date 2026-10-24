@@ -29,6 +29,7 @@ import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
 import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
 import { SIZES } from '../meta/ElementTypes';
 import { adoptionBounds } from '../util/PoolGeometry';
+import { trimResizeHandles } from '../util/Dom';
 import type { OrientationService } from '../meta/Orientation';
 import { isContainerType } from '../meta/ElementTypes';
 import type { BpmnDocumentState } from '../xml/DocumentState';
@@ -245,14 +246,8 @@ export class TextAnnotationBehavior {
     if (shape?.businessObject?.$type !== 'bpmn:TextAnnotation') {
       return;
     }
-    for (const dir of ['n', 's', 'nw', 'ne', 'sw', 'se']) {
-      gfxRemoveAll(`.djs-resizer-${shape.id}.djs-resizer-${dir}`);
-    }
+    trimResizeHandles('we');
   }
-}
-
-function gfxRemoveAll(selector: string): void {
-  document.querySelectorAll(selector).forEach((n) => n.remove());
 }
 
 /**
@@ -284,7 +279,7 @@ export class CollaborationBehavior extends CommandInterceptor {
 
       const process = adoptExisting
         ? existingProcesses[0]
-        : this.bpmnFactory.createProcess({ name: `流程 ${this.state.processes().length + 1}` });
+        : this.bpmnFactory.createProcess({ name: `流程 ${existingProcesses.length + 1}` });
       if (!adoptExisting) {
         this.state.definitions.rootElements.push(process);
       }

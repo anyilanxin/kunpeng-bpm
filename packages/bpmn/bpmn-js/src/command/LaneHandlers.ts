@@ -37,35 +37,31 @@ import type { BpmnFactory } from '../factory/BpmnFactory';
 import type { OrientationService } from '../meta/Orientation';
 import { SIZES } from '../meta/ElementTypes';
 import {
+  LANE_EPS,
   MIN_LANE_BAND,
+  growPoolAlong,
   laneStackAxis,
   laneBandRect,
   normalizeLanePosition,
   poolInnerRect,
   shiftAlongAxis,
+  sortedBySpan,
   spanLength,
   spanStart,
   withSpan,
   type RectLike
 } from '../util/PoolGeometry';
-
-const EPS = 0.01;
+import { applyRect } from '../util/Geometry';
 
 function rectOf(el: any): RectLike {
   return { x: el.x, y: el.y, width: el.width, height: el.height };
 }
 
-function applyRect(el: any, rect: RectLike): void {
-  el.x = rect.x;
-  el.y = rect.y;
-  el.width = rect.width;
-  el.height = rect.height;
-}
-
 function sortedLanes(participant: any, axis: 'x' | 'y'): any[] {
-  return (participant.children ?? [])
-    .filter((c: any) => c.businessObject?.$type === 'bpmn:Lane')
-    .sort((a: any, b: any) => spanStart(a, axis) - spanStart(b, axis));
+  return sortedBySpan(
+    (participant.children ?? []).filter((c: any) => c.businessObject?.$type === 'bpmn:Lane'),
+    axis
+  );
 }
 
 function findParticipant(element: any): any | null {
@@ -185,7 +181,7 @@ export class AddLaneHandler implements CommandHandler {
     // 出首/尾段给新带——带形不缩（保持内容容量），新带占用池生长出来的空
     // 间，条带始终铺满内容区（若改为"收缩既有带+池不增长"，带会被压破
     // 最小厚度；"收缩+增长"则会留出带覆盖不到的尾部缺口）
-    if (siblings.length === 1 && spanLength(siblings[0], axis) >= spanLength(inner, axis) - EPS) {
+    if (siblings.length === 1 && spanLength(siblings[0], axis) >= spanLength(inner, axis) - LANE_EPS) {
       const full = siblings[0];
       context.carved = { lane: full, rect: rectOf(full) };
       const fullStart = spanStart(full, axis);
@@ -196,19 +192,19 @@ export class AddLaneHandler implements CommandHandler {
       } else {
         context.created.push(this.createLane(context, participant, laneBandRect(inner, fullStart + fullLen, thickness, horizontal)));
       }
-      this.growPool(participant, axis, thickness);
+      growPoolAlong(participant, axis, thickness);
       return [participant, full, ...context.created];
     }
 
     // (3) 常规插入：插入点及之后的既有带平移让位，池沿堆叠轴增长
     for (const lane of siblings) {
-      if (spanStart(lane, axis) >= insertAt - EPS) {
+      if (spanStart(lane, axis) >= insertAt - LANE_EPS) {
         context.shifted.push({ lane, rect: rectOf(lane) });
         applyRect(lane, shiftAlongAxis(lane, axis, thickness));
       }
     }
     context.created.push(this.createLane(context, participant, laneBandRect(inner, insertAt, thickness, horizontal)));
-    this.growPool(participant, axis, thickness);
+    growPoolAlong(participant, axis, thickness);
     return [participant, ...context.created, ...context.shifted.map((s: any) => s.lane)];
   }
 
@@ -245,14 +241,6 @@ export class AddLaneHandler implements CommandHandler {
     this.eventBus.fire('bpmn.lane.added', { lane });
     context.lane = context.lane ?? lane;
     return lane;
-  }
-
-  private growPool(participant: any, axis: 'x' | 'y', delta: number): void {
-    if (axis === 'y') {
-      participant.height += delta;
-    } else {
-      participant.width += delta;
-    }
   }
 
   revert(context: any): any[] {
@@ -308,10 +296,10 @@ export class RemoveLaneHandler implements CommandHandler {
     // 兄弟回收：优先下邻道吃满，其次上邻；无邻可吃时池沿堆叠轴收缩
     // （唯一且跨满内容区的"全池首道"删除=池退回无道形态，池形不变）
     const below = siblings
-      .filter((s: any) => spanStart(s, axis) >= end - EPS)
+      .filter((s: any) => spanStart(s, axis) >= end - LANE_EPS)
       .sort((a: any, b: any) => spanStart(a, axis) - spanStart(b, axis))[0];
     const above = siblings
-      .filter((s: any) => spanStart(s, axis) + spanLength(s, axis) <= start + EPS)
+      .filter((s: any) => spanStart(s, axis) + spanLength(s, axis) <= start + LANE_EPS)
       .sort((a: any, b: any) => spanStart(b, axis) - spanStart(a, axis))[0];
 
     context.grown = null;
@@ -326,14 +314,10 @@ export class RemoveLaneHandler implements CommandHandler {
       context.grownRect = rectOf(above);
       applyRect(above, withSpan(above, axis, spanStart(above, axis), spanLength(above, axis) + spanLength(lane, axis)));
     } else {
-      const spansFull = spanLength(lane, axis) >= spanLength(inner, axis) - EPS;
+      const spansFull = spanLength(lane, axis) >= spanLength(inner, axis) - LANE_EPS;
       if (siblings.length > 0 || !spansFull) {
         context.shrinkPool = spanLength(lane, axis);
-        if (axis === 'y') {
-          participant.height -= context.shrinkPool;
-        } else {
-          participant.width -= context.shrinkPool;
-        }
+        growPoolAlong(participant, axis, -context.shrinkPool);
       }
     }
 
@@ -348,12 +332,7 @@ export class RemoveLaneHandler implements CommandHandler {
       applyRect(grown, grownRect);
     }
     if (shrinkPool) {
-      const axis = laneStackAxis(this.orientationService.isHorizontal());
-      if (axis === 'y') {
-        participant.height += shrinkPool;
-      } else {
-        participant.width += shrinkPool;
-      }
+      growPoolAlong(participant, laneStackAxis(this.orientationService.isHorizontal()), shrinkPool);
     }
     this.canvas.addShape(lane, oldParent ?? participant);
     // 语义/DI 挂接与 execute 对称（BpmnUpdater 经此事件维护常驻树）

@@ -43,6 +43,9 @@ export interface RectLike {
 export const MIN_LANE_SPAN = 600;
 export const MIN_LANE_BAND = 250;
 
+/** 浮点带界比较容差：带界贴合判定（相邻带边缘重合、带铺满内容区）按此容差比对 */
+export const LANE_EPS = 0.01;
+
 /** 泳道堆叠轴：水平池沿 y（行带），垂直池沿 x（列带） */
 export function laneStackAxis(horizontal: boolean): 'x' | 'y' {
   return horizontal ? 'y' : 'x';
@@ -77,6 +80,25 @@ export function spanStart(band: RectLike, axis: 'x' | 'y'): number {
 
 export function spanLength(band: RectLike, axis: 'x' | 'y'): number {
   return axis === 'x' ? band.width : band.height;
+}
+
+/** 带按堆叠轴起点升序排列（返回新数组，不改入参序） */
+export function sortedBySpan<T extends RectLike>(lanes: T[], axis: 'x' | 'y'): T[] {
+  return lanes.slice().sort((a, b) => spanStart(a, axis) - spanStart(b, axis));
+}
+
+/** 池沿堆叠轴伸缩：水平池（axis='y'）改 height，垂直池改 width；负值=收缩 */
+export function growPoolAlong(participant: RectLike, axis: 'x' | 'y', delta: number): void {
+  if (axis === 'y') {
+    participant.height += delta;
+  } else {
+    participant.width += delta;
+  }
+}
+
+/** 矩形四字段全等比对（x/y/width/height 逐一严格相等） */
+export function rectsEqual(a: RectLike, b: RectLike): boolean {
+  return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
 }
 
 /** 沿堆叠轴平移带（跨轴不动），返回新矩形（不可变风格，便于命令快照） */
@@ -174,7 +196,7 @@ export function refitLaneBands<T extends RectLike>(
     spanStart(newPool, axis) + spanLength(newPool, axis) -
     (spanStart(oldPool, axis) + spanLength(oldPool, axis));
 
-  const ordered = lanes.slice().sort((a, b) => spanStart(a, axis) - spanStart(b, axis));
+  const ordered = sortedBySpan(lanes, axis);
   const last = ordered.length - 1;
 
   return ordered.map((lane, index) => {

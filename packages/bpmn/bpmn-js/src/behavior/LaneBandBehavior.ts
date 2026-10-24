@@ -45,19 +45,19 @@ import { SIZES } from '../meta/ElementTypes';
 import type { OrientationService } from '../meta/Orientation';
 import { is } from '../util/ModelUtil';
 import {
+  LANE_EPS,
   MIN_LANE_BAND,
   MIN_LANE_SPAN,
   laneStackAxis,
   poolInnerRect,
+  rectsEqual,
   refitLaneBands,
+  sortedBySpan,
   spanLength,
   spanStart,
   withSpan
 } from '../util/PoolGeometry';
-
-const EPS = 0.01;
-/** 手柄方向全集（diagram-js ResizeHandles 八向） */
-const ALL_DIRECTIONS = ['n', 's', 'w', 'e', 'nw', 'ne', 'sw', 'se'] as const;
+import { trimResizeHandles } from '../util/Dom';
 
 export class LaneBandBehavior extends CommandInterceptor {
   static $inject = ['eventBus', 'modeling', 'orientationService'];
@@ -137,7 +137,7 @@ export class LaneBandBehavior extends CommandInterceptor {
       if (!lanes.length) {
         return;
       }
-      const sorted = lanes.slice().sort((a: any, b: any) => spanStart(a, axis) - spanStart(b, axis));
+      const sorted = sortedBySpan(lanes, axis);
       const first = sorted[0];
       const last = sorted[sorted.length - 1];
       const poolFront = spanStart(shape, axis);
@@ -304,13 +304,13 @@ export class LaneBandBehavior extends CommandInterceptor {
       this.orientationService.isHorizontal()
     );
     for (const { lane, bounds } of fits) {
-      if (bounds.x !== lane.x || bounds.y !== lane.y || bounds.width !== lane.width || bounds.height !== lane.height) {
+      if (!rectsEqual(bounds, lane)) {
         this.modeling.resizeShape(lane, bounds, undefined, { laneBandFollow: true, autoResize: false } as any);
       }
     }
   }
 
-  /** 相邻带：before=后缘贴我前缘的带；after=前缘贴我后缘的带（EPS 容差） */
+  /** 相邻带：before=后缘贴我前缘的带；after=前缘贴我后缘的带（LANE_EPS 容差） */
   private adjacentBand(lane: any, axis: 'x' | 'y', side: 'before' | 'after', edge?: number): any | null {
     const anchor = edge ?? (side === 'before' ? spanStart(lane, axis) : spanStart(lane, axis) + spanLength(lane, axis));
     return ((lane.parent as any)?.children ?? [])
@@ -319,8 +319,8 @@ export class LaneBandBehavior extends CommandInterceptor {
           return false;
         }
         return side === 'before'
-          ? Math.abs(spanStart(c, axis) + spanLength(c, axis) - anchor) <= EPS
-          : Math.abs(spanStart(c, axis) - anchor) <= EPS;
+          ? Math.abs(spanStart(c, axis) + spanLength(c, axis) - anchor) <= LANE_EPS
+          : Math.abs(spanStart(c, axis) - anchor) <= LANE_EPS;
       }) ?? null;
   }
 
@@ -330,15 +330,6 @@ export class LaneBandBehavior extends CommandInterceptor {
     if (!lane || !is(lane, 'bpmn:Lane')) {
       return;
     }
-    const keep = this.orientationService.isHorizontal() ? ['n', 's'] : ['w', 'e'];
-    for (const dir of ALL_DIRECTIONS) {
-      if (!keep.includes(dir)) {
-        gfxRemoveAll(`.djs-resizer-${lane.id}.djs-resizer-${dir}`);
-      }
-    }
+    trimResizeHandles(this.orientationService.isHorizontal() ? 'ns' : 'we');
   }
-}
-
-function gfxRemoveAll(selector: string): void {
-  document.querySelectorAll(selector).forEach((n) => n.remove());
 }
