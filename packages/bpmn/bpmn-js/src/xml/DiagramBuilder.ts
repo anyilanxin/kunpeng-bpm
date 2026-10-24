@@ -31,25 +31,12 @@ import type Canvas from 'diagram-js/lib/core/Canvas';
 import type TextUtil from 'diagram-js/lib/util/Text';
 import type { BpmnElementFactory } from '../factory/BpmnElementFactory';
 import type { BpmnElementTypes } from '../meta/ElementTypes';
-import type { BpmnParseResult } from './BpmnReader';
+import { externalLabelAttrs, needsExternalLabel } from '../label/ExternalLabels';
 import { absoluteLabelBox } from '../label/LabelGeometry';
 import { isAnnotationArtifact } from '../util/ModelUtil';
-import { isArtifactFamily, isDataFamily, isFlowNodeType, isPoolFamily, isSubProcessFamily } from '../meta/ElementTypes';
-
-/** moddle DI 节点的内部视图（Shape/Edge 统一形态） */
-interface DiView {
-  kind: 'shape' | 'edge';
-  bpmnElement: string;
-  bounds?: { x: number; y: number; width: number; height: number };
-  waypoints?: { x: number; y: number }[];
-  isExpanded?: boolean;
-  isHorizontal?: boolean;
-  isMarkerVisible?: boolean;
-  colors?: { fill?: string; stroke?: string };
-  labelBounds?: { x: number; y: number; width: number; height: number } | null;
-  /** 原始 moddle DI 节点（画布元素回挂，几何/颜色同步与导出的写回目标） */
-  node: any;
-}
+import { isFlowNodeType, isDataFamily, isArtifactFamily, isPoolFamily, isSubProcessFamily } from '../meta/ElementTypes';
+import { readDiView, type DiView } from './DiMapper';
+import { mainPlaneTargetId, type BpmnParseResult } from './BpmnReader';
 
 export class DiagramBuilder {
   static $inject = ['canvas', 'elementFactory', 'bpmnElementTypes', 'textRenderer'];
@@ -66,7 +53,7 @@ export class DiagramBuilder {
     const diById = new Map<string, DiView>();
     for (const diagram of definitions.diagrams ?? []) {
       for (const node of diagram.plane?.planeElement ?? []) {
-        const view = normalizeDi(node);
+        const view = readDiView(node);
         if (view) {
           diById.set(view.bpmnElement, view);
         }
@@ -82,7 +69,7 @@ export class DiagramBuilder {
     if (!planeTarget) {
       throw new Error(`无法解析主图平面目标：BPMNPlane bpmnElement="${planeTargetId}" 未命中任何元素`);
     }
-    const plane = mainPlane(definitions, planeTargetId);
+    const plane = mainPlaneTargetId(definitions)?.plane ?? null;
     const root = this.elementFactory.createRoot({
       type: planeTarget.$type,
       businessObject: planeTarget,
@@ -244,7 +231,7 @@ export class DiagramBuilder {
         type: bo.$type,
         source,
         target,
-        waypoints: (di.waypoints ?? []).map((w) => ({ x: w.x, y: w.y })),
+        waypoints: di.waypoints ?? [],
         ...(di.colors ? { colors: di.colors } : {}),
         di: di.node
       });
@@ -304,20 +291,13 @@ export class DiagramBuilder {
    * 位置原样恢复），否则按 LabelGeometry 派生默认；空文本隐藏。
    */
   private addLabel(element: any, bo: any, di: DiView): void {
-    const external = element.waypoints
-      ? true
-      : this.elementTypes.shapeMeta(bo.$type)?.labelMode === 'external';
-    if (!external) {
+    if (!needsExternalLabel(element, this.elementTypes)) {
       return;
     }
     const text: string | undefined = bo.name;
     const box = di.labelBounds ?? absoluteLabelBox(this.textUtil, element, text);
     const label = this.elementFactory.create('label', {
-      id: `${element.id}_label`,
-      type: 'label',
-      labelMode: 'external',
-      businessObject: bo,
-      hidden: !text,
+      ...externalLabelAttrs(element),
       x: box.x,
       y: box.y,
       width: box.width,
@@ -354,55 +334,6 @@ export class DiagramBuilder {
 
     return best ?? fallbackParent;
   }
-}
-
-/**
- * 主图平面（树上的真 DI 节点，序列化事实源）：与 BpmnReader.mainPlaneTarget
- * 同一定位规则——bpmnElement 解析为 planeTargetId 的第一个图；返回 null 表示
- * 退化文档（无平面目标），根不挂 di。
- */
-function mainPlane(definitions: any, planeTargetId: string): any | null {
-  if (!planeTargetId) {
-    return null;
-  }
-  for (const diagram of definitions.diagrams ?? []) {
-    const target = diagram.plane?.bpmnElement;
-    const targetId = target ? (typeof target === 'string' ? target : String(target.id ?? '')) : '';
-    if (targetId === planeTargetId) {
-      return diagram.plane;
-    }
-  }
-  return null;
-}
-
-/** moddle DI 节点 → 内部视图（Shape/Edge 归一；引用属性取局部名键，bioc 扩展并入为 fill/stroke） */
-function normalizeDi(node: any): DiView | null {
-  if (!node) {
-    return null;
-  }
-  const isShape = node.$type === 'bpmndi:BPMNShape';
-  if (!isShape && node.$type !== 'bpmndi:BPMNEdge') {
-    return null;
-  }
-  const fill = node.fill;
-  const stroke = node.stroke;
-  const bpmnElement = node.bpmnElement;
-  return {
-    kind: isShape ? 'shape' : 'edge',
-    bpmnElement: typeof bpmnElement === 'string' ? bpmnElement : String(bpmnElement?.id ?? ''),
-    bounds: node.bounds
-      ? { x: node.bounds.x, y: node.bounds.y, width: node.bounds.width, height: node.bounds.height }
-      : undefined,
-    waypoints: (node.waypoint ?? []).map((w: any) => ({ x: w.x, y: w.y })),
-    isExpanded: node.isExpanded,
-    isHorizontal: node.isHorizontal,
-    isMarkerVisible: node.isMarkerVisible,
-    colors: fill || stroke ? { fill: fill || undefined, stroke: stroke || undefined } : undefined,
-    labelBounds: node.label?.bounds
-      ? { x: node.label.bounds.x, y: node.label.bounds.y, width: node.label.bounds.width, height: node.label.bounds.height }
-      : null,
-    node
-  };
 }
 
 function contains(shape: any, x: number, y: number): boolean {

@@ -50,8 +50,23 @@ export interface BpmnParseResult {
 }
 
 /** isReference 属性值（引擎自动解析为元素对象；悬空时保留 id 字符串）统一取 id */
-function referenceId(value: unknown): string {
-  return typeof value === 'string' ? value : String((value as any)?.id ?? '');
+export function referenceId(ref: unknown): string {
+  return typeof ref === 'string' ? ref : String((ref as any)?.id ?? '');
+}
+
+/**
+ * 主图定位规则（导入/建图共享）：第一个有平面目标的 BPMNDiagram——返回其
+ * plane 目标 id 与 plane 节点（树上的真 DI 节点）；无平面目标（退化文档）
+ * 返回 null。
+ */
+export function mainPlaneTargetId(definitions: any): { planeTargetId: string; plane: any } | null {
+  for (const diagram of definitions.diagrams ?? []) {
+    const target = diagram.plane?.bpmnElement;
+    if (target) {
+      return { planeTargetId: referenceId(target), plane: diagram.plane };
+    }
+  }
+  return null;
 }
 
 export class BpmnReader {
@@ -98,20 +113,9 @@ export class BpmnReader {
       semanticById,
       references: parsed.references ?? [],
       warnings,
-      planeTargetId: this.mainPlaneTarget(parsed.rootElement),
+      planeTargetId: mainPlaneTargetId(parsed.rootElement)?.planeTargetId ?? '',
       firstPoolHorizontal: this.firstPoolHorizontal(parsed.rootElement, semanticById)
     };
-  }
-
-  /** 主图（第一个 BPMNDiagram）平面目标 id */
-  private mainPlaneTarget(definitions: any): string {
-    for (const diagram of definitions.diagrams ?? []) {
-      const target = diagram.plane?.bpmnElement;
-      if (target) {
-        return typeof target === 'string' ? target : String(target.id ?? '');
-      }
-    }
-    return '';
   }
 
   /**

@@ -34,7 +34,8 @@ import type Canvas from 'diagram-js/lib/core/Canvas';
 import type { BpmnDocumentState } from '../xml/DocumentState';
 import type { BpmnFactory } from '../factory/BpmnFactory';
 import type { OrientationService } from '../meta/Orientation';
-import { isPoolFamily, isSubProcessFamily } from '../meta/ElementTypes';
+import { syncEdgeDi, syncLabelBoundsDi, syncShapeDi } from '../xml/DiMapper';
+import { isSubProcessFamily } from '../meta/ElementTypes';
 import { isArtifactType } from '../util/ModelUtil';
 
 export class BpmnUpdater extends CommandInterceptor {
@@ -289,30 +290,15 @@ export class BpmnUpdater extends CommandInterceptor {
 
   // ---------- DI 图同步 ----------
 
-  /** 新建形状：创建 BPMNShape DI 节点（含几何/池朝向/展开态）挂主图 plane 并回挂 element.di */
+  /** 新建形状：创建 BPMNShape DI 节点（字段初始化复用 syncShapeDi：几何/池朝向/展开态）挂主图 plane 并回挂 element.di */
   private ensureShapeDi(shape: any): void {
     // 标签元素无自有 DI 节点（几何存宿主 di.label.bounds）
     const bo = shape.businessObject;
     if (!bo || shape.labelTarget || shape.di?.$type) {
       return;
     }
-    const di = this.bpmnFactory.create<any>({
-      $type: 'bpmndi:BPMNShape',
-      bpmnElement: bo,
-      bounds: this.bpmnFactory.create<any>({
-        $type: 'dc:Bounds',
-        x: shape.x,
-        y: shape.y,
-        width: shape.width,
-        height: shape.height
-      })
-    });
-    if (isPoolFamily(bo.$type)) {
-      di.isHorizontal = this.orientationService.isHorizontal();
-    }
-    if (isSubProcessFamily(bo.$type) && shape.isExpanded !== undefined) {
-      di.isExpanded = shape.isExpanded;
-    }
+    const di = this.bpmnFactory.create<any>({ $type: 'bpmndi:BPMNShape', bpmnElement: bo });
+    syncShapeDi(di, shape, this.bpmnFactory, this.orientationService.isHorizontal());
     const plane = this.state.plane;
     if (plane) {
       (plane.planeElement ??= []).push(di);
@@ -320,19 +306,14 @@ export class BpmnUpdater extends CommandInterceptor {
     shape.di = di;
   }
 
-  /** 新建连线：创建 BPMNEdge DI 节点（含航点）挂主图 plane 并回挂 element.di */
+  /** 新建连线：创建 BPMNEdge DI 节点（航点复用 syncEdgeDi 逐点重建）挂主图 plane 并回挂 element.di */
   private ensureEdgeDi(connection: any): void {
     const bo = connection.businessObject;
     if (!bo || connection.di?.$type) {
       return;
     }
-    const di = this.bpmnFactory.create<any>({
-      $type: 'bpmndi:BPMNEdge',
-      bpmnElement: bo,
-      waypoint: (connection.waypoints ?? []).map((p: any) =>
-        this.bpmnFactory.create<any>({ $type: 'dc:Point', x: p.x, y: p.y })
-      )
-    });
+    const di = this.bpmnFactory.create<any>({ $type: 'bpmndi:BPMNEdge', bpmnElement: bo, waypoint: [] });
+    syncEdgeDi(di, connection, this.bpmnFactory);
     const plane = this.state.plane;
     if (plane) {
       (plane.planeElement ??= []).push(di);
@@ -347,29 +328,10 @@ export class BpmnUpdater extends CommandInterceptor {
       return;
     }
     if (di.$type === 'bpmndi:BPMNShape') {
-      if (element.x !== undefined) {
-        di.bounds ??= this.bpmnFactory.create<any>({ $type: 'dc:Bounds' });
-        di.bounds.x = element.x;
-        di.bounds.y = element.y;
-        di.bounds.width = element.width;
-        di.bounds.height = element.height;
-      }
-      if (isSubProcessFamily(element.businessObject?.$type) && element.isExpanded !== undefined) {
-        di.isExpanded = element.isExpanded;
-      }
-      // 池/泳道头带方向：模型朝向是单一事实源，转置命令后经 elements.changed 收敛
-      if (isPoolFamily(element.businessObject?.$type)) {
-        di.isHorizontal = this.orientationService.isHorizontal();
-      }
-    } else if (Array.isArray(element.waypoints) && Array.isArray(di.waypoint)) {
-      const points = element.waypoints.map((p: any) =>
-        this.bpmnFactory.create<any>({ $type: 'dc:Point', x: p.x, y: p.y })
-      );
-      di.waypoint.splice(0, di.waypoint.length, ...points);
+      syncShapeDi(di, element, this.bpmnFactory, this.orientationService.isHorizontal());
+    } else {
+      syncEdgeDi(di, element, this.bpmnFactory);
     }
-    // 颜色（bioc 社区扩展惯例）：未设置字段按描述移除（序列化不输出）
-    di.set('fill', element.colors?.fill);
-    di.set('stroke', element.colors?.stroke);
   }
 
   /**
@@ -385,12 +347,7 @@ export class BpmnUpdater extends CommandInterceptor {
     if (!di?.$type) {
       return;
     }
-    di.label ??= this.bpmnFactory.create<any>({ $type: 'bpmndi:BPMNLabel' });
-    di.label.bounds ??= this.bpmnFactory.create<any>({ $type: 'dc:Bounds' });
-    di.label.bounds.x = label.x;
-    di.label.bounds.y = label.y;
-    di.label.bounds.width = label.width;
-    di.label.bounds.height = label.height;
+    syncLabelBoundsDi(di, label, this.bpmnFactory);
   }
 
   // ---------- 挂接 ----------

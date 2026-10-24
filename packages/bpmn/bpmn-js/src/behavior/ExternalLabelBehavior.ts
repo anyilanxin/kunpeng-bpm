@@ -34,6 +34,7 @@ import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
 import type EventBus from 'diagram-js/lib/core/EventBus';
 import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
 import type TextUtil from 'diagram-js/lib/util/Text';
+import { externalLabelAttrs, needsExternalLabel } from '../label/ExternalLabels';
 import { absoluteLabelBox, clampToMin, measureExternal } from '../label/LabelGeometry';
 import type { BpmnElementTypes } from '../meta/ElementTypes';
 
@@ -51,7 +52,7 @@ export class ExternalLabelBehavior extends CommandInterceptor {
 
     this.postExecute(['shape.create', 'connection.create'], (event: any) => {
       const element = event.context.shape ?? event.context.connection;
-      if (this.needsLabel(element)) {
+      if (needsExternalLabel(element, this.elementTypes)) {
         this.ensureLabel(element);
       }
     });
@@ -59,7 +60,7 @@ export class ExternalLabelBehavior extends CommandInterceptor {
     // 文本变更：显/隐标签并按文字量收敛宽高（形内标签宿主已随命令脏标记重绘）
     this.postExecute('label.update', (event: any) => {
       const host = event.context.element;
-      if (this.needsLabel(host)) {
+      if (needsExternalLabel(host, this.elementTypes)) {
         this.ensureLabel(host);
       }
     });
@@ -76,31 +77,13 @@ export class ExternalLabelBehavior extends CommandInterceptor {
     });
   }
 
-  private needsLabel(element: any): boolean {
-    if (!element || element.labelTarget) {
-      return false;
-    }
-    const bo = element.businessObject;
-    if (!bo) {
-      return false;
-    }
-    if (element.waypoints) {
-      return true;
-    }
-    return this.elementTypes.shapeMeta(bo.$type)?.labelMode === 'external';
-  }
-
   private ensureLabel(host: any): void {
     const text: string | undefined = host.businessObject?.name;
     const label = host.labels?.[0];
     if (!label) {
       const box = absoluteLabelBox(this.textUtil, host, text);
       const created = this.elementFactory.create('label', {
-        id: `${host.id}_label`,
-        type: 'label',
-        labelMode: 'external',
-        businessObject: host.businessObject,
-        hidden: !text,
+        ...externalLabelAttrs(host),
         ...box
       });
       this.modeling.createLabel(
