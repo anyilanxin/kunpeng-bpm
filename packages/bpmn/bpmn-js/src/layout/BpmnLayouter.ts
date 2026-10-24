@@ -24,24 +24,23 @@
  *
  * 两段式规划（业界 Manhattan 启发式布线的标准架构）：先定锚、后布线。
  *
- * ① 锚点选取（朝向优先）：吸附点集 = 以图形中心为原点的四条边框中点
- * （事件=圆的方位点、任务族=边中点、网关=菱形顶点，顶点恰在边中点上，
- * 四个角按来线方向各自可达）。"沿一个方向计算"——主流向轴分离时端点
- * 恒取面对对端的边中点（水平模型源右缘中点 → 目标左缘中点；垂直模型
- * 源下缘 → 目标上缘）；深偏置例外：交叉轴中心距超过主流向中心距
- * （来线俯角超过 45°，已"更纵向而非横向"）时末端改取对端交叉轴顶点
- * （下方来线入 S / 上方入 N；垂直模型右来入 E / 左来入 W），走两段 L
- * ——Z 肘的竖向 jog 将长于横向主干，L 更自然且少一个直角。仅交叉轴
- * 分离时取交叉轴向（上下正对走 S→N）；完全重叠退最近中点。多源扇入
- * 同侧目标全汇朝向锚：对齐源直连、偏置源在间隙列 Z 肘错位汇流，方向
- * 一致、秩序井然。直线类型（消息流/关联）例外：沿中心连线裁剪到元素
- * 边界（见 boundaryAlong）。手动拖点走 connection.updateWaypoints，
- * 不经此布线器。
+ * ① 锚点选取（朝向优先 + 转角数最少）：吸附点集 = 以图形中心为原点的
+ * 四条边框中点（事件=圆的方位点、任务族=边中点、网关=菱形顶点，顶点恰
+ * 在边中点上，四个角按来线方向各自可达）。"沿一个方向计算"——主流向轴
+ * 分离时端点恒取面对对端的边中点（水平模型源右缘中点 → 目标左缘中点；
+ * 垂直模型源下缘 → 目标上缘）；越界例外：本端中心越出对端交叉轴跨度
+ * （水平模型上/下缘、垂直模型左/右缘，"偏离太远"）时末端改取越出侧
+ * 交叉轴顶点（下方入 S / 上方入 N；垂直模型右入 E / 左入 W），走两段
+ * L（1 折）——直角数最少原则：带内偏置 Z 肘 2 折是正交且不穿形的最小
+ * 折数，越界后 1 折 L 更少且不绕行。仅交叉轴分离（横向交叠的上下正对）
+ * 取交叉轴向中点；完全重叠退最近中点。直线类型（消息流/关联）例外：
+ * 沿中心连线裁剪到元素边界（见 boundaryAlong）。手动拖点走
+ * connection.updateWaypoints，不经此布线器。
  *
  * ② 正交布线（横平竖直、直角数取该锚对下的最小值、端向纯净）：弯点
  * 严格沿锚轴布置——同轴（水平↔水平 / 垂直↔垂直）近对齐收直段（0 折），
  * 否则出两元素间隙中点的 Z 形肘（水平↔水平带纵向错位时 2 折即最小，
- * 1 折 L 必然令一端轴向不纯）；异轴（深偏置与回退场景）出两段 L（1 折）。
+ * 1 折 L 必然令一端轴向不纯）；异轴（越界与回退场景）出两段 L（1 折）。
  * 端点入线方向必须与锚朝向一致（水平锚水平进出），杜绝竖直直插水平
  * 锚的断裂视觉。网关作源的扇出是特例：追加链沿交叉轴堆叠（见
  * AutoPlacementBehavior），交叉轴顶点出 L 让分支散开。
@@ -96,6 +95,11 @@ export class BpmnLayouter extends BaseLayouter {
     }
 
     if (hints?.connectionStart || hints?.connectionEnd) {
+      // 两点连线没有可保弯点（基座修复此时退全量 Manhattan 重排，行/列
+      // 取其自有启发，直角数常非最少）——直接走自有布线，转角最少
+      if (!connection.waypoints || connection.waypoints.length <= 2) {
+        return this.routeOrthogonal(startAnchor, endAnchor, source, target);
+      }
       const repaired = repairConnection(asRect(source), asRect(target), start, end, connection.waypoints, {
         connectionStart: !!hints.connectionStart,
         connectionEnd: !!hints.connectionEnd
@@ -233,15 +237,16 @@ function midAnchor(element: any, side: 'E' | 'W' | 'S' | 'N'): Anchor {
 }
 
 /**
- * 朝向锚对（规划①主规则，"沿一个方向计算"）：主流向轴分离时端点恒取
- * 面对对端的边中点——水平模型 E→W / W→E，垂直模型 S→N / N→S（主流向
- * 优先，斜对位按主流向出线）。深偏置例外：交叉轴中心距超过主流向中心
- * 距（来线俯角超过 45°，"更纵向而非横向"）时末端改取对端的交叉轴顶点
- * ——下方来线入 S、上方入 N（垂直模型右来入 E、左来入 W），走两段 L：
- * 主流向 Z 肘的竖向 jog 将长于横向主干，视觉已是"从上下（左右）来"，
- * 且 L 比 Z 少一个直角。仅交叉轴分离时取交叉轴向中点；两轴都重叠
- * （完全交叠的退化摆放）返回 null，调用方退回最近中点。多源扇入同侧
- * 目标在此规则下全汇朝向锚，偏置在两元素间隙列完成。
+ * 朝向锚对（规划①主规则，"沿一个方向计算 + 转角数最少"）：主流向轴分离
+ * 时端点恒取面对对端的边中点——水平模型 E→W / W→E，垂直模型 S→N / N→S。
+ * 越界例外（转角最少）：本端中心越出对端交叉轴跨度（水平模型上/下缘、
+ * 垂直模型左/右缘）时，末端改取越出侧的交叉轴顶点走两段 L（1 折）——
+ * 来线已越过对端本体，自上/下（左/右）入最近顶点最自然，侧向 Z 肘要
+ * 2 折且竖向绕行更长；中心仍面对对端跨度内（"差不多水平"）时保持侧向
+ * 入线：对齐 0 折直段 / 带内偏置 Z 肘 2 折（该几何下正交且不穿形的最
+ * 小折数）。仅交叉轴分离（横向交叠的上下正对）取交叉轴向中点；两轴都
+ * 重叠（完全交叠的退化摆放）返回 null，调用方退回最近中点。多源扇入
+ * 同侧目标全汇朝向锚，带内偏置在两元素间隙列完成。
  */
 function facingPair(
   element: any,
@@ -257,14 +262,13 @@ function facingPair(
   if (mainFwd || mainRev) {
     const start = midAnchor(element, mainFwd ? main[0] : main[1]);
     let end = midAnchor(other, mainFwd ? main[1] : main[0]);
-    const dx = Math.abs(o.x + o.width / 2 - (e.x + e.width / 2));
-    const dy = Math.abs(o.y + o.height / 2 - (e.y + e.height / 2));
-    if ((horizontal ? dy : dx) > (horizontal ? dx : dy)) {
-      // 元素在对端下方/右侧 → 来线自下/自右 → 对端 S/E 顶点；上方/左侧 → N/W
-      const fromPositive = horizontal
-        ? e.y + e.height / 2 > o.y + o.height / 2
-        : e.x + e.width / 2 > o.x + o.width / 2;
-      end = midAnchor(other, fromPositive ? cross[0] : cross[1]);
+    const selfCross = horizontal ? e.y + e.height / 2 : e.x + e.width / 2;
+    const otherLo = horizontal ? o.y : o.x;
+    const otherHi = horizontal ? o.y + o.height : o.x + o.width;
+    if (selfCross > otherHi) {
+      end = midAnchor(other, cross[0]); // 越出下/右缘 → 对端 S/E 顶点
+    } else if (selfCross < otherLo) {
+      end = midAnchor(other, cross[1]); // 越出上/左缘 → 对端 N/W 顶点
     }
     return { start, end };
   }
@@ -314,13 +318,18 @@ function reSnapMovedAnchors(
   endMoved: boolean,
   horizontal: boolean
 ): { x: number; y: number }[] {
-  const out = waypoints.map((p) => ({ x: p.x, y: p.y }));
+  let out = waypoints.map((p) => ({ x: p.x, y: p.y }));
   if (startMoved) {
     snapEndpoint(out, source, target, 0, horizontal);
   }
   if (endMoved) {
     snapEndpoint(out, target, source, out.length - 1, horizontal);
   }
+  // 共线点折叠：修复/重锚可能留下方向不变的冗余点，折掉保直角数最少
+  out = out.filter((p, i, a) =>
+    i === 0 || i === a.length - 1 ||
+    !((a[i - 1].x === p.x && p.x === a[i + 1].x) || (a[i - 1].y === p.y && p.y === a[i + 1].y))
+  );
   return out;
 }
 
