@@ -117,9 +117,27 @@ function editorModules(): any[] {
   return usePlugin ? [...modules, SamplePluginModule] : modules;
 }
 
+/** 渲染缺省主题（不落 XML：仅缺省渲染色，元素 bioc 色优先）——setTheme 为合并语义，两向都给全量值 */
+const RENDERER_THEMES = {
+  light: { defaultStrokeColor: '#000000', defaultFillColor: '#ffffff', labelColor: '#000000' },
+  dark: { defaultStrokeColor: '#d6d6da', defaultFillColor: '#26262a', labelColor: '#d6d6da' }
+} as const;
+const dark = ref(false);
+
+/** 暗色切换：令牌作用域 + 渲染缺省热切换（运行期 setTheme 全量重绘，不重建实例） */
+function toggleDark(): void {
+  dark.value = !dark.value;
+  document.documentElement.classList.toggle('dark', dark.value);
+  modeler?.get<any>('bpmnRenderer').setTheme(RENDERER_THEMES[dark.value ? 'dark' : 'light']);
+}
+
 /** 按形态建实例：编辑态挂属性面板（parent 容器 + 面板模块）+ 调色板配置，只读态不装编辑类模块 */
 function createInstance(formKind: 'edit' | 'navigated' | 'view'): Modeler {
-  const common = { container: canvasHost.value! };
+  const common = {
+    container: canvasHost.value!,
+    // 按当前主题给渲染缺省（实例重建后无需再 setTheme）
+    bpmnRenderer: { ...RENDERER_THEMES[dark.value ? 'dark' : 'light'] }
+  };
   if (formKind === 'edit') {
     return new Modeler({
       ...common,
@@ -370,6 +388,13 @@ console.info(
       </div>
       <div class="ct-sep"></div>
       <div class="ct-group">
+        <button
+          class="ct-btn"
+          :title="dark ? '切到亮色模式' : '切到暗色模式'"
+          @click="toggleDark"
+        >
+          {{ dark ? '☀' : '☾' }}
+        </button>
         <button class="ct-btn" title="属性面板" :class="{ 'ct-active': panelOpen }" :disabled="form !== 'edit'" @click="panelOpen = !panelOpen">
           <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" class="ct-svg-icon">
             <path d="M8 6h32a2 2 0 0 1 2 2v32a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" />
@@ -453,8 +478,8 @@ console.info(
   right: 0;
   bottom: 0;
   width: 340px;
-  border-left: 1px solid #e8e8e8;
-  background: #fff;
+  border-left: 1px solid var(--x-border, #e8e8e8);
+  background: var(--x-surface, #fff);
   z-index: 5;
   overflow: hidden;
 }
@@ -477,14 +502,60 @@ console.info(
   width: 18px;
   height: 18px;
   padding: 0;
-  border: 1px solid #d9d9d9;
+  border: 1px solid var(--x-border, #d9d9d9);
   border-radius: 3px;
-  background: #fff;
+  background: var(--x-surface, #fff);
   cursor: pointer;
 }
 
 .ct-color input[type='color']:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+</style>
+
+<style>
+/*
+ * 暗色模式令牌（html.dark 作用域）：
+ * - diagram-js 表面（palette/弹框/面包屑）走 --bio-* 令牌
+ * - 属性面板走 --color-* 原语（其消费变量全部派生自这几个原语）
+ * - 示例自有铬件走 --x-* ；画布元素渲染缺省由 bpmnRenderer.setTheme 热切换
+ */
+.dark {
+  color-scheme: dark;
+
+  --x-surface: #212124;
+  --x-border: #3a3a40;
+
+  --bio-surface: hsl(0, 0%, 14%);
+  --bio-surface-overlay: hsl(0, 0%, 17%);
+  --bio-surface-subtle: hsl(228, 6%, 12%);
+  --bio-surface-medium: hsl(228, 6%, 20%);
+  --bio-text: hsl(0, 0%, 90%);
+  --bio-text-subtle: hsl(0, 0%, 70%);
+  --bio-text-subtlest: hsl(0, 0%, 52%);
+  --bio-border: hsl(228, 6%, 34%);
+  --bio-border-disabled: hsl(228, 6%, 28%);
+  --bio-primary: hsl(205, 100%, 65%);
+  --bio-primary-surface: hsl(205, 40%, 18%);
+  --bio-canvas-accent: hsl(205, 100%, 65%);
+
+  --color-white: hsl(228, 6%, 13%);
+  --color-grey-225-10-97: hsl(228, 6%, 11%);
+  --color-grey-225-10-95: hsl(228, 6%, 15%);
+  --color-grey-225-10-85: hsl(228, 6%, 22%);
+  --color-grey-225-10-75: hsl(228, 6%, 30%);
+  --color-grey-225-10-55: hsl(0, 0%, 58%);
+  --color-grey-225-10-35: hsl(0, 0%, 72%);
+  --color-grey-225-10-15: hsl(0, 0%, 90%);
+  --color-blue-205-100-50: hsl(205, 100%, 65%);
+  --color-red-360-100-92: hsl(360, 30%, 26%);
+  --color-red-360-100-97: hsl(360, 30%, 18%);
+}
+
+.dark body,
+.dark .example-app {
+  background: hsl(228, 6%, 9%);
+  color: hsl(0, 0%, 90%);
 }
 </style>
