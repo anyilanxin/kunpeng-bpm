@@ -33,6 +33,7 @@ import type CommandStack from 'diagram-js/lib/command/CommandStack';
 import type Rules from 'diagram-js/lib/features/rules/Rules';
 import { isObject } from 'min-dash';
 import { EventDefinitions } from '../meta/EventDefinitions';
+import type { BpmnElementTypes } from '../meta/ElementTypes';
 import { UpdatePropertiesHandler, UpdateLabelHandler, UpdateModdlePropertiesHandler } from './UpdateHandlers';
 import { ReplaceElementHandler } from './ReplaceElementHandler';
 import { AddLaneHandler, RemoveLaneHandler, assertAddLaneAllowed, assertRemoveLaneAllowed } from './LaneHandlers';
@@ -43,25 +44,28 @@ import type { OrientationService } from '../meta/Orientation';
 import { snapPositionToBorder } from '../util/AttachMath';
 
 export class BpmnModeling extends Modeling {
-  static $inject = ['eventBus', 'elementFactory', 'commandStack', 'rules', 'orientationService'];
+  static $inject = ['eventBus', 'elementFactory', 'commandStack', 'rules', 'orientationService', 'bpmnElementTypes'];
 
   private readonly rules: Rules;
   private readonly stack: CommandStack;
   private readonly factory: ElementFactory;
   private readonly orientationService: OrientationService;
+  private readonly elementTypes: BpmnElementTypes;
 
   constructor(
     eventBus: EventBus,
     elementFactory: ElementFactory,
     commandStack: CommandStack,
     rules: Rules,
-    orientationService: OrientationService
+    orientationService: OrientationService,
+    elementTypes: BpmnElementTypes
   ) {
     super(eventBus, elementFactory, commandStack);
     this.rules = rules;
     this.stack = commandStack;
     this.factory = elementFactory;
     this.orientationService = orientationService;
+    this.elementTypes = elementTypes;
     commandStack.registerHandler('properties.update', UpdatePropertiesHandler as any);
     commandStack.registerHandler('element.updateModdleProperties', UpdateModdlePropertiesHandler as any);
     commandStack.registerHandler('label.update', UpdateLabelHandler as any);
@@ -133,6 +137,20 @@ export class BpmnModeling extends Modeling {
   }
 
   replaceElement(element: any, target: { type: string; eventSymbol?: string; collapsed?: boolean }): any {
+    // 前置校验必须在 stack.execute 之前抛出：CommandStack 先 _pushAction 再调
+    // handler.execute，execute 内抛错会留下永不弹出的 action 帧，此后所有命令
+    // 的 elements.changed（重绘/DI 同步）静默失效（同 addLane 的 assert 模式）；
+    // handler 信任入参不再重复校验
+    if (!this.elementTypes.shapeMeta(target.type)) {
+      throw new Error(`未知替换目标类型：${target.type}`);
+    }
+    if (
+      target.eventSymbol !== undefined &&
+      !EventDefinitions.isVirtualSymbol(target.eventSymbol) &&
+      !EventDefinitions.definitionType(target.eventSymbol)
+    ) {
+      throw new Error(`未知事件定义符号：${target.eventSymbol}`);
+    }
     this.stack.execute('bpmnReplace', { element, target });
     return element;
   }

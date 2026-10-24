@@ -49,10 +49,8 @@ export class ReplaceElementHandler implements CommandHandler {
     if (target.collapsed === undefined && target.type === 'bpmn:SubProcess') {
       target.collapsed = false;
     }
-    const meta = this.elementTypes.shapeMeta(target.type);
-    if (!meta) {
-      throw new Error(`未知替换目标类型：${target.type}`);
-    }
+    // meta/事件符号已在 modeling.replaceElement 前置校验（execute 内抛错毒 action 帧）
+    const meta = this.elementTypes.shapeMeta(target.type)!;
 
     const oldBo = element.businessObject;
     const oldWidth = element.width;
