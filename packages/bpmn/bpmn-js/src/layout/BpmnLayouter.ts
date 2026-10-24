@@ -22,19 +22,27 @@
 /**
  * 正交布线器（顺序流/数据关联走直角折线；消息流/关联走直线）。
  *
- * 端点锚位规则（折线类型统一吸附规范锚点）：取"朝向对端"最近的
- * bbox 四边中点——事件=圆的方位点、任务族=边的 midpoint、网关=菱形顶点，
- * 三类形状同公式；直线类型（消息流/关联）例外：沿中心连线裁剪到元素
- * 边界（见 boundaryAlong）。手动拖点走 connection.updateWaypoints，不经此布线器。
- * 自有策略只负责中段肘形方向与中轴取两 bbox 间隙中点：肘形主流向轴
- * 朝向感知——水平模型目标在右走水平肘、垂直模型目标在下走垂直肘
- * （朝向决定两方向分支的判定次序，否则垂直模型里下方偏右的目标会被
- * 水平分支截走，出东侧锚绕侧向 Z 弯）。
+ * 两段式规划（业界 Manhattan 启发式布线的标准架构）：先定锚、后布线。
+ *
+ * ① 锚点选取（最近原则）：折线类型端点取"朝向对端中心最近"的 bbox
+ * 四边中点——事件=圆的方位点、任务族=边的 midpoint、网关=菱形顶点
+ * （顶点恰在边中点上，即网关可吸附的四个角）。多源扇入同一目标时，
+ * 各源按距离自然分散到不同角：对齐源横向入 W/N、深下源入 S、深上源
+ * 入 N——入口角的纵向序与源的纵向序一致，扇入天然不交叉；同列源的
+ * Z 形肘共用同一间隙列（E 缘对齐时中点相同），汇流平行有序。
+ * 直线类型（消息流/关联）例外：沿中心连线裁剪到元素边界（见
+ * boundaryAlong）。手动拖点走 connection.updateWaypoints，不经此布线器。
+ *
+ * ② 正交布线（横平竖直，任何分支不出斜段）：弯点严格沿锚轴布置——
+ * 同轴（水平↔水平 / 垂直↔垂直）出两元素间隙中点的 Z 形肘，近对齐
+ * （差值小于容差）收成贴轴直段；异轴（水平↔垂直）出两段 L 形，转角
+ * 点同时落在两锚轴线上。网关作源的扇出是特例：追加链沿交叉轴单向
+ * 堆叠（见 AutoPlacementBehavior），改由交叉轴顶点出 L 让分支散开。
  *
  * 移动/缩放路径（diagram-js 各 Handler 带 connectionStart/End hints 调入）：
- * 只重锚移动侧（仍取规范中点锚），对侧锚点与既有弯点原样保留——复用
- * 基座 repairConnection 的修复语义，避免无关侧锚点跳动、手动弯点丢失；
- * 修复不适用（如两点直线）时其内部退回全量重排。
+ * 只重锚移动侧（仍取最近规范锚，与创建路径同准则），对侧锚点与既有
+ * 弯点原样保留——复用基座 repairConnection 的修复语义，避免无关侧锚点
+ * 跳动、手动弯点丢失；修复不适用（如两点直线）时其内部退回全量重排。
  */
 import BaseLayouter from 'diagram-js/lib/layout/BaseLayouter';
 import type { LayoutConnectionHints } from 'diagram-js/lib/layout/BaseLayouter';
@@ -43,6 +51,9 @@ import { repairConnection } from 'diagram-js/lib/layout/ManhattanLayout';
 const STRAIGHT_TYPES = new Set(['bpmn:MessageFlow', 'bpmn:Association']);
 /** 肘形判定容差：|dy| < 8 视为水平对齐（自有取值） */
 const ALIGN_TOLERANCE = 8;
+
+/** 规范锚引用：锚点坐标 + 出线轴向（E/W 水平、S/N 垂直），布线按轴走肘 */
+type Anchor = { point: { x: number; y: number }; axis: 'h' | 'v' };
 
 import type { OrientationService } from '../meta/Orientation';
 import { isEventFamily, isGatewayFamily } from '../meta/ElementTypes';
@@ -61,12 +72,13 @@ export class BpmnLayouter extends BaseLayouter {
     const source = hints?.source ?? connection.source;
     const target = hints?.target ?? connection.target;
     const type = connection.businessObject?.$type ?? connection.type;
-    const horizontal = this.orientationService.isHorizontal();
 
-    // 朝向锚优先（见 facingAnchor）：主流向轴分离时端点恒取面对对端的边
-    // 中点，多源扇入同一目标全汇朝向锚（错位在间隙列完成）；未分离退最近锚
-    const start = facingAnchor(source, target, horizontal)?.point ?? anchorOf(source, center(target)).point;
-    const end = facingAnchor(target, source, horizontal)?.point ?? anchorOf(target, center(source)).point;
+    // 规划①最近规范锚：多源扇入同一目标时各源按距离分散落角（网关四
+    // 顶点即可吸附的四角），入口秩序与源序一致
+    const startAnchor = anchorOf(source, center(target));
+    const endAnchor = anchorOf(target, center(source));
+    const start = startAnchor.point;
+    const end = endAnchor.point;
 
     if (STRAIGHT_TYPES.has(type)) {
       // 直线类型锚点见 boundaryAlong：沿中心连线裁剪到元素边界，而非中点锚
@@ -78,15 +90,16 @@ export class BpmnLayouter extends BaseLayouter {
         connectionStart: !!hints.connectionStart,
         connectionEnd: !!hints.connectionEnd
       });
-      return reSnapMovedAnchors(repaired, source, target, !!hints.connectionStart, !!hints.connectionEnd, horizontal);
+      return reSnapMovedAnchors(repaired, source, target, !!hints.connectionStart, !!hints.connectionEnd);
     }
 
-    return this.routeOrthogonal(start, end, source, target);
+    // 规划②按锚轴正交布线（同轴 Z 肘 / 异轴 L）
+    return this.routeOrthogonal(startAnchor, endAnchor, source, target);
   }
 
   private routeOrthogonal(
-    start: { x: number; y: number },
-    end: { x: number; y: number },
+    startAnchor: Anchor,
+    endAnchor: Anchor,
     source: any,
     target: any
   ): any[] {
@@ -94,15 +107,12 @@ export class BpmnLayouter extends BaseLayouter {
     const t = asRect(target);
     const horizontal = this.orientationService.isHorizontal();
 
-    const gapX = t.x - (s.x + s.width);
-    const gapY = t.y - (s.y + s.height);
-
     // 网关扇出（自有策略）：目标中心沉到源底之下（水平模型）/越过源右缘
     // （垂直模型）时，改由交叉轴顶点出两段 L（下行/横行后转入边）——网关
     // 是分叉节点，追加链沿交叉轴单向堆叠（见 AutoPlacementBehavior），L 形
     // 让每条分支的主干清晰散开；水平肘 Z 形会在网关右侧把多分支挤成一束。
-    // 末端锚强制取面向源的一侧中点（W/N）：L 末段是水平/垂直入线，按距离
-    // 选锚会在深下目标上选中 N/S 锚，线贴着目标顶/底横过去，形态怪异
+    // 末端锚固定取面向源的一侧中点（W/N）：L 末段是水平/垂直入线，锚与
+    // 入线轴必须一致
     const isGateway = isGatewayFamily(source.businessObject?.$type);
     if (isGateway) {
       if (horizontal) {
@@ -120,61 +130,37 @@ export class BpmnLayouter extends BaseLayouter {
       }
     }
 
-    // 主流向轴优先：水平模型先判"目标在右"（水平肘），垂直模型先判
-    // "目标在下"（垂直肘）——斜向（右下）目标按主流向轴出线
-    if (horizontal ? gapX >= 0 : gapY >= 0) {
-      return horizontal
-        ? this.elbowHorizontal(s, start, end, gapX)
-        : this.elbowVertical(s, t, start, end, gapY);
-    }
-    if (horizontal ? gapY >= 0 : gapX >= 0) {
-      return horizontal
-        ? this.elbowVertical(s, t, start, end, gapY)
-        : this.elbowHorizontal(s, start, end, gapX);
+    const { point: start, axis: startAxis } = startAnchor;
+    const { point: end, axis: endAxis } = endAnchor;
+
+    // 同轴（水平↔水平 / 垂直↔垂直）：Z 形肘，中转列/行取两 bbox 间隙
+    // 中点（朝向端计算，源 E 缘对齐的扇入共用同一列，汇流平行）；
+    // 近对齐（差值小于容差）收成贴轴直段——端点钉在锚轴上，不出斜段
+    if (startAxis === endAxis) {
+      if (startAxis === 'h') {
+        if (Math.abs(end.y - start.y) < ALIGN_TOLERANCE) {
+          return [start, { x: end.x, y: start.y }];
+        }
+        const midX = end.x > start.x
+          ? s.x + s.width + Math.max((t.x - s.x - s.width) / 2, 1)
+          : t.x + t.width + Math.max((s.x - t.x - t.width) / 2, 1);
+        return [start, { x: midX, y: start.y }, { x: midX, y: end.y }, end];
+      }
+      if (Math.abs(end.x - start.x) < ALIGN_TOLERANCE) {
+        return [start, { x: start.x, y: end.y }];
+      }
+      const midY = end.y > start.y
+        ? s.y + s.height + Math.max((t.y - s.y - s.height) / 2, 1)
+        : t.y + t.height + Math.max((s.y - t.y - t.height) / 2, 1);
+      return [start, { x: start.x, y: midY }, { x: end.x, y: midY }, end];
     }
 
-    // 反向（左/上）：从源左/上边出，绕行目标另一侧
-    const midX = (t.x + t.width + s.x) / 2;
-    return [start, { x: midX, y: start.y }, { x: midX, y: end.y }, end];
-  }
-
-  /** 目标在源右侧：水平优先肘形，|dy| 小 → 直线 */
-  private elbowHorizontal(
-    s: { x: number; y: number; width: number },
-    start: { x: number; y: number },
-    end: { x: number; y: number },
-    gapX: number
-  ): any[] {
-    if (Math.abs(end.y - start.y) < ALIGN_TOLERANCE) {
-      return [start, { x: end.x, y: start.y }];
-    }
-    const midX = s.x + s.width + Math.max(gapX / 2, 1);
-    return [start, { x: midX, y: start.y }, { x: midX, y: end.y }, end];
-  }
-
-  /** 目标在源下方：垂直优先肘形，|dx| 小 → 直线 */
-  private elbowVertical(
-    s: { x: number; y: number; width: number; height: number },
-    t: { x: number; y: number; width: number; height: number },
-    start: { x: number; y: number },
-    end: { x: number; y: number },
-    gapY: number
-  ): any[] {
-    if (Math.abs(end.x - start.x) < ALIGN_TOLERANCE) {
-      // 拉轴点 (start.x, end.y) 仅当它压在目标边线（N/S 边 y 或 W/E 边 x）
-      // 才是贴边的；斜位（zigzag 避让产物：横向偏移小于容差）时两端互取
-      // E/W 锚，拉轴点会悬进目标 bbox 内部（箭头插进元素）。不贴边时退回
-      // 三段直角微折（jog 小于容差），末端仍钉在规范锚点——禁用 [start,end]
-      // 两点斜线：非正交破坏连线契约，且经端点裁剪后箭头会挂到 bbox 角落
-      // （"从任务侧边偏下角斜插进网关侧边"的视觉）
-      const tip = { x: start.x, y: end.y };
-      const onEdge =
-        ((tip.y === t.y || tip.y === t.y + t.height) && tip.x >= t.x && tip.x <= t.x + t.width) ||
-        ((tip.x === t.x || tip.x === t.x + t.width) && tip.y >= t.y && tip.y <= t.y + t.height);
-      return onEdge ? [start, tip] : [start, tip, end];
-    }
-    const midY = s.y + s.height + Math.max(gapY / 2, 1);
-    return [start, { x: start.x, y: midY }, { x: end.x, y: midY }, end];
+    // 异轴（水平出↔垂直入，或反之）：两段 L，转角点同时落在两锚轴线上。
+    // 最近锚下异轴只出现在斜对位（横向错开且纵向错开），源的锚侧已背向
+    // 目标，转角天然落在两元素轮廓之外——不穿形、不斜走
+    return startAxis === 'h'
+      ? [start, { x: end.x, y: start.y }, end]
+      : [start, { x: start.x, y: end.y }, end];
   }
 }
 
@@ -220,12 +206,12 @@ function boundaryAlong(element: any, toward: { x: number; y: number }): { x: num
 }
 
 /**
- * 规范锚点：bbox 四边中点（E/W/S/N），朝向对端取最近者。
- * 事件（圆内切 bbox）= 圆的四个方位点；任务族 = 各边中点；
- * 网关（菱形顶点即 bbox 边中点）= 四个顶点——三类同公式。
- * axis 标记锚的出线轴向（E/W 水平、S/N 垂直），供相邻弯点对轴。
+ * 规范锚点（规划①：最近原则）：bbox 四边中点（E/W/S/N），朝向对端
+ * 中心取距离最近者。事件（圆内切 bbox）= 圆的四个方位点；任务族 = 各边
+ * 中点；网关（菱形顶点即 bbox 边中点）= 四个顶点，也就是网关可吸附的
+ * 四个角。axis 标记锚的出线轴向（E/W 水平、S/N 垂直），供相邻弯点对轴。
  */
-function anchorOf(element: any, toward: { x: number; y: number }): { point: { x: number; y: number }; axis: 'h' | 'v' } {
+function anchorOf(element: any, toward: { x: number; y: number }): Anchor {
   const { x, y, width: w, height: h } = asRect(element);
   const cx = x + w / 2;
   const cy = y + h / 2;
@@ -248,60 +234,26 @@ function anchorOf(element: any, toward: { x: number; y: number }): { point: { x:
 }
 
 /**
- * 朝向锚（正交连线端点的主取向）：两元素在主流向轴上分离（水平模型左右
- * 分开 / 垂直模型上下分开）时，端点恒取"面对对端"的边中点——源 E↔目标
- * W（水平）/ 源 S↔目标 N（垂直）。按最近距离选锚会让多源汇入同一目标
- * （扇入）时极端侧源命中 N/S 锚，线绕到目标顶/底钩入、入口方向不一
- * （业界通行形态是扇入全汇朝向锚，错位在两元素间隙列完成）。主流向轴
- * 未分离（仅交叉轴上下、或水平重叠）返回 null，调用方退回最近锚选取。
- */
-function facingAnchor(
-  element: any,
-  other: any,
-  horizontal: boolean
-): { point: { x: number; y: number }; axis: 'h' | 'v' } | null {
-  const e = asRect(element);
-  const o = asRect(other);
-  const { x, y, width: w, height: h } = e;
-  if (horizontal) {
-    if (o.x >= x + w) {
-      return { point: { x: x + w, y: y + h / 2 }, axis: 'h' }; // 对端在右 → E
-    }
-    if (x >= o.x + o.width) {
-      return { point: { x, y: y + h / 2 }, axis: 'h' };        // 对端在左 → W
-    }
-  } else {
-    if (o.y >= y + h) {
-      return { point: { x: x + w / 2, y: y + h }, axis: 'v' }; // 对端在下 → S
-    }
-    if (y >= o.y + o.height) {
-      return { point: { x: x + w / 2, y }, axis: 'v' };        // 对端在上 → N
-    }
-  }
-  return null;
-}
-
-/**
  * 基座修复的收尾：把移动侧端点从其 bbox 矩形投影 docking 夹回规范锚——
  * 投影对菱形（网关）会悬在形外、对矩形会偏离边线中点；中段弯点与对侧
- * 端点保留基座修复结果（未移动侧原样、手动弯点不丢）。存在相邻弯点时
- * 同步把弯点对齐到锚的出线轴，消除投影端点遗留的斜段；仅两点连线
- * （直线）没有可动弯点，直接换端点——轴向对齐场景换后仍是直线。
+ * 端点保留基座修复结果（未移动侧原样、手动弯点不丢）。相邻弯点对齐到
+ * 锚轴（见 snapEndpoint：优先平移、平移会斜断内侧段时插入转角点），
+ * 消除投影端点遗留的斜段；仅两点连线（直线）没有可动弯点，直接换端点
+ * ——轴向对齐场景换后仍是直线。
  */
 function reSnapMovedAnchors(
   waypoints: { x: number; y: number }[],
   source: any,
   target: any,
   startMoved: boolean,
-  endMoved: boolean,
-  horizontal: boolean
+  endMoved: boolean
 ): { x: number; y: number }[] {
   const out = waypoints.map((p) => ({ x: p.x, y: p.y }));
   if (startMoved) {
-    snapEndpoint(out, source, target, 0, horizontal);
+    snapEndpoint(out, source, target, 0);
   }
   if (endMoved) {
-    snapEndpoint(out, target, source, out.length - 1, horizontal);
+    snapEndpoint(out, target, source, out.length - 1);
   }
   return out;
 }
@@ -310,20 +262,37 @@ function snapEndpoint(
   waypoints: { x: number; y: number }[],
   element: any,
   other: any,
-  index: number,
-  horizontal: boolean
+  index: number
 ): void {
-  // 移动侧重锚同用朝向锚（与创建路径同取向）：扇入场景移动任一端后入口
-  // 侧保持一致，不退化为最近锚的 N/S 钩形绕入
-  const { point, axis } = facingAnchor(element, other, horizontal) ?? anchorOf(element, center(other));
+  // 移动侧重锚取最近规范锚（与创建路径同准则）：移动任一端后入口侧仍按
+  // 距离落角，扇入秩序在移动后保持
+  const { point, axis } = anchorOf(element, center(other));
   waypoints[index] = { x: point.x, y: point.y };
-  if (waypoints.length > 2) {
-    const j = index === 0 ? 1 : waypoints.length - 2;
-    if (axis === 'h') {
-      waypoints[j].y = point.y;
-    } else {
-      waypoints[j].x = point.x;
-    }
+  if (waypoints.length <= 2) {
+    return;
+  }
+  const startSide = index === 0;
+  const j = startSide ? 1 : waypoints.length - 2;
+  const onAxis = axis === 'h' ? waypoints[j].y === point.y : waypoints[j].x === point.x;
+  if (onAxis) {
+    return;
+  }
+  // 转角点：落在锚轴与既有弯点轴线交点——端侧段贴锚轴、内侧段保原位
+  const corner = axis === 'h'
+    ? { x: waypoints[j].x, y: point.y }
+    : { x: point.x, y: waypoints[j].y };
+  if (corner.x === point.x && corner.y === point.y) {
+    // 弯点在锚点法向正上/正下：入线垂直/水平本身正交，无需处理
+    return;
+  }
+  // 平移弯点到锚轴可保端段贴轴；但锚点换角（如 S 角换 W 角）时基座修复
+  // 的对角折返会被平移斜断更内侧的段——此时改为在端点前插入转角点，
+  // 内外段全部保持正交
+  const far = waypoints[startSide ? 2 : j - 1];
+  if (far.x === corner.x || far.y === corner.y) {
+    waypoints[j] = corner;
+  } else {
+    waypoints.splice(startSide ? 1 : waypoints.length - 1, 0, corner);
   }
 }
 
