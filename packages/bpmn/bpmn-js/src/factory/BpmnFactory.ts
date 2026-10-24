@@ -186,8 +186,8 @@ export class BpmnFactory {
     this.ids.unclaim(bo.id);
   }
 
-  /** 删除撤销后重新登记既有 id（对象复用，幂等） */
+  /** 删除撤销后重新登记既有 id（对象复用，幂等；带持有者与 create 路径同约定） */
   reclaim(bo: BpmnSemanticBase): void {
-    this.ids.claim(bo.id);
+    this.ids.claim(bo.id, bo);
   }
 }

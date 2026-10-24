@@ -121,10 +121,11 @@ export class BpmnUpdater extends CommandInterceptor {
     }
 
     this.on('elements.delete', 'postExecuted', (event: any) => {
-      const elements: any[] = event.context.elements ?? [];
-      // 先清连线引用，再清形状；标签元素共享宿主 bo，语义/DI 操作全部跳过
+      const elements: any[] = event.context.elements;
+      // 先清连线引用（id 一并释放），再清形状；标签元素共享宿主 bo，语义/DI 操作全部跳过
       for (const element of elements.filter((e) => e.waypoints)) {
         this.unwireConnection(element);
+        this.bpmnFactory.destroy(element.businessObject);
       }
       for (const element of elements.filter((e) => !e.waypoints && !e.labelTarget)) {
         this.orphan(element);
@@ -136,7 +137,7 @@ export class BpmnUpdater extends CommandInterceptor {
     // 语义挂接/DI 节点在此对称重建（形状先就位，连线端点才可解析；被摘的
     // element.di 已脱离 plane，先清引用让 ensure*Di 重建）
     this.on('elements.delete', 'reverted', (event: any) => {
-      const elements: any[] = event.context.elements ?? [];
+      const elements: any[] = event.context.elements;
       for (const element of elements.filter((e) => !e.waypoints && !e.labelTarget && e.businessObject)) {
         element.di = undefined;
         this.adopt(element);
@@ -153,8 +154,9 @@ export class BpmnUpdater extends CommandInterceptor {
 
     // 几何/颜色回写：画布元素变更（移动/缩放/重路由/着色）统一同步到 DI 节点；
     // 同批重算涉及池的泳道归属（元素动/带滑动都改变几何归属）
+    // （elements/elements 恒为数组：CommandStack 侧构造事件）
     eventBus.on('elements.changed', (event: any) => {
-      for (const element of event.elements ?? []) {
+      for (const element of event.elements) {
         // 标签元素无自有 DI：几何回写宿主 di.label.bounds（拖动/随宿主移动收敛，
         // 导出经描述驱动序列化持久化）；隐藏标签不落位置（派生即可复现）
         if (element.labelTarget) {
@@ -163,7 +165,7 @@ export class BpmnUpdater extends CommandInterceptor {
           this.syncDi(element);
         }
       }
-      this.syncLaneMembership(event.elements ?? []);
+      this.syncLaneMembership(event.elements);
     });
 
     // 泳道命令直走 canvas.addShape（不经 shape.create），语义挂接/DI 挂摘
@@ -466,7 +468,6 @@ export class BpmnUpdater extends CommandInterceptor {
     removeFrom(this.state.collaboration?.participants, bo);
     removeFrom(this.state.collaboration?.messageFlows, bo);
     removeFrom(this.state.collaboration?.artifacts, bo);
-    removeFrom(this.state.collaboration?.processes?.(), bo);
 
     // 数据关联从活动列表摘除
     for (const process of this.state.processes()) {

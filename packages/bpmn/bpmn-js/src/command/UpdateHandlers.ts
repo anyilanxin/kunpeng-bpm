@@ -117,7 +117,8 @@ export class UpdateLabelHandler implements CommandHandler {
     const element = context.element;
     const bo = element.businessObject;
     const field = bo.$type === 'bpmn:TextAnnotation' ? 'text' : 'name';
-    if (context.oldText) {
+    // 判 undefined 而非 falsy：旧值为空串时恢复空串（truthy 判定会错走 delete 分支）
+    if (context.oldText !== undefined) {
       bo[field] = context.oldText;
     } else {
       delete bo[field];

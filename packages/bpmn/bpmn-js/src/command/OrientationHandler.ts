@@ -181,7 +181,8 @@ export class OrientationHandler implements CommandHandler {
     let x1 = -Infinity;
     let y1 = -Infinity;
     this.elementRegistry.getAll().forEach((element: any) => {
-      if (!element.x || element.hidden) {
+      // 判 undefined 而非 falsy：x=0 是合法坐标（falsy 判空会把左缘贴 0 的元素漏出 bbox）
+      if (element.x === undefined || element.hidden) {
         return;
       }
       if (element.waypoints) {
