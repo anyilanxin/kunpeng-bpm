@@ -521,12 +521,10 @@ console.info(
  * - 属性面板走 --color-* 原语（其消费变量全部派生自这几个原语）
  * - 示例自有铬件走 --x-* ；画布元素渲染缺省由 bpmnRenderer.setTheme 热切换
  */
-.dark {
-  color-scheme: dark;
-
-  --x-surface: #212124;
-  --x-border: #3a3a40;
-
+/* diagram-js 令牌宿主是容器自身（Canvas 挂 .bio-theme-parent 于 .djs-container），
+   html 级覆盖是祖先定义永远不生效——必须覆盖在宿主元素上 */
+.dark .djs-container,
+.dark .bio-theme-parent {
   --bio-surface: hsl(0, 0%, 14%);
   --bio-surface-overlay: hsl(0, 0%, 17%);
   --bio-surface-subtle: hsl(228, 6%, 12%);
@@ -540,6 +538,16 @@ console.info(
   --bio-primary-surface: hsl(205, 40%, 18%);
   --bio-canvas-accent: hsl(205, 100%, 65%);
 
+}
+
+.dark {
+  color-scheme: dark;
+  --x-surface: #212124;
+  --x-border: #3a3a40;
+}
+
+/* 面板令牌覆盖在消费根（.bio-properties-panel）上，与默认宿主位置无关 */
+.dark .bio-properties-panel {
   --color-white: hsl(228, 6%, 13%);
   --color-grey-225-10-97: hsl(228, 6%, 11%);
   --color-grey-225-10-95: hsl(228, 6%, 15%);
