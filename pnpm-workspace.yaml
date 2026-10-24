@@ -2,6 +2,10 @@ packages:
   - packages/*
   - packages/*/*
   - examples/*
+  # 遗留预构建分发物（勿在新链路引用，见根 AGENTS.md）：其 npm 依赖
+  # @kunpeng-js/bpmnlint-plugin-kunpeng-compat 已从 registry 下架（404），
+  # 排除出安装图让新机器可装；预构建文件原样保留，消费方自行提供其依赖
+  - '!packages/bpmn/linting'
 
 # 统一版本目录（pnpm catalog 协议）：packages/{bpmn,common}/* 家族包从这里取版本。
 # 自研组件（@kunpeng-io/bpmn-js、kunpeng-bpmn-moddle）与示例仍用内联版本，不进目录。
@@ -70,7 +74,7 @@ catalog:
 
   # 构建 / 开发
   typescript: ^5.9.3
-  vite: ^7.3.7
+  vite: ^8.3.5
   '@vitejs/plugin-vue': ^6.0.10
   vite-plugin-babel: ^1.7.3
   '@babel/core': ^7.29.7
