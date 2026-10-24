@@ -687,12 +687,12 @@ export class BpmnRenderer extends BaseRenderer {
   }
 }
 
-// ---------------- 路径工具（世界坐标） ----------------
+// ---------------- 路径工具（世界坐标；仅本文件使用） ----------------
 
-export function rectPath(x: number, y: number, width: number, height: number): string {
+function rectPath(x: number, y: number, width: number, height: number): string {
   return `M${x},${y} h${width} v${height} h${-width} Z`;
 }
 
-export function circlePath(cx: number, cy: number, r: number): string {
+function circlePath(cx: number, cy: number, r: number): string {
   return `M${cx - r},${cy} a${r},${r} 0 1,0 ${r * 2},0 a${r},${r} 0 1,0 ${-r * 2},0 Z`;
 }

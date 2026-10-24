@@ -491,8 +491,3 @@ export const GLYPH_CENTERS: Partial<Record<IconSetKey, { x: number; y: number }>
   glyphGatewayInclusive: { x: 50, y: 50 },
   glyphGatewayComplex: { x: 50, y: 50 }
 };
-
-/** 兼容取用：仅 path 主体（坐标遵循各自 viewBox，勿跨资产混算） */
-export function iconSetBody(key: IconSetKey): string {
-  return BODIES[key].body;
-}

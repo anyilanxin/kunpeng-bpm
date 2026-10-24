@@ -36,8 +36,10 @@ export interface ElementColors {
 
 export class SetColorHandler implements CommandHandler {
   execute(context: any): any[] {
-    const elements: any[] = context.elements ?? [];
-    const colors: ElementColors = context.colors ?? {};
+    // context 由 BpmnModeling.setColor 构造（elements 恒为数组、colors 恒有值），
+    // 异常形态让 TypeError 直接抛出（禁止兜底）
+    const elements: any[] = context.elements;
+    const colors: ElementColors = context.colors;
     const next: ElementColors = {
       ...(colors.fill !== undefined ? { fill: colors.fill } : {}),
       ...(colors.stroke !== undefined ? { stroke: colors.stroke } : {})
@@ -54,10 +56,10 @@ export class SetColorHandler implements CommandHandler {
   }
 
   revert(context: any): any[] {
-    (context.elements ?? []).forEach((element: any) => {
-      const old = context.oldColors?.[element.id];
+    context.elements.forEach((element: any) => {
+      const old = context.oldColors[element.id];
       element.colors = old ? { ...old } : undefined;
     });
-    return context.elements ?? [];
+    return context.elements;
   }
 }
