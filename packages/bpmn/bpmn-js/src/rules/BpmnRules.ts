@@ -25,6 +25,12 @@
  * 连线类型推断（未显式给 type 时）：
  * 消息流（跨参与者）→ 顺序流（同作用域流节点）→ 数据关联（数据对象↔活动）→ 关联（制品）。
  * `connection.create` 返回对象（含 type）作为连线属性 —— diagram-js Connect/Create 的公开契约。
+ *
+ * 重叠规定（产品规则，move/create/resize 三入口统一按预估矩形校验）：
+ * ① 池不与池重叠；② 容器类（池/泳道/展开子流程）只允许"装下"（落点容器
+ * 链及其内部豁免）；③ 其余元素两两互斥——含同类型（任务叠任务/事件压任务
+ * 均拒绝）。分组=框选制品、标签/连线/边界事件（挂靠宿主边线）不参与重叠
+ * 判定。程序化 modeling 直调不经命令栈规则，不受此约束（弹框放置自带避让）。
  */
 import RuleProvider from 'diagram-js/lib/features/rules/RuleProvider';
 import type EventBus from 'diagram-js/lib/core/EventBus';
@@ -33,6 +39,7 @@ import type { BpmnMode } from '../mode/BpmnMode';
 import type { OrientationService } from '../meta/Orientation';
 import { ATTACH_EDGE_TOLERANCE, distanceToBorder } from '../util/AttachMath';
 import {
+  SIZES,
   isActivityFamily,
   isArtifactFamily,
   isContainerType,
@@ -41,6 +48,15 @@ import {
   isPoolFamily,
   isSubProcessFamily
 } from '../meta/ElementTypes';
+import { poolInnerRect } from '../util/PoolGeometry';
+
+/** 平面矩形（重叠/包含判定的统一入参） */
+interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 /** 连线端点池作用域：一次判定内单次计算、推断链与校验器全链共享 */
 interface PoolScope {
@@ -273,8 +289,9 @@ export class BpmnRules extends RuleProvider {
     const isRoot = this.isRootElement(target);
 
     if (type === 'bpmn:Participant') {
-      // 池只能建在根上
-      return isRoot;
+      // 池只能建在根上；预估边界不与既有池重叠（拖池收养裸元素不受影响——裸元素不是池）
+      const rect = this.createRect(context.position, shape);
+      return isRoot && (!rect || !this.participantClash(rect));
     }
     if (type === 'bpmn:Lane') {
       return isPoolFamily(target.businessObject?.$type);
@@ -287,33 +304,18 @@ export class BpmnRules extends RuleProvider {
 
     if (isRoot) {
       // 协作存在时根上只放池；否则普通节点直接进流程平面
-      return !this.rootHasPools() && !this.dropPositionOccupied(context, target);
+      const base = !this.rootHasPools();
+      const rect = this.createRect(context.position, shape);
+      return base && (!rect || context.source || type === 'bpmn:Group' || !this.placementConflicts(rect, [shape], target));
     }
 
     const containerOk = isContainerType(target.businessObject?.$type, target.isExpanded);
-    return containerOk && !this.dropPositionOccupied(context, target);
-  }
-
-  /**
-   * 创建落点占用检查：落点落在目标容器既有子元素内部 → 拒绝。元素不可
-   * "叠放进"另一个普通元素——DropTargetBehavior 把悬停命中归一到承载容器
-   * 后，规则必须自己校验落点，否则开始事件会直接建在任务图形内部（落点
-   * 即新元素中心，视觉上=元素进了元素）。分组是框架性制品（框选语义），
-   * 既不挡落点也不受此限；无落点（程序化建形）与带源追加（autoPlace 自
-   * 带避让）不校验。
-   */
-  private dropPositionOccupied(context: any, target: any): boolean {
-    const position = context.position;
-    if (!position || context.source || context.shape?.businessObject?.$type === 'bpmn:Group') {
-      return false;
+    // 追加（autoPlace 自带避让）/无落点程序化建形不校验；分组=框选制品不受重叠限制（既有语义）
+    const rect = this.createRect(context.position, shape);
+    if (!rect || context.source || type === 'bpmn:Group') {
+      return containerOk;
     }
-    return (target.children ?? []).some((child: any) => {
-      if (child.waypoints || child.labelTarget || child.businessObject?.$type === 'bpmn:Group') {
-        return false;
-      }
-      return position.x > child.x && position.x < child.x + child.width
-        && position.y > child.y && position.y < child.y + child.height;
-    });
+    return containerOk && this.fullyInsideContainer(rect, target) && !this.placementConflicts(rect, [shape], target);
   }
 
   private canAttach(context: any): boolean {
@@ -397,7 +399,24 @@ export class BpmnRules extends RuleProvider {
       return true;
     }
     const policy = this.resizePolicies.find((p) => p.applies(type));
-    return policy ? policy.allow(context, shape) : false;
+    const allowed = policy ? policy.allow(context, shape) : false;
+    if (!allowed) return allowed;
+    // 重叠校验只对 UI 拖拽路径生效（ResizeManager 恒带 newBounds）
+    const newBounds = context.newBounds as Rect | undefined;
+    if (!newBounds) {
+      return allowed;
+    }
+    if (type === 'bpmn:Participant') {
+      return !this.participantClash(newBounds, shape);
+    }
+    // 泳道带不重叠的不变量由 LaneBandBehavior 钳制闭环（跨轴铺满、堆叠轴邻接）
+    if (type === 'bpmn:Lane') {
+      return true;
+    }
+    if (!this.isRootElement(shape.parent) && !this.fullyInsideContainer(newBounds, shape.parent)) {
+      return false;
+    }
+    return !this.placementConflicts(newBounds, [shape], shape.parent);
   }
 
   private canMove(context: any): boolean | Record<string, unknown> {
@@ -418,14 +437,13 @@ export class BpmnRules extends RuleProvider {
     }
 
     const target = context.target;
-    if (!target) {
-      return true; // 原地平移
-    }
-
     const root = this.canvas.getRootElement();
     // 根上是否有池整批一次算好共享（原逐 shape 各扫一遍根 children）
     const rootPools = this.rootHasPools();
-    return shapes.every((shape) => this.canMoveShape(shape, target, root, rootPools, shapes, context.position));
+    const containmentOk = !target
+      || shapes.every((shape) => this.canMoveShape(shape, target, root, rootPools, shapes, context.position));
+    // 重叠校验对原地平移（target 为空）同样生效——同容器内元素互叠就是这条路径
+    return containmentOk && !this.moveOverlaps(shapes, context.delta, target);
   }
 
   /** 单形状移动策略：池（仅根/原父）→ 边界事件（宿主规则）→ 其余（canContain） */
@@ -461,6 +479,118 @@ export class BpmnRules extends RuleProvider {
       return !(rootPools ?? this.rootHasPools()) || shape.businessObject?.$type === 'bpmn:Participant';
     }
     return isContainerType(target.businessObject?.$type, target.isExpanded);
+  }
+
+  // ---------- 重叠与包含（产品规定：池不叠池；容器只容内含；其余元素两两互斥） ----------
+
+  /** 创建落点的预估矩形（落点即新元素中心，尺寸取工厂缺省）；无落点返回 null */
+  private createRect(position: any, shape: any): Rect | null {
+    if (!position || shape.width == null || shape.height == null) {
+      return null;
+    }
+    return { x: position.x - shape.width / 2, y: position.y - shape.height / 2, width: shape.width, height: shape.height };
+  }
+
+  /** 移动预估矩形：当前边界 + 拖拽增量（Move.js 规则上下文恒带 delta；缺省零增量） */
+  private shiftedRect(shape: any, delta: any): Rect {
+    return { x: shape.x + (delta?.x ?? 0), y: shape.y + (delta?.y ?? 0), width: shape.width, height: shape.height };
+  }
+
+  /** 严格相交（贴边不算——泳道带彼此共边、元素贴边摆放均合法） */
+  private rectsIntersect(a: Rect, b: Rect): boolean {
+    return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+  }
+
+  private fullyInside(inner: Rect, outer: Rect): boolean {
+    return inner.x >= outer.x && inner.y >= outer.y
+      && inner.x + inner.width <= outer.x + outer.width
+      && inner.y + inner.height <= outer.y + outer.height;
+  }
+
+  /** 装下判定对池取内容区（避头带）——元素压在池头横带上不算被装下 */
+  private fullyInsideContainer(rect: Rect, container: any): boolean {
+    const bounds = container.businessObject?.$type === 'bpmn:Participant'
+      ? poolInnerRect(container, SIZES.POOL_HEADER, this.orientationService.isHorizontal())
+      : container;
+    return this.fullyInside(rect, bounds as Rect);
+  }
+
+  /** 池与池的重叠（规则①）：根平面上其他参与者 */
+  private participantClash(rect: Rect, ignore?: any): boolean {
+    return (this.canvas.getRootElement().children ?? []).some(
+      (c: any) => c !== ignore && c.businessObject?.$type === 'bpmn:Participant' && this.rectsIntersect(rect, c)
+    );
+  }
+
+  /**
+   * 预估矩形与画布既有元素的重叠判定（规则②③）：豁免集=移动集及其后代
+   * （容器带着内容整体走）+ 落点容器链（被容器装下是合法状态，含贴边）；
+   * 分组（框选制品）、标签、连线、边界事件（贴宿主边线）不参与判定。
+   * 与豁免集外任一元素相交即冲突——对非落点容器的部分搭界/整包覆盖都算
+   * 重叠（整包覆盖落点容器必是 DropTarget 归一结果，不会走到这里）。
+   */
+  private placementConflicts(rect: Rect, moved: any[], target: any): boolean {
+    const exempt = new Set<any>();
+    const collect = (el: any): void => {
+      exempt.add(el);
+      for (const child of el.children ?? []) {
+        collect(child);
+      }
+    };
+    for (const shape of moved) {
+      collect(shape);
+    }
+    for (let chain: any = target; chain; chain = chain.parent) {
+      exempt.add(chain);
+    }
+    let hit = false;
+    const walk = (element: any): void => {
+      if (hit) {
+        return;
+      }
+      for (const child of element.children ?? []) {
+        if (hit) {
+          return;
+        }
+        if (child.waypoints || child.labelTarget) {
+          continue;
+        }
+        const type = child.businessObject?.$type;
+        if (type === 'bpmn:Group' || type === 'bpmn:BoundaryEvent') {
+          continue;
+        }
+        if (!exempt.has(child) && this.rectsIntersect(rect, child)) {
+          hit = true;
+          return;
+        }
+        walk(child);
+      }
+    };
+    walk(this.canvas.getRootElement());
+    return hit;
+  }
+
+  /** 移动重叠校验：池只查池（规则①）；其余元素须被落点容器完整装下（规则②）且不与任何元素相交（规则③） */
+  private moveOverlaps(shapes: any[], delta: any, target: any): boolean {
+    const movable = shapes.filter((s: any) => s.businessObject?.$type !== 'bpmn:BoundaryEvent');
+    for (const shape of movable) {
+      const rect = this.shiftedRect(shape, delta);
+      if (shape.businessObject?.$type === 'bpmn:Participant') {
+        if (this.participantClash(rect, shape)) {
+          return true;
+        }
+        continue;
+      }
+      // 原地平移（target 为空）以现父为预估父
+      const effectiveTarget = target ?? shape.parent;
+      if (!this.isRootElement(effectiveTarget) && !this.fullyInsideContainer(rect, effectiveTarget)) {
+        return true;
+      }
+      if (this.placementConflicts(rect, movable, effectiveTarget)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private canDelete(context: any): boolean {
