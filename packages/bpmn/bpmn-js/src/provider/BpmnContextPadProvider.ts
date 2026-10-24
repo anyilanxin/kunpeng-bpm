@@ -36,10 +36,11 @@ import { BpmnPopup } from './BpmnPopup';
 import type { BpmnMode } from '../mode/BpmnMode';
 
 const APPENDABLE_BY_FAMILY: Record<string, string[]> = {
+  // 快捷集各族只留一个普通网关（排他）：并行/包含等变体经替换菜单由用户
+  // 自行切换——组件不预设"并行网关有分必有合"的成对语义，开合由用户定义
   event: ['bpmn:Task', 'bpmn:ExclusiveGateway', 'bpmn:EndEvent'],
-  activity: ['bpmn:Task', 'bpmn:ExclusiveGateway', 'bpmn:ParallelGateway', 'bpmn:EndEvent', 'bpmn:SubProcess'],
-  // 网关后可续网关：分支再分叉是常见建模形态（快捷集与其余类型一致含网关）
-  gateway: ['bpmn:Task', 'bpmn:ExclusiveGateway', 'bpmn:ParallelGateway', 'bpmn:EndEvent']
+  activity: ['bpmn:Task', 'bpmn:ExclusiveGateway', 'bpmn:EndEvent', 'bpmn:SubProcess'],
+  gateway: ['bpmn:Task', 'bpmn:ExclusiveGateway', 'bpmn:EndEvent']
 };
 
 export class BpmnContextPadProvider {
