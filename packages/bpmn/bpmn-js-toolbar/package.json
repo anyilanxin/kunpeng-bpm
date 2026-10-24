@@ -1,0 +1,40 @@
+{
+  "name": "@kunpeng-io/bpmn-js-toolbar",
+  "version": "0.1.0",
+  "description": "BPMN 建模器悬浮工具栏插件：相对画布居中，内置撤销/重做/缩放/转置，宿主可注册自定义动作",
+  "license": "GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0",
+  "type": "module",
+  "main": "./dist/bpmn-js-toolbar.es.js",
+  "module": "./dist/bpmn-js-toolbar.es.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/bpmn-js-toolbar.es.js"
+    },
+    "./styles": "./assets/bpmn-js-toolbar.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "assets",
+    "LICENSE",
+    "licenses"
+  ],
+  "scripts": {
+    "build": "vite build --config vite.lib.config.ts && tsc -p tsconfig.lib.json",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@kunpeng-io/bpmn-js": "workspace:*",
+    "diagram-js": "^15.9.0",
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

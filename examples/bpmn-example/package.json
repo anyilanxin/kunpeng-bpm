@@ -10,12 +10,14 @@
   },
   "dependencies": {
     "@kunpeng-io/bpmn-js": "workspace:*",
+    "@kunpeng-io/bpmn-js-toolbar": "workspace:*",
     "@kunpeng-io/bpmn-js-properties-panel": "workspace:*",
     "@kunpeng-io/kunpeng-bpmn-moddle": "workspace:*",
     "@kunpeng-io/properties-panel": "workspace:*",
     "bpmn-js-color-picker": "catalog:",
     "diagram-js": "^15.9.0",
     "diagram-js-grid": "catalog:",
+    "diagram-js-minimap": "catalog:",
     "vue": "^3.5.0"
   },
   "devDependencies": {

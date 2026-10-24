@@ -11,6 +11,9 @@ import '@kunpeng-io/bpmn-js/styles';
 import '@kunpeng-io/properties-panel/assets/properties-panel.css';
 // 上游 color-picker 弹窗皮肤（grid 插件纯 SVG 绘制，无需样式）
 import 'bpmn-js-color-picker/colors/color-picker.css';
+// 工具栏插件皮肤 + 上游 minimap 皮肤（缩略图/视口框）
+import '@kunpeng-io/bpmn-js-toolbar/styles';
+import 'diagram-js-minimap/assets/diagram-js-minimap.css';
 import './app.css';
 import App from './App.vue';
 

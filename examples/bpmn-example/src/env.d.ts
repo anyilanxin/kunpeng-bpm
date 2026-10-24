@@ -34,3 +34,9 @@ declare module 'diagram-js-grid' {
   const gridModule: any;
   export default gridModule;
 }
+
+// 上游 minimap（JS 源码包，无类型声明）：画布缩略图/视口导航
+declare module 'diagram-js-minimap' {
+  const minimapModule: any;
+  export default minimapModule;
+}

@@ -1,0 +1,278 @@
+/*
+ * Copyright (c) 2026 anyilanxin zxh (anyilanxin@aliyun.com). All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  The copyright holder designates
+ * this particular file as subject to the "Classpath" exception as provided
+ * in the LICENSE file and directories/ that accompany this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the licenses/ directory
+ * that accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+/**
+ * 悬浮工具栏服务：渲染进画布容器、相对画布水平居中（容器随宿主布局伸缩，
+ * 面板让位/窗口缩放下恒居中）。三组内置动作（撤销重做 / 转置 / 缩放）走
+ * 内核服务；宿主经 `bpmnToolbar.actions` 注册应用级动作（导入导出、模式
+ * 切换、取色器等——render() 可放任意控件），按 group 连续成组、换组分隔。
+ *
+ * 只读实例（Viewer/NavigatedViewer）可装配：撤销重做/转置依赖的
+ * commandStack/modeling 经注入器非严格解析（缺失即 null，整组不建），
+ * 缩放组与宿主动作照常——宿主声明 showInPreview 的动作在预览态保留。
+ *
+ * 皮肤全部走 --bio-* 语义令牌（宿主 .djs-container 令牌作用域，暗色随宿主
+ * 热切换）；预览（只读）模式下隐藏编辑动作，仅保留声明 showInPreview 的
+ * 宿主动作。
+ */
+import type EventBus from 'diagram-js/lib/core/EventBus';
+import type Canvas from 'diagram-js/lib/core/Canvas';
+import type CommandStack from 'diagram-js/lib/command/CommandStack';
+import { ICONS } from './icons';
+
+/** 内核服务的结构化类型（插件按结构消费，不耦合内核内部模块路径） */
+type ModelOrientation = 'horizontal' | 'vertical';
+interface ModeService {
+  isEditable(): boolean;
+}
+interface OrientationLike {
+  getOrientation(): ModelOrientation;
+}
+interface ModelingLike {
+  setOrientation(orientation: ModelOrientation): void;
+}
+interface I18nLike {
+  t(text: string): string;
+}
+/** 注入器结构化类型（编辑类服务按非严格解析：缺失得 null 而非抛错） */
+interface InjectorLike {
+  get<T = unknown>(name: string, strict?: boolean): T;
+}
+
+/** 宿主动作规格：图标钮（svg+onClick）或自定义控件（render），二者给一 */
+export interface ToolbarActionSpec {
+  id: string;
+  title: string;
+  /** 连续同组共存一组，换组插分隔线；缺省 'app' */
+  group?: string;
+  /** 图标钮：48×48 viewBox、currentColor 描边的自绘 SVG 字符串 */
+  svg?: string;
+  onClick?: () => void;
+  /** 自定义控件（取色器等）：与图标钮互斥，返回元素直接入栏 */
+  render?: () => HTMLElement;
+  /** 激活态（高亮底，随刷新时机重估） */
+  isActive?: () => boolean;
+  /** 可用态（禁用钮，随刷新时机重估） */
+  isEnabled?: () => boolean;
+  /** 预览（只读）模式下仍显示；缺省仅编辑态 */
+  showInPreview?: boolean;
+}
+
+/** 插件配置（Modeler 构造项 `bpmnToolbar` 键，组件包插件 config 契约） */
+export interface ToolbarConfig {
+  actions?: ToolbarActionSpec[];
+}
+
+/** 内置缩放步进与示例 App 原工具栏一致（1.2 倍率） */
+const ZOOM_STEP = 1.2;
+
+export class BpmnToolbar {
+  static $inject = [
+    'eventBus',
+    'canvas',
+    'bpmnMode',
+    'orientationService',
+    'bpmnI18n',
+    'injector',
+    'config.bpmnToolbar'
+  ];
+
+  private readonly root: HTMLElement;
+  private readonly zoomLabel: HTMLButtonElement;
+  /** 只读实例缺 commandStack/modeling（编辑模块不进注入器），相应组整组不建 */
+  private readonly commandStack: CommandStack | null;
+  private readonly modeling: ModelingLike | null;
+  private readonly undoBtn?: HTMLButtonElement;
+  private readonly redoBtn?: HTMLButtonElement;
+  private readonly customControls: Array<{ spec: ToolbarActionSpec; el: HTMLElement }> = [];
+
+  constructor(
+    eventBus: EventBus,
+    private readonly canvas: Canvas,
+    private readonly bpmnMode: ModeService,
+    private readonly orientationService: OrientationLike,
+    private readonly bpmnI18n: I18nLike,
+    injector: InjectorLike,
+    config: ToolbarConfig = {}
+  ) {
+    this.commandStack = injector.get<CommandStack | null>('commandStack', false);
+    this.modeling = injector.get<ModelingLike | null>('modeling', false);
+
+    const t = (text: string): string => this.bpmnI18n.t(text);
+    this.root = document.createElement('div');
+    this.root.className = 'bpmn-toolbar';
+
+    // 宿主动作组（在前）：换组分隔
+    let lastGroup: string | null = null;
+    for (const spec of config.actions ?? []) {
+      const group = spec.group ?? 'app';
+      if (lastGroup !== null && group !== lastGroup) {
+        this.root.appendChild(separator());
+      }
+      lastGroup = group;
+      this.root.appendChild(this.buildCustomControl(spec));
+    }
+
+    // 内置组（在后）：撤销重做 → 转置 → 缩放（编辑服务缺失的组不建）
+    if (lastGroup !== null) {
+      this.root.appendChild(separator());
+    }
+    if (this.commandStack) {
+      const history = group('history', true);
+      this.undoBtn = iconButton('undo', t('撤销 (Ctrl+Z)'), ICONS.undo, () => this.commandStack!.undo());
+      this.redoBtn = iconButton('redo', t('重做 (Ctrl+Shift+Z)'), ICONS.redo, () => this.commandStack!.redo());
+      history.append(this.undoBtn, this.redoBtn);
+      this.root.appendChild(history);
+    }
+
+    if (this.modeling) {
+      const orientation = group('orientation', true);
+      orientation.appendChild(
+        iconButton(
+          'orientation',
+          t('切换横/纵布局（全图转置）'),
+          ICONS.orientation,
+          () =>
+            this.modeling!.setOrientation(
+              this.orientationService.getOrientation() === 'vertical' ? 'horizontal' : 'vertical'
+            )
+        )
+      );
+      this.root.appendChild(orientation);
+    }
+
+    // 缩放组对只读实例也有意义（NavigatedViewer 导航/Viewer 程序化缩放），不设编辑专属
+    const zoom = group('zoom', false);
+    this.zoomLabel = document.createElement('button');
+    this.zoomLabel.type = 'button';
+    this.zoomLabel.className = 'bpmn-toolbar-val';
+    this.zoomLabel.title = t('重置缩放 (Ctrl+0)');
+    // zoom 第二参缺省即取视口中心（'center' 语义）；fit 的中心锚只判真值（_fitViewport
+    // 忽略具体坐标），传零点字面量与 'auto' 等价且不破 Point 类型
+    this.zoomLabel.addEventListener('click', () => this.canvas.zoom(1));
+    zoom.append(
+      iconButton('zoom-out', t('缩小 (Ctrl+-)'), ICONS.zoomOut, () => this.canvas.zoom(this.canvas.zoom() / ZOOM_STEP)),
+      this.zoomLabel,
+      iconButton('zoom-in', t('放大 (Ctrl++)'), ICONS.zoomIn, () => this.canvas.zoom(this.canvas.zoom() * ZOOM_STEP)),
+      iconButton('zoom-fit', t('适应画布'), ICONS.zoomFit, () => this.canvas.zoom('fit-viewport', { x: 0, y: 0 }))
+    );
+    this.root.appendChild(zoom);
+
+    this.canvas.getContainer().appendChild(this.root);
+
+    eventBus.on('canvas.viewbox.changed', () => this.syncZoom());
+    eventBus.on('commandStack.changed', () => this.syncHistory());
+    eventBus.on('mode.changed', () => this.syncMode());
+    eventBus.on('diagram.destroy', () => this.destroy());
+
+    this.syncZoom();
+    this.syncHistory();
+    this.syncMode();
+  }
+
+  /** 刷新宿主动作激活/可用态与缩放百分比（命令栈/视口/模式变化后由各 sync 汇入） */
+  refresh(): void {
+    for (const { spec, el } of this.customControls) {
+      if (spec.isEnabled) {
+        (el as HTMLButtonElement).disabled = spec.isEnabled() === false;
+      }
+      el.classList.toggle('bpmn-toolbar-btn--active', spec.isActive?.() === true);
+    }
+    this.syncZoom();
+    this.syncHistory();
+    this.syncMode();
+  }
+
+  destroy(): void {
+    this.root.remove();
+  }
+
+  private buildCustomControl(spec: ToolbarActionSpec): HTMLElement {
+    if (spec.render) {
+      const host = spec.render();
+      if (spec.showInPreview !== true) {
+        host.setAttribute('data-edit-only', 'true');
+      }
+      this.customControls.push({ spec, el: host });
+      return host;
+    }
+    const btn = iconButton(spec.id, spec.title, spec.svg ?? '', () => spec.onClick?.());
+    if (spec.showInPreview !== true) {
+      btn.setAttribute('data-edit-only', 'true');
+    }
+    this.customControls.push({ spec, el: btn });
+    return btn;
+  }
+
+  private syncZoom(): void {
+    this.zoomLabel.textContent = `${Math.round(this.canvas.zoom() * 100)}%`;
+  }
+
+  private syncHistory(): void {
+    if (!this.commandStack || !this.undoBtn || !this.redoBtn) {
+      return;
+    }
+    this.undoBtn.disabled = !this.commandStack.canUndo();
+    this.redoBtn.disabled = !this.commandStack.canRedo();
+  }
+
+  private syncMode(): void {
+    this.root.classList.toggle('bpmn-toolbar--readonly', !this.bpmnMode.isEditable());
+    for (const { spec, el } of this.customControls) {
+      if (spec.isEnabled) {
+        (el as HTMLButtonElement).disabled = spec.isEnabled() === false;
+      }
+      el.classList.toggle('bpmn-toolbar-btn--active', spec.isActive?.() === true);
+    }
+  }
+}
+
+function group(name: string, editOnly: boolean): HTMLElement {
+  const el = document.createElement('div');
+  el.className = 'bpmn-toolbar-group';
+  el.dataset.group = name;
+  if (editOnly) {
+    el.setAttribute('data-edit-only', 'true');
+  }
+  return el;
+}
+
+function separator(): HTMLElement {
+  const el = document.createElement('div');
+  el.className = 'bpmn-toolbar-sep';
+  return el;
+}
+
+function iconButton(
+  action: string,
+  title: string,
+  svg: string,
+  onClick: () => void
+): HTMLButtonElement {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'bpmn-toolbar-btn';
+  btn.dataset.action = action;
+  btn.title = title;
+  btn.innerHTML = svg;
+  btn.addEventListener('click', onClick);
+  return btn;
+}

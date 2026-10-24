@@ -13,63 +13,18 @@ html, body {
 
 #app { position: relative; height: 100vh; }
 
-/* 顶部悬浮工具栏（BPMN 画布专属）：下移让位顶部卡片标题栏（36px）
- * 样式对齐 kunpeng-modeler CanvasToolbar：
- * 10px 圆角卡 + 28×28 按钮 7px 圆角 + 48 viewBox 描边宽 4 线性图标 */
-.canvas-toolbar {
-  position: absolute;
-  top: 50px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 4px 6px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid #efeff5;
-  border-radius: 10px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+/* 顶部悬浮工具栏已插件化（@kunpeng-io/bpmn-js-toolbar，皮肤随包
+   assets/bpmn-js-toolbar.css，相对画布容器居中），示例不再自绘 */
+
+/* 画布缩略图（diagram-js-minimap）：上游缺省钉在顶部会压 palette/工具栏，
+   落位右下角（kunpeng-modeler 同款） */
+.djs-minimap {
+  top: auto !important;
+  right: 16px !important;
+  bottom: 16px !important;
 }
-
-.ct-group { display: flex; align-items: center; gap: 2px; }
-.ct-sep { width: 1px; height: 18px; background: #efeff5; margin: 0 4px; }
-
-.ct-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #57607a;
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.ct-btn:hover { background: #eef0f4; color: #2c3345; }
-.ct-btn.ct-active { background: rgba(45, 113, 235, 0.12); color: #2d71eb; }
-
-.ct-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.ct-btn:disabled:hover { background: none; color: #57607a; }
 
 /* 视图切换分段选择器（流程图 | XML）样式已随组件移入 src/components/XmlViewCard.vue */
-
-.ct-zoom { font-size: 12px; color: #57607a; }
-
-.zoom-val {
-  min-width: 42px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.ct-svg-icon { width: 18px; height: 18px; display: block; }
 
 /* 画布宿主尺寸由 App.vue scoped 样式负责；这里只透底色（网格背景=插件挂载点，核心不绘制） */
 .canvas-host .djs-container,

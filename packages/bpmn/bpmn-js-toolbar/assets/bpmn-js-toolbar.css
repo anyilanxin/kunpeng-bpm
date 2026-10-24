@@ -1,0 +1,124 @@
+/*
+ * Copyright (c) 2026 anyilanxin zxh (anyilanxin@aliyun.com). All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  The copyright holder designates
+ * this particular file as subject to the "Classpath" exception as provided
+ * in the LICENSE file and directories/ that accompany this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the licenses/ directory
+ * that accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+/**
+ * 悬浮工具栏皮肤：全走 --bio-* 语义令牌（宿主 .djs-container 令牌作用域，
+ * 暗色由宿主令牌热切换，本文件零硬编码色）。相对画布水平居中：工具栏挂在
+ * 画布容器内（容器随宿主布局伸缩——属性面板让位/窗口缩放均跟随画布宽）。
+ */
+
+.bpmn-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  /* 显式 max-content：absolute+transform 的 shrink-to-fit 宽度计算会无谓压缩
+     flex 子项（按钮 28→26、取色器文字换行）——定宽取内容自然宽，窄容器由
+     max-width 兜住居中不出界 */
+  width: max-content;
+  max-width: calc(100% - 20px);
+  z-index: 90; /* 图层面之上、弹框（200）/上下文面板（100）之下 */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  line-height: 1;
+  user-select: none;
+
+  background: var(--bio-surface-subtle);
+  border: 1px solid var(--bio-border);
+  border-radius: var(--bio-radius-lg);
+  box-shadow: 0 2px 8px var(--bio-shadow-subtle);
+}
+
+.bpmn-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.bpmn-toolbar-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--bio-border);
+}
+
+.bpmn-toolbar-btn {
+  appearance: none;
+  border: none;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--bio-radius-md);
+  background: transparent;
+  color: var(--bio-text-subtle);
+  cursor: pointer;
+}
+
+.bpmn-toolbar-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.bpmn-toolbar-btn:hover:not(:disabled) {
+  background: var(--bio-surface-medium);
+  color: var(--bio-text);
+}
+
+.bpmn-toolbar-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.bpmn-toolbar-btn--active {
+  background: var(--bio-primary-surface);
+  color: var(--bio-primary);
+}
+
+/* 缩放百分比：点击即重置 100% */
+.bpmn-toolbar-val {
+  appearance: none;
+  border: none;
+  padding: 0;
+  min-width: 42px;
+  height: 28px;
+  font-size: 11px;
+  font-family: inherit;
+  border-radius: var(--bio-radius-md);
+  background: transparent;
+  color: var(--bio-text-subtle);
+  cursor: pointer;
+}
+
+.bpmn-toolbar-val:hover {
+  background: var(--bio-surface-medium);
+  color: var(--bio-text);
+}
+
+/* 预览（只读）模式：编辑动作整组隐藏，仅留宿主声明 showInPreview 的动作。
+   状态语义必须压过宿主皮肤（宿主可对 render() 控件给同等特异性的 display
+   规则且更晚注入）——与内核 bpmn-preview-mode 隐藏规则同款 important 手法 */
+.bpmn-toolbar.bpmn-toolbar--readonly [data-edit-only='true'] {
+  display: none !important;
+}

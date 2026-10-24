@@ -1,19 +1,26 @@
 <script setup lang="ts">
 /**
  * 组件接入示例（Vue 3）：
- * - 顶部卡片标题栏（左右两区）+ BPMN 画布专属悬浮工具栏 + 导入/导出 BPMN 文件
+ * - 顶部卡片标题栏（左右两区）+ BPMN 画布专属悬浮工具栏（插件化）+ 导入/导出 BPMN 文件
  * - Modeler 挂载到 div ref，示例插件按 URL 参数加载（?plugin=0 关闭）
+ * - 工具栏插件（@kunpeng-io/bpmn-js-toolbar）：撤销/重做/缩放/转置为插件内置，
+ *   应用级动作（导入导出/实例形态/取色器/暗色/面板）经 bpmnToolbar.actions 注册，
+ *   相对画布水平居中；仅编辑态实例装配（Viewer 底座无命令栈/建模服务）
  * - 属性面板（@kunpeng-io/bpmn-js-properties-panel）：编辑态经 additionalModules
  *   装配，容器经 propertiesPanel.parent 透传（插件 config 键，组件不逐键白名单）
- * - 颜色插件：工具栏填充/描边取色器 + 清除，走 modeling.setColor（bioc:fill/stroke 往返）；
+ * - 颜色插件：工具栏取色器 + 清除，走 modeling.setColor（bioc:fill/stroke 往返）；
  *   另接上游 bpmn-js-color-picker（contextPad 调色板弹窗，同一 setColor 通道），
  *   色板经 colorPicker config 键透传
  * - 上游 diagram-js-grid：画布背景网格层，随 gridSnapping 开关显隐，编辑态装配
+ * - 上游 diagram-js-minimap：画布缩略图/视口导航（参考 kunpeng-modeler 接法）
  * - 流程图/XML 视图切换是示例自有的卡片组件（components/XmlViewCard.vue），
  *   只消费组件包公开 API（saveXML/importXML），组件包本身不含视图切换功能
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Modeler, Viewer, NavigatedViewer, iconOfElement } from '@kunpeng-io/bpmn-js';
+import { BpmnToolbarModule } from '@kunpeng-io/bpmn-js-toolbar';
+import type { ToolbarActionSpec } from '@kunpeng-io/bpmn-js-toolbar';
+import MinimapModule from 'diagram-js-minimap';
 import {
   BpmnPropertiesPanelModule,
   BpmnPropertiesProviderModule,
@@ -31,7 +38,6 @@ import XmlViewCard from './components/XmlViewCard.vue';
 const canvasHost = ref<HTMLDivElement>();
 const panelHost = ref<HTMLDivElement>();
 const fileInput = ref<HTMLInputElement>();
-const zoomLevel = ref('100%');
 
 // ---------- 属性面板 / 颜色插件 ----------
 
@@ -48,6 +54,10 @@ const strokeColor = ref(DEFAULT_STROKE);
 /** 单选中的可着色元素（标签元素着色其宿主） */
 const colorTarget = ref<any>(null);
 
+/** 取色器原始 input 元素（插件 render() 一次性建 DOM，选择变化由示例自持监听回写） */
+let fillColorInput: HTMLInputElement | null = null;
+let strokeColorInput: HTMLInputElement | null = null;
+
 function bindSelectionEvents(): void {
   if (!modeler) {
     return;
@@ -56,6 +66,8 @@ function bindSelectionEvents(): void {
     const picked = event.newSelection.length === 1 ? event.newSelection[0] : null;
     colorTarget.value = picked?.labelTarget ?? picked;
     syncColorInputs();
+    // 取色器可用态随选择变化（清除钮 isEnabled / input disabled）
+    refreshToolbar();
   });
   // 撤销/重做/面板改色都可能改 colors，跟随受影响元素回显
   modeler.on('elements.changed', (event: any) => {
@@ -65,10 +77,19 @@ function bindSelectionEvents(): void {
   });
 }
 
+/** 回显取色器：选择/颜色变化后写原始 input（工具栏 DOM 是插件一次性建的） */
 function syncColorInputs(): void {
   const colors = colorTarget.value?.colors;
   fillColor.value = colors?.fill || DEFAULT_FILL;
   strokeColor.value = colors?.stroke || DEFAULT_STROKE;
+  if (fillColorInput) {
+    fillColorInput.value = fillColor.value;
+    fillColorInput.disabled = !colorTarget.value;
+  }
+  if (strokeColorInput) {
+    strokeColorInput.value = strokeColor.value;
+    strokeColorInput.disabled = !colorTarget.value;
+  }
 }
 
 function applyColors(): void {
@@ -105,14 +126,15 @@ function getModeler(): Modeler | null {
 
 const usePlugin = new URLSearchParams(location.search).get('plugin') !== '0';
 
-/** 编辑态实例的模块装配：组件默认集 + 属性面板三模块 + grid/调色板插件（+示例插件） */
+/** 编辑态实例的模块装配：组件默认集 + 属性面板三模块 + grid/调色板/缩略图插件（+示例插件） */
 function editorModules(): any[] {
   const modules = [
     BpmnPropertiesPanelModule,
     BpmnPropertiesProviderModule,
     KunpengPropertiesProviderModule,
     gridModule,
-    BpmnColorPickerModule
+    BpmnColorPickerModule,
+    MinimapModule
   ];
   return usePlugin ? [...modules, SamplePluginModule] : modules;
 }
@@ -131,17 +153,21 @@ function toggleDark(): void {
   modeler?.get<any>('bpmnRenderer').setTheme(RENDERER_THEMES[dark.value ? 'dark' : 'light']);
 }
 
-/** 按形态建实例：编辑态挂属性面板（parent 容器 + 面板模块）+ 调色板配置，只读态不装编辑类模块 */
+/** 按形态建实例：工具栏插件三形态通用装配（只读底座缺的编辑组由插件自行不建），
+ * 编辑态另挂属性面板（parent 容器 + 面板模块）+ 调色板配置 */
 function createInstance(formKind: 'edit' | 'navigated' | 'view'): Modeler {
-  const common = {
+  const base = {
     container: canvasHost.value!,
+    // 工具栏对三形态都有意义（缩放/宿主动作在只读态保留），撤销重做/转置组编辑态独有
+    additionalModules: [BpmnToolbarModule],
+    bpmnToolbar: { actions: buildToolbarActions() },
     // 按当前主题给渲染缺省（实例重建后无需再 setTheme）
     bpmnRenderer: { ...RENDERER_THEMES[dark.value ? 'dark' : 'light'] }
   };
   if (formKind === 'edit') {
     return new Modeler({
-      ...common,
-      additionalModules: editorModules(),
+      ...base,
+      additionalModules: [...base.additionalModules, ...editorModules()],
       propertiesPanel: { parent: panelHost.value! },
       // 面板头部记法图标注入内核透出的 iconOfElement：画布/palette/面板三处同源
       bpmnElementIconRenderer: (element: any) => iconOfElement(element, 32, 'currentColor'),
@@ -149,8 +175,8 @@ function createInstance(formKind: 'edit' | 'navigated' | 'view'): Modeler {
     });
   }
   return formKind === 'navigated'
-    ? new NavigatedViewer(common)
-    : new Viewer(common);
+    ? new NavigatedViewer(base)
+    : new Viewer(base);
 }
 
 function bindInstance(next: Modeler, formKind: 'edit' | 'navigated' | 'view'): void {
@@ -158,13 +184,11 @@ function bindInstance(next: Modeler, formKind: 'edit' | 'navigated' | 'view'): v
   (window as any).__modeler = next;
   commandStack = formKind === 'edit' ? next.get<any>('commandStack') : null;
   canvas = next.get<any>('canvas');
-  next.on('canvas.viewbox.changed', () => syncZoom());
   bindSelectionEvents();
 }
 
 onMounted(async () => {
   bindInstance(createInstance('edit'), 'edit');
-  syncZoom();
   document.addEventListener('keydown', onKeydown);
   // 初始流程模板由示例生成传入（动态 id），组件包不内置业务模板
   await modeler!.importXML(createInitialBpmn());
@@ -175,13 +199,7 @@ onBeforeUnmount(() => {
   modeler?.destroy?.();
 });
 
-function syncZoom(): void {
-  if (canvas) {
-    zoomLevel.value = `${Math.round(canvas.zoom() * 100)}%`;
-  }
-}
-
-// ---------- 工具栏动作 ----------
+// ---------- 工具栏动作（bpmnToolbar.actions 注册进插件；撤销/转置/缩放为插件内置） ----------
 
 // 实例形态（框架三种实例化模式：Modeler=编辑 / NavigatedViewer=可缩放平移的只读 / Viewer=纯查看）。
 // 切换 = 保留当前图内容重建实例（编辑类服务不进注入器，程序化路径亦不可用）
@@ -199,33 +217,127 @@ async function switchForm(next: 'edit' | 'navigated' | 'view'): Promise<void> {
   await modeler.importXML(xml);
 }
 
-function toggleOrientation(): void {
-  if (!modeler || form.value !== 'edit') {
-    return;
-  }
-  const svc = modeler.get<any>('orientationService');
-  const next = svc.getOrientation() === 'vertical' ? 'horizontal' : 'vertical';
-  modeler.get<any>('modeling').setOrientation(next);
+/** 应用动作图标（自绘 48×48 viewBox/描边宽 4，与插件内置图标同语言） */
+const actionSvg = (paths: string): string =>
+  `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter">${paths}</svg>`;
+
+const ICON_IMPORT = actionSvg('<path d="M24 30V6M13 17 24 6l11 11" /><path d="M8 26v10a6 6 0 0 0 6 6h20a6 6 0 0 0 6-6V26" />');
+const ICON_EXPORT = actionSvg('<path d="M24 6v24M13 19l11 11 11-11" /><path d="M8 26v10a6 6 0 0 0 6 6h20a6 6 0 0 0 6-6V26" />');
+const ICON_EDIT = actionSvg('<path d="m34 8 6 6L20 34l-8 2 2-8L34 8Z" />');
+const ICON_NAVIGATE = actionSvg(
+  '<path d="M4 24s7.5-13 20-13 20 13 20 13-7.5 13-20 13S4 24 4 24Z" />' +
+  '<path d="M30 24a6 6 0 1 1-12 0 6 6 0 0 1 12 0Z" fill="currentColor" stroke="none" />'
+);
+const ICON_VIEW = actionSvg('<path d="M8 12v24M8 24h18m0-12v24" /><path d="M38 26v10a6 6 0 0 1-6 6h-6" />');
+const ICON_DARK = actionSvg(
+  '<path d="M24 8a16 16 0 1 0 0 32 16 16 0 0 0 0-32Z" />' +
+  '<path d="M24 8a16 16 0 0 1 0 32Z" fill="currentColor" stroke="none" />'
+);
+const ICON_PANEL = actionSvg(
+  '<path d="M8 6h32a2 2 0 0 1 2 2v32a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" />' +
+  '<path d="M30 6v36" /><path d="M14 16h8m-8 8h8m-8 8h8" />'
+);
+const ICON_CLEAR_COLOR = actionSvg('<path d="M24 6c6 8 12 13.5 12 21a12 12 0 1 1-24 0c0-7.5 6-13 12-21Z" /><path d="M10 38 38 10" />');
+
+/** 取色器控件（render 一次性建 DOM；示例持 input 引用，选择变化时自回显） */
+function colorControl(kind: 'fill' | 'stroke'): ToolbarActionSpec {
+  return {
+    id: `color-${kind}`,
+    title: kind === 'fill' ? '选中元素填充色（空=主题缺省）' : '选中元素描边色（空=主题缺省）',
+    group: 'colors',
+    render: () => {
+      const label = document.createElement('label');
+      label.className = 'bpmn-toolbar-color';
+      const input = document.createElement('input');
+      input.type = 'color';
+      input.value = kind === 'fill' ? fillColor.value : strokeColor.value;
+      input.disabled = !colorTarget.value;
+      input.addEventListener('change', () => {
+        if (kind === 'fill') {
+          fillColor.value = input.value;
+        } else {
+          strokeColor.value = input.value;
+        }
+        applyColors();
+      });
+      if (kind === 'fill') {
+        fillColorInput = input;
+      } else {
+        strokeColorInput = input;
+      }
+      const text = document.createElement('span');
+      text.textContent = kind === 'fill' ? '填充' : '描边';
+      label.append(input, text);
+      return label;
+    }
+  };
 }
 
-function undo(): void {
-  commandStack?.undo();
+/** 应用级动作集：文件 / 实例形态 / 取色 / 显示（激活与可用态读 ref，refresh() 时机重估） */
+function buildToolbarActions(): ToolbarActionSpec[] {
+  return [
+    { id: 'import', title: '导入 BPMN 文件', group: 'file', svg: ICON_IMPORT, onClick: pickFile, showInPreview: true },
+    { id: 'export', title: '导出 BPMN 文件', group: 'file', svg: ICON_EXPORT, onClick: () => void exportBpmnFile(), showInPreview: true },
+    {
+      id: 'form-edit',
+      title: '编辑模式（Modeler：完整建模）',
+      group: 'form',
+      svg: ICON_EDIT,
+      onClick: () => void switchForm('edit'),
+      isActive: () => form.value === 'edit',
+      showInPreview: true
+    },
+    {
+      id: 'form-navigated',
+      title: '导航查看模式（NavigatedViewer：只读，可缩放平移）',
+      group: 'form',
+      svg: ICON_NAVIGATE,
+      onClick: () => void switchForm('navigated'),
+      isActive: () => form.value === 'navigated',
+      showInPreview: true
+    },
+    {
+      id: 'form-view',
+      title: '纯查看模式（Viewer：只读渲染）',
+      group: 'form',
+      svg: ICON_VIEW,
+      onClick: () => void switchForm('view'),
+      isActive: () => form.value === 'view',
+      showInPreview: true
+    },
+    colorControl('fill'),
+    colorControl('stroke'),
+    { id: 'clear-colors', title: '清除选中元素颜色', group: 'colors', svg: ICON_CLEAR_COLOR, onClick: clearColors, isEnabled: () => !!colorTarget.value },
+    {
+      id: 'dark',
+      title: '切换暗色模式',
+      group: 'display',
+      svg: ICON_DARK,
+      onClick: () => {
+        toggleDark();
+        refreshToolbar();
+      },
+      isActive: () => dark.value,
+      showInPreview: true
+    },
+    {
+      id: 'panel',
+      title: '属性面板',
+      group: 'display',
+      svg: ICON_PANEL,
+      onClick: () => {
+        panelOpen.value = !panelOpen.value;
+        refreshToolbar();
+      },
+      isActive: () => panelOpen.value,
+      isEnabled: () => form.value === 'edit'
+    }
+  ];
 }
-function redo(): void {
-  commandStack?.redo();
-}
-function zoomIn(): void {
-  canvas?.zoom(canvas.zoom() * 1.2);
-}
-function zoomOut(): void {
-  canvas?.zoom(canvas.zoom() / 1.2);
-}
-function zoomReset(): void {
-  canvas?.zoom(1, 'center');
-}
-function zoomFit(): void {
-  // diagram-js 内置 fit-viewport：内容整体可见（缩放上限 100%），'auto' = 内容居中
-  canvas?.zoom('fit-viewport', 'auto');
+
+/** 宿主状态变化后重估工具栏动作激活/可用态（实例重建外的状态迁移调这里） */
+function refreshToolbar(): void {
+  modeler?.get<any>('bpmnToolbar').refresh();
 }
 
 // ---------- BPMN 文件导入/导出 ----------
@@ -287,16 +399,16 @@ function onKeydown(event: KeyboardEvent): void {
   const mod = event.metaKey || event.ctrlKey;
   if (mod && event.key.toLowerCase() === 'z') {
     event.preventDefault();
-    event.shiftKey ? redo() : undo();
+    event.shiftKey ? commandStack?.redo() : commandStack?.undo();
   } else if (mod && event.key === '0') {
     event.preventDefault();
-    zoomReset();
+    canvas?.zoom(1, 'center');
   } else if (mod && (event.key === '=' || event.key === '+')) {
     event.preventDefault();
-    zoomIn();
+    canvas?.zoom(canvas.zoom() * 1.2);
   } else if (mod && event.key === '-') {
     event.preventDefault();
-    zoomOut();
+    canvas?.zoom(canvas.zoom() / 1.2);
   } else if ((event.key === 'Delete' || event.key === 'Backspace') && !isEditableTarget(event.target)) {
     const selected = modeler.get<any>('selection').get();
     if (selected.length > 0) {
@@ -317,122 +429,14 @@ console.info(
 
 <template>
   <div class="example-app">
-    <!-- 顶部悬浮工具栏（BPMN 画布专属：XML 视图下整体隐藏；样式/图标对齐 kunpeng-modeler CanvasToolbar） -->
-    <div v-if="view === 'diagram'" class="canvas-toolbar" role="toolbar" aria-label="画布工具栏">
-      <div class="ct-group">
-        <button class="ct-btn" title="导入 BPMN 文件" @click="pickFile">
-          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" class="ct-svg-icon">
-            <path d="M24 30V6M13 17 24 6l11 11" /><path d="M8 26v10a6 6 0 0 0 6 6h20a6 6 0 0 0 6-6V26" />
-          </svg>
-        </button>
-        <button class="ct-btn" title="导出 BPMN 文件" @click="exportBpmnFile">
-          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" class="ct-svg-icon">
-            <path d="M24 6v24M13 19l11 11 11-11" /><path d="M8 26v10a6 6 0 0 0 6 6h20a6 6 0 0 0 6-6V26" />
-          </svg>
-        </button>
-      </div>
-      <div class="ct-sep"></div>
-      <div class="ct-group">
-        <button class="ct-btn" title="编辑模式（Modeler：完整建模）" :class="{ 'ct-active': form === 'edit' }" @click="switchForm('edit')">
-          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" class="ct-svg-icon">
-            <path d="m34 8 6 6L20 34l-8 2 2-8L34 8Z" />
-          </svg>
-        </button>
-        <button class="ct-btn" title="导航查看模式（NavigatedViewer：只读，可缩放平移）" :class="{ 'ct-active': form === 'navigated' }" @click="switchForm('navigated')">
-          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" class="ct-svg-icon">
-            <path d="M4 24s7.5-13 20-13 20 13 20 13-7.5 13-20 13S4 24 4 24Z" />
-            <path d="M30 24a6 6 0 1 1-12 0 6 6 0 0 1 12 0Z" fill="currentColor" stroke="none" />
-          </svg>
-        </button>
-        <button class="ct-btn" title="纯查看模式（Viewer：只读渲染）" :class="{ 'ct-active': form === 'view' }" @click="switchForm('view')">
-          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" class="ct-svg-icon">
-            <path d="M8 12v24M8 24h18m0-12v24" />
-            <path d="M38 26v10a6 6 0 0 1-6 6h-6" />
-          </svg>
-        </button>
-        <button class="ct-btn" title="撤销 (Ctrl+Z)" :disabled="form !== 'edit'" @click="undo">
-          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" class="ct-svg-icon">
-            <path d="m15.322 23.78-7.778-7.778 7.778-7.778M8.81 16H29.5C35.851 16 41 21.15 41 27.5 41 33.852 35.851 39 29.5 39H17" />
-          </svg>
-        </button>
-        <button class="ct-btn" title="切换横/纵布局（全图转置）" :disabled="form !== 'edit'" @click="toggleOrientation">
-          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" class="ct-svg-icon">
-            <path d="M10 38V10m0 0-6 6m6-6 6 6" />
-            <path d="M38 10v28m0 0 6-6m-6 6-6-6" />
-            <path d="M18 24h12" stroke-dasharray="4 4" />
-          </svg>
-        </button>
-        <button class="ct-btn" title="重做 (Ctrl+Shift+Z)" :disabled="form !== 'edit'" @click="redo">
-          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" class="ct-svg-icon">
-            <path d="m32.678 23.78 7.778-7.778-7.778-7.778M39.19 16H18.5C12.149 16 7 21.15 7 27.5 7 33.852 12.149 39 18.5 39H31" />
-          </svg>
-        </button>
-      </div>
-      <div class="ct-sep"></div>
-      <!-- 颜色插件：选中元素填充/描边取色 + 清除（modeling.setColor，bioc:fill/stroke 随 DI 往返） -->
-      <div v-if="form === 'edit'" class="ct-group ct-colors">
-        <label class="ct-color" title="选中元素填充色（空=主题缺省）">
-          <input type="color" v-model="fillColor" :disabled="!colorTarget" @change="applyColors" />
-          <span>填充</span>
-        </label>
-        <label class="ct-color" title="选中元素描边色（空=主题缺省）">
-          <input type="color" v-model="strokeColor" :disabled="!colorTarget" @change="applyColors" />
-          <span>描边</span>
-        </label>
-        <button class="ct-btn" title="清除选中元素颜色" :disabled="!colorTarget" @click="clearColors">
-          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" class="ct-svg-icon">
-            <path d="M24 6c6 8 12 13.5 12 21a12 12 0 1 1-24 0c0-7.5 6-13 12-21Z" />
-            <path d="M10 38 38 10" />
-          </svg>
-        </button>
-      </div>
-      <div class="ct-sep"></div>
-      <div class="ct-group">
-        <button
-          class="ct-btn"
-          :title="dark ? '切到亮色模式' : '切到暗色模式'"
-          @click="toggleDark"
-        >
-          {{ dark ? '☀' : '☾' }}
-        </button>
-        <button class="ct-btn" title="属性面板" :class="{ 'ct-active': panelOpen }" :disabled="form !== 'edit'" @click="panelOpen = !panelOpen">
-          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" class="ct-svg-icon">
-            <path d="M8 6h32a2 2 0 0 1 2 2v32a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" />
-            <path d="M30 6v36" />
-            <path d="M14 16h8m-8 8h8m-8 8h8" />
-          </svg>
-        </button>
-      </div>
-      <div class="ct-sep"></div>
-      <div class="ct-group ct-zoom">
-        <button class="ct-btn" title="缩小 (Ctrl+-)" @click="zoomOut">
-          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" class="ct-svg-icon">
-            <path d="M32.607 32.607A14.953 14.953 0 0 0 37 22c0-8.284-6.716-15-15-15-8.284 0-15 6.716-15 15 0 8.284 6.716 15 15 15 4.142 0 7.892-1.679 10.607-4.393Zm0 0L41.5 41.5M29 22H15" />
-          </svg>
-        </button>
-        <span class="zoom-val" title="重置缩放 (Ctrl+0)" @click="zoomReset">{{ zoomLevel }}</span>
-        <button class="ct-btn" title="放大 (Ctrl++)" @click="zoomIn">
-          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" class="ct-svg-icon">
-            <path d="M32.607 32.607A14.953 14.953 0 0 0 37 22c0-8.284-6.716-15-15-15-8.284 0-15 6.716-15 15 0 8.284 6.716 15 15 15 4.142 0 7.892-1.679 10.607-4.393Zm0 0L41.5 41.5M29 22H15m7 7V15" />
-          </svg>
-        </button>
-        <button class="ct-btn" title="适应画布" @click="zoomFit">
-          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" class="ct-svg-icon">
-            <path clip-rule="evenodd" d="M24 6c9.941 0 18 8.059 18 18s-8.059 18-18 18S6 33.941 6 24 14.059 6 24 6Z" />
-            <path d="M30 24a6 6 0 1 1-12 0 6 6 0 0 1 12 0Z" fill="currentColor" stroke="none" />
-            <path d="M30 24a6 6 0 1 1-12 0 6 6 0 0 1 12 0Z" />
-          </svg>
-        </button>
-      </div>
-    </div>
-
     <!-- 建模器画布宿主（卡片内容区·流程图侧）：常驻渲染，XML 视图由 XmlViewCard 的
          不透明内容区整体覆盖——display:none 会让导入时视口计算得 0 尺寸（SVGMatrix NaN）；
-         属性面板可见时画布右缘让出面板列宽 -->
+         属性面板可见时画布右缘让出面板列宽；XML 视图下藏画布内悬浮件（工具栏 z-90
+         会戳出 XML 卡片覆盖层，palette 等低层件不受影响） -->
     <div
       ref="canvasHost"
       class="canvas-host"
-      :class="{ 'canvas-host--with-panel': panelVisible }"
+      :class="{ 'canvas-host--with-panel': panelVisible, 'canvas-host--xml': view === 'xml' }"
     ></div>
 
     <!-- 属性面板宿主（右侧列）：面板模块自行挂载/重挂（实例切换时 diagram.init 重挂） -->
@@ -466,6 +470,12 @@ console.info(
   right: 340px;
 }
 
+/* XML 视图：藏画布内高图层悬浮件（工具栏，插件 DOM 无 scoped 属性须 :deep），
+   画布本体保持渲染（视口计算需要尺寸） */
+.canvas-host--xml :deep(.bpmn-toolbar) {
+  display: none;
+}
+
 .canvas-host :deep(.djs-container) {
   width: 100%;
   height: 100%;
@@ -484,31 +494,31 @@ console.info(
   overflow: hidden;
 }
 
-/* 颜色取色器：原生 color input 收敛为小色块，与工具栏按钮同高 */
-.ct-colors {
-  align-items: center;
-}
-
-.ct-color {
+/* 工具栏插件取色器控件（render() 宿主控件，皮肤归示例）：原生 color input 收敛小色块，
+   走 --bio-* 令牌随宿主暗色热切换；标签恒单行 */
+.canvas-host :deep(.bpmn-toolbar-color) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  padding: 0 4px;
+  height: 28px;
   font-size: 11px;
-  color: inherit;
+  white-space: nowrap;
+  color: var(--bio-text-subtle);
   cursor: pointer;
 }
 
-.ct-color input[type='color'] {
+.canvas-host :deep(.bpmn-toolbar-color input[type='color']) {
   width: 18px;
   height: 18px;
   padding: 0;
-  border: 1px solid var(--x-border, #d9d9d9);
+  border: 1px solid var(--bio-border);
   border-radius: 3px;
-  background: var(--x-surface, #fff);
+  background: var(--bio-surface);
   cursor: pointer;
 }
 
-.ct-color input[type='color']:disabled {
+.canvas-host :deep(.bpmn-toolbar-color input[type='color']:disabled) {
   opacity: 0.35;
   cursor: not-allowed;
 }
