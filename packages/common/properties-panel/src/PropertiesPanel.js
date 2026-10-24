@@ -120,6 +120,33 @@ const DEFAULT_TOOLTIP = {};
  * @param {Function} [props.getFeelPopupLinks]
  * @param {Object} [props.eventBus]
  */
+/**
+ * 分组优先级排序（插件组件排序契约）：带 priority 的分组按数值降序在前
+ * （与 diagram-js 事件/Provider 优先级方向一致：数值大者先执行）；未定义
+ * priority 的分组排在全部带优先级分组之后，彼此保持声明顺序（稳定）。
+ * 全部未定义 priority 时输出与输入顺序一致（零行为变化）。
+ */
+function sortGroupsByPriority(groups) {
+  return groups
+    .map((group, index) => ({ group, index }))
+    .sort((a, b) => {
+      const pa = a.group.priority;
+      const pb = b.group.priority;
+
+      if (pa !== undefined && pb !== undefined) {
+        return pb - pa;
+      }
+      if (pa !== undefined) {
+        return -1;
+      }
+      if (pb !== undefined) {
+        return 1;
+      }
+      return a.index - b.index;
+    })
+    .map(({ group }) => group);
+}
+
 export default function PropertiesPanel(props) {
   const {
     element,
@@ -246,7 +273,7 @@ export default function PropertiesPanel(props) {
                     headerProvider={ headerProvider } />
                   <div class="bio-properties-panel-scroll-container">
                     {
-                      groups.map(group => {
+                      sortGroupsByPriority(groups).map(group => {
                         const {
                           component: Component = Group,
                           id
