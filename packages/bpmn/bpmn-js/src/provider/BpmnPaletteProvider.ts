@@ -23,8 +23,8 @@
  * 元素面板 Provider。
  *
  * 条目分两段：
- * - 工具组（抓手/套索/空间/全局连线）+ 类型注册表**快捷集**（默认 8 个高频元素，
- *   见 ElementTypes.PALETTE_QUICK_IDS；宿主 `paletteQuickIds` 配置可整体替换）；
+ * - 工具组（抓手/套索/空间/全局连线）+ 类型注册表**快捷集**（默认 10 个高频元素，
+ *   见 BpmnElementTypes.PALETTE_QUICK_IDS；宿主 `paletteQuickIds` 配置可整体替换）；
  * - 底部 "…" 条目打开 'bpmn-create' 创建弹框（全量类型、分组头、可搜索），
  *   与 context pad 容器 "+" 同一弹框，宿主为画布根（落点=可视区中心）。
  *
@@ -167,18 +167,14 @@ export class BpmnPaletteProvider {
   }
 
   private newShape(meta: any): any {
+    // 折叠子流程的任务盒尺寸不在此补偿：isExpanded:false 已随 attrs 传入，
+    // BpmnElementFactory.defaultSize 感知该属性统一给形（单一事实源）
     return this.elementFactory.createShape({
       type: meta.type,
       eventSymbol: meta.eventSymbol,
       nonInterrupting: meta.nonInterrupting || undefined,
       symbol: meta.symbol,
-      isExpanded: meta.symbol === 'subProcessExpanded' || meta.symbol === 'subProcessEvent' ? true : meta.symbol === 'subProcessCollapsed' ? false : undefined,
-      width: meta.type === 'bpmn:SubProcess' && meta.symbol === 'subProcessCollapsed'
-        ? this.elementTypes.shapeMeta('bpmn:Task')!.width
-        : undefined,
-      height: meta.type === 'bpmn:SubProcess' && meta.symbol === 'subProcessCollapsed'
-        ? this.elementTypes.shapeMeta('bpmn:Task')!.height
-        : undefined
+      isExpanded: meta.symbol === 'subProcessExpanded' || meta.symbol === 'subProcessEvent' ? true : meta.symbol === 'subProcessCollapsed' ? false : undefined
     });
   }
 

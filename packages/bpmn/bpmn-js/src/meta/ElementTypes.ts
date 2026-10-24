@@ -502,20 +502,8 @@ export const CONNECTION_TYPES: ConnectionTypeMeta[] = [
  * 数据 → 容器 → 分组）：开始事件 / 中间事件 / 结束事件 / 排他网关 / 任务 /
  * 折叠子流程 / 数据对象 / 数据存储 / 池 / 分组；其余全部类型经面板底部 "…"
  * 打开创建弹框选用。宿主可用 `config.paletteQuickIds` 整体替换（见类注释）。
+ * 挂为类静态公开：宿主替换快捷集时可直接引用作缺省集或拼装子集。
  */
-const PALETTE_QUICK_IDS = [
-  'StartEvent',
-  'IntermediateThrowEvent',
-  'EndEvent',
-  'ExclusiveGateway',
-  'Task',
-  'SubProcess-collapsed',
-  'DataObjectReference',
-  'DataStoreReference',
-  'Participant',
-  'Group'
-];
-
 /**
  * 类型注册表服务。palette 条目三级插件化：
  * 1. 配置级——`new Modeler({ paletteQuickIds: [...] })` 覆盖快捷集（metaId 数组，
@@ -526,6 +514,20 @@ const PALETTE_QUICK_IDS = [
  */
 export class BpmnElementTypes {
   static $inject = ['config.paletteQuickIds'];
+
+  /** 默认快捷集（10 条；见上方取值说明），宿主未传 paletteQuickIds 时生效 */
+  static readonly PALETTE_QUICK_IDS: readonly string[] = [
+    'StartEvent',
+    'IntermediateThrowEvent',
+    'EndEvent',
+    'ExclusiveGateway',
+    'Task',
+    'SubProcess-collapsed',
+    'DataObjectReference',
+    'DataStoreReference',
+    'Participant',
+    'Group'
+  ];
 
   private readonly shapeByType = new Map<string, ShapeTypeMeta>();
   private readonly connectionByType = new Map<string, ConnectionTypeMeta>();
@@ -563,7 +565,7 @@ export class BpmnElementTypes {
       }
       this.quickIds = quickIds;
     } else {
-      this.quickIds = PALETTE_QUICK_IDS;
+      this.quickIds = BpmnElementTypes.PALETTE_QUICK_IDS;
     }
     const byId = new Map(this.paletteShapes.map((meta) => [metaId(meta), meta] as const));
     this.quickShapes = this.quickIds.map((id) => byId.get(id)!);
@@ -586,7 +588,8 @@ export class BpmnElementTypes {
     if (!meta) {
       return undefined;
     }
-    // 展开子流程按折叠态尺寸时也使用注册表值；特例：SubProcess 折叠态返回任务盒
+    // 注册表以展开态登记 SubProcess；折叠态任务盒特例在
+    // BpmnElementFactory.defaultSize（工厂能感知创建时的 isExpanded 属性）
     return { width: meta.width, height: meta.height };
   }
 

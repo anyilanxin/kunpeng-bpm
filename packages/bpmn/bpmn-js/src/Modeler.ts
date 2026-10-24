@@ -56,7 +56,7 @@ export interface ModelerOptions {
   mode?: ModelerMode;
   /**
    * palette 快捷集覆盖（插件位之一）：metaId 数组整体替换面板直列条目
-   * （默认 8 个见 ElementTypes.PALETTE_QUICK_IDS；[] 合法=仅工具与 "…"）。
+   * （默认 10 个见 BpmnElementTypes.PALETTE_QUICK_IDS；[] 合法=仅工具与 "…"）。
    * 未知 metaId 构造即 throw（宿主配置错误不静默吞掉）。
    */
   paletteQuickIds?: string[];
@@ -206,9 +206,15 @@ export class Modeler {
   saveXML(): Promise<{ xml: string }> {
     const eventBus = this.get<any>('eventBus');
     eventBus.fire('saveXML.start');
-    const xml = this.get<any>('bpmnWriter').serialize();
-    eventBus.fire('saveXML.done', { xml });
-    return Promise.resolve({ xml });
+    // 序列化失败经 Promise 拒绝抛出（与 importXML 的 try/catch + rethrow 对称；
+    // saveXML.done 仅成功路径触发——失败时没有可交付的 xml）
+    try {
+      const xml = this.get<any>('bpmnWriter').serialize();
+      eventBus.fire('saveXML.done', { xml });
+      return Promise.resolve({ xml });
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
 
   /** SVG 导出：克隆画布 + 内联字体与基础描边样式 */
