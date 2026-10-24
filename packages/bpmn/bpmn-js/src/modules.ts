@@ -104,6 +104,7 @@ import { BpmnPaletteLayout } from './provider/BpmnPaletteLayout';
 import { BpmnReplaceMenuProvider } from './provider/BpmnReplaceMenuProvider';
 import { BpmnAlignMenuProvider } from './provider/BpmnAlignMenuProvider';
 import { BpmnAppendMenuProvider, BpmnCreateMenuProvider } from './provider/BpmnElementMenuProvider';
+import { AppendPreview } from './behavior/AppendPreview';
 import { BpmnOutlineProvider } from './provider/BpmnOutlineProvider';
 import { BpmnI18n } from './i18n/BpmnI18n';
 import { OrientationService } from './meta/Orientation';
@@ -236,6 +237,8 @@ export const BpmnBehaviorModule: ModuleDeclaration = {
 export const BpmnInteractionModule: ModuleDeclaration = {
   __init__: ['paletteProvider', 'contextPadProvider', 'popupMenuProvider', 'bpmnAlignMenuProvider', 'bpmnAppendMenuProvider', 'bpmnCreateMenuProvider', 'bpmnOutlineProvider', 'bpmnPaletteLayout'],
   'bpmnPopup': ['type', BpmnPopup],
+  // 追加预览（context pad 悬停幽灵；懒构造——首个消费者注入时成型）
+  'bpmnAppendPreview': ['type', AppendPreview],
   'bpmnPaletteLayout': ['type', BpmnPaletteLayout],
   'paletteProvider': ['type', BpmnPaletteProvider],
   'contextPadProvider': ['type', BpmnContextPadProvider],

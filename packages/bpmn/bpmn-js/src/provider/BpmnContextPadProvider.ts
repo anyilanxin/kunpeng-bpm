@@ -26,6 +26,7 @@
  */
 import type { BpmnElementTypes } from '../meta/ElementTypes';
 import { isContainerType, metaId } from '../meta/ElementTypes';
+import type { AppendPreview } from '../behavior/AppendPreview';
 import { BpmnAlignMenuProvider } from './BpmnAlignMenuProvider';
 import { BpmnAppendMenuProvider, BpmnCreateMenuProvider } from './BpmnElementMenuProvider';
 import { bpmnEntryHtml } from '../icons/BpmnIcons';
@@ -52,7 +53,8 @@ export class BpmnContextPadProvider {
     'bpmnPopup',
     'bpmnI18n',
     'bpmnMode',
-    'orientationService'
+    'orientationService',
+    'bpmnAppendPreview'
   ];
 
   constructor(
@@ -66,7 +68,8 @@ export class BpmnContextPadProvider {
     private readonly bpmnPopup: BpmnPopup,
     private readonly i18n: any,
     private readonly bpmnMode: BpmnMode,
-    private readonly orientationService: any
+    private readonly orientationService: any,
+    private readonly appendPreview: AppendPreview
   ) {
     contextPad.registerProvider(this);
   }
@@ -107,6 +110,14 @@ export class BpmnContextPadProvider {
               this.autoPlace.append(element, shape, {
                 connection: { type: 'bpmn:SequenceFlow' }
               });
+            },
+            // 悬停幽灵预览（diagram-js 契约：300ms 延迟后触发，返回值作 mouseout 清理函数）
+            hover: () => {
+              const previewShape = this.elementFactory.createShape(this.elementTypes.createAttrs(meta));
+              this.appendPreview.show(element, previewShape, {
+                connection: { type: 'bpmn:SequenceFlow' }
+              });
+              return () => this.appendPreview.hide();
             }
           }
         };
@@ -165,6 +176,11 @@ export class BpmnContextPadProvider {
           click: () => {
             const shape = this.elementFactory.createShape({ type: 'bpmn:TextAnnotation' });
             this.autoPlace.append(element, shape, { connection: { type: 'bpmn:Association' } });
+          },
+          hover: () => {
+            const previewShape = this.elementFactory.createShape({ type: 'bpmn:TextAnnotation' });
+            this.appendPreview.show(element, previewShape, { connection: { type: 'bpmn:Association' } });
+            return () => this.appendPreview.hide();
           }
         }
       };
