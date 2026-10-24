@@ -114,6 +114,38 @@ export function normalizeLanePosition(
   return position === 'top' || position === 'left' ? 'before' : 'after';
 }
 
+/**
+ * 池收编裸元素的落池包裹（palette 拖拽预览与落地收编共用同一计算，保证
+ * "拖出多大，落池就多大"）：包住全部裸元素 bbox（头带侧让位 + 四周呼吸
+ * 边距 40——介于追加分隔 36 与泳道步进 46 之间，收编后留小幅拖动余地
+ * 而不显空旷），各轴钳池最小规格（POOL_W×POOL_H=634×250 恰容一条最小
+ * 泳道，垂直朝向转置）。位置锚内容 bbox（内容靠头带侧，剩余空间留给
+ * 后续布局）。空数组返回 null（无收编）。
+ */
+export function adoptionBounds(loose: RectLike[], header: number, horizontal: boolean): RectLike | null {
+  if (!loose.length) {
+    return null;
+  }
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const el of loose) {
+    minX = Math.min(minX, el.x);
+    minY = Math.min(minY, el.y);
+    maxX = Math.max(maxX, el.x + el.width);
+    maxY = Math.max(maxY, el.y + el.height);
+  }
+  const pad = 40;
+  const bounds = horizontal
+    ? { x: minX - header - pad, y: minY - pad, width: maxX - minX + header + 2 * pad, height: maxY - minY + 2 * pad }
+    : { x: minX - pad, y: minY - header - pad, width: maxX - minX + 2 * pad, height: maxY - minY + header + 2 * pad };
+  const minSpan = horizontal ? bounds.width : bounds.height;
+  const minBand = horizontal ? bounds.height : bounds.width;
+  const clampedSpan = Math.max(minSpan, MIN_LANE_SPAN + header);
+  const clampedBand = Math.max(minBand, MIN_LANE_BAND);
+  return horizontal
+    ? { ...bounds, width: clampedSpan, height: clampedBand }
+    : { ...bounds, width: clampedBand, height: clampedSpan };
+}
+
 /** 泳道带重铺结果：泳道元素（泛型保留宿主引用）与其新矩形 */
 export interface LaneBandFit<T extends RectLike> {
   lane: T;

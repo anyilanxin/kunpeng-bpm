@@ -28,6 +28,7 @@ import type Canvas from 'diagram-js/lib/core/Canvas';
 import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
 import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
 import { SIZES } from '../meta/ElementTypes';
+import { adoptionBounds } from '../util/PoolGeometry';
 import type { OrientationService } from '../meta/Orientation';
 import type { BpmnDocumentState } from '../xml/DocumentState';
 import type { BpmnFactory } from '../factory/BpmnFactory';
@@ -325,42 +326,19 @@ export class CollaborationBehavior extends CommandInterceptor {
 
   /**
    * 池落到已有裸元素的图上：把滞留根平面的形状收编进池，池几何 wrap 全部
-   * 裸元素 bbox（头带侧让位 + 四周呼吸边距）。拖池到元素上方即「给这些元
-   * 素加池」的完整语义；若不收编，元素滞留协作根平面会被「协作图根上只
-   * 放池」的放置规则挡死，后续拖放/追加全部禁止。
+   * 裸元素（adoptionBounds，含最小规格钳制——palette 拖拽预览用同一计算，
+   * 保证"拖出多大，落池就多大"）。拖池到元素上方即「给这些元素加池」的
+   * 完整语义；若不收编，元素滞留协作根平面会被「协作图根上只放池」的
+   * 放置规则挡死，后续拖放/追加全部禁止。
    */
   private adoptLooseShapes(pool: any): void {
     const root = this.canvas.getRootElement();
     const loose = (root.children ?? []).filter(
       (c: any) => c !== pool && !c.labelTarget && !c.waypoints && c.businessObject?.$type !== 'bpmn:Participant'
     );
-    if (!loose.length) {
+    const bounds = adoptionBounds(loose, SIZES.POOL_HEADER, this.orientationService.isHorizontal());
+    if (!bounds) {
       return;
-    }
-    const horizontal = this.orientationService.isHorizontal();
-    const header = SIZES.POOL_HEADER;
-    // wrap 四周呼吸边距 40（自有取值）：介于追加分隔 36 与泳道步进 46 之间，
-    // 收编后留出小幅拖动余地而不显空旷
-    const pad = 40;
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const el of loose) {
-      minX = Math.min(minX, el.x);
-      minY = Math.min(minY, el.y);
-      maxX = Math.max(maxX, el.x + el.width);
-      maxY = Math.max(maxY, el.y + el.height);
-    }
-    const bounds = horizontal
-      ? { x: minX - header - pad, y: minY - pad, width: maxX - minX + header + 2 * pad, height: maxY - minY + 2 * pad }
-      : { x: minX - pad, y: minY - header - pad, width: maxX - minX + 2 * pad, height: maxY - minY + header + 2 * pad };
-    // 包裹下限=池最小规格（Palette 缺省 POOL_W×POOL_H=634×250，恰容一条
-    // 最小泳道）：裸元素稀疏（如仅一个小事件）时按最小池落形，不再把池
-    // 缩成元素大小；位置仍锚内容 bbox（内容靠头带侧，剩余空间留给后续布局）
-    if (horizontal) {
-      bounds.width = Math.max(bounds.width, SIZES.POOL_W);
-      bounds.height = Math.max(bounds.height, SIZES.POOL_H);
-    } else {
-      bounds.width = Math.max(bounds.width, SIZES.POOL_H);
-      bounds.height = Math.max(bounds.height, SIZES.POOL_W);
     }
     this.modeling.resizeShape(pool, bounds);
     for (const el of loose) {

@@ -37,7 +37,8 @@
  * 类型由 BpmnRules 按端点推断。
  */
 import type { BpmnElementTypes } from '../meta/ElementTypes';
-import { metaId } from '../meta/ElementTypes';
+import { metaId, SIZES } from '../meta/ElementTypes';
+import { adoptionBounds } from '../util/PoolGeometry';
 import { bpmnEntryHtml } from '../icons/BpmnIcons';
 import { toolEntryHtml } from '../icons/ToolIcons';
 import { BpmnCreateMenuProvider } from './BpmnElementMenuProvider';
@@ -57,7 +58,8 @@ export class BpmnPaletteProvider {
     'canvas',
     'bpmnPopup',
     'bpmnI18n',
-    'bpmnMode'
+    'bpmnMode',
+    'orientationService'
   ];
 
   constructor(
@@ -72,7 +74,8 @@ export class BpmnPaletteProvider {
     private readonly canvas: any,
     private readonly bpmnPopup: BpmnPopup,
     private readonly i18n: any,
-    private readonly bpmnMode: BpmnMode
+    private readonly bpmnMode: BpmnMode,
+    private readonly orientationService: { isHorizontal(): boolean }
   ) {
     palette.registerProvider(this);
   }
@@ -181,6 +184,20 @@ export class BpmnPaletteProvider {
 
   private startCreate(event: any, meta: any): void {
     const shape = this.newShape(meta);
+    // 池：拖出即最终尺寸——落池会收编画布上的裸元素（协作图根上只放池），
+    // 收编包裹（adoptionBounds，含最小规格钳制）在拖出时就算好注入拖拽
+    // 形状，预览即落池结果；落地 adoptLooseShapes 复用同一计算，不再
+    // 释放后变尺寸。无裸元素时保持缺省 634×250
+    if (meta.type === 'bpmn:Participant') {
+      const loose = (this.canvas.getRootElement().children ?? []).filter(
+        (c: any) => !c.labelTarget && !c.waypoints && c.businessObject?.$type !== 'bpmn:Participant'
+      );
+      const bounds = adoptionBounds(loose, SIZES.POOL_HEADER, this.orientationService.isHorizontal());
+      if (bounds) {
+        shape.width = bounds.width;
+        shape.height = bounds.height;
+      }
+    }
     this.create.start(event, shape);
   }
 }
