@@ -117,6 +117,14 @@ export function metaId(meta: { type: string; eventSymbol?: string; symbol?: stri
   return variants.length ? `${local}-${variants.join('-')}` : local;
 }
 
+/** 子流程展开态推导：SubProcess 的 expanded/event 变体=true、collapsed=false、其余类型 undefined */
+export function subProcessExpandedOf(meta: ShapeTypeMeta): boolean | undefined {
+  if (meta.type !== 'bpmn:SubProcess') {
+    return undefined;
+  }
+  return meta.symbol !== 'subProcessCollapsed';
+}
+
 export const SIZES = {
   EVENT: 38,
   GATEWAY: 52,
@@ -664,6 +672,25 @@ export class BpmnElementTypes {
   /** palette 快捷集条目（默认展示；按生效的 quickIds 给定序） */
   paletteQuickShapeEntries(): ShapeTypeMeta[] {
     return this.quickShapes;
+  }
+
+  /** 类型元数据 → 画布创建载荷（单一来源：palette/菜单/context pad 快捷追加共消费） */
+  createAttrs(meta: ShapeTypeMeta): { type: string; eventSymbol?: string; nonInterrupting?: boolean; symbol?: string; isExpanded?: boolean } {
+    const attrs: { type: string; eventSymbol?: string; nonInterrupting?: boolean; symbol?: string; isExpanded?: boolean } = { type: meta.type };
+    if (meta.eventSymbol) {
+      attrs.eventSymbol = meta.eventSymbol;
+    }
+    if (meta.nonInterrupting) {
+      attrs.nonInterrupting = true;
+    }
+    if (meta.symbol) {
+      attrs.symbol = meta.symbol;
+    }
+    const isExpanded = subProcessExpandedOf(meta);
+    if (isExpanded !== undefined) {
+      attrs.isExpanded = isExpanded;
+    }
+    return attrs;
   }
 
   /** 替换族成员（全量；"与当前元素同形"的排除经 matchesElement 判定） */

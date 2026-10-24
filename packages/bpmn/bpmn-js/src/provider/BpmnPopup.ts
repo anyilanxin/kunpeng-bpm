@@ -40,6 +40,7 @@ import type PopupMenu from 'diagram-js/lib/features/popup-menu/PopupMenu';
 import type Canvas from 'diagram-js/lib/core/Canvas';
 import type ContextPad from 'diagram-js/lib/features/context-pad/ContextPad';
 import type EventBus from 'diagram-js/lib/core/EventBus';
+import { observeBox } from '../util/Dom';
 
 export type BpmnPopupAnchor =
   | { readonly kind: 'palette' }
@@ -49,10 +50,9 @@ export type BpmnPopupAnchor =
 interface PopupSession {
   anchor: BpmnPopupAnchor;
   position: { x: number; y: number };
-  observer: ResizeObserver;
-  onWindowResize: () => void;
-  /** 尺寸签名轮询（视口+画布容器），检测不派发事件的容器尺寸变化 */
-  pollTimer: number;
+  /** 三信号监听停止函数（窗口 resize / ResizeObserver / 轮询，见 util/Dom.observeBox） */
+  stopObserve: () => void;
+  /** 尺寸签名（视口+画布容器），变化即重贴靠 */
   signature: string;
 }
 
@@ -94,15 +94,11 @@ export class BpmnPopup {
   open(target: unknown, menuId: string, anchor: BpmnPopupAnchor, title: string): void {
     this.endSession();
     const position = this.place(anchor, null);
-    // 面板宽度调节/窗口缩放不关弹框（不在引擎 CLOSE_EVENTS 内）——监听并重贴靠
-    const observer = new ResizeObserver(() => this.reposition());
-    observer.observe(this.canvas.getContainer());
-    const onWindowResize = () => this.reposition();
-    window.addEventListener('resize', onWindowResize);
-    // 150ms：肉眼连续（≤1/6 秒级），仅弹框打开期间存续，开销为两次量测
-    const pollTimer = window.setInterval(() => this.checkSizeChanged(), 150);
-    this.session = { anchor, position, observer, onWindowResize, pollTimer, signature: '' };
-    this.session.signature = this.sizeSignature();
+    // 面板宽度调节/窗口缩放不关弹框（不在引擎 CLOSE_EVENTS 内）——三信号监听
+    // 并重贴靠（util/Dom.observeBox）。各信号统一走签名比对：resize/RO 触发
+    // 本就意味着视口或容器尺寸已变（签名必变），比对仅挡住无意义重入
+    const stopObserve = observeBox(this.canvas.getContainer(), () => this.checkSizeChanged());
+    this.session = { anchor, position, stopObserve, signature: this.sizeSignature() };
     // 目标按引擎调用惯例宽松传递（PopupMenuTarget 可为元素/元素数组）
     this.popupMenu.open(target as any, menuId, position, {
       title,
@@ -205,9 +201,7 @@ export class BpmnPopup {
     if (!session) {
       return;
     }
-    session.observer.disconnect();
-    window.clearInterval(session.pollTimer);
-    window.removeEventListener('resize', session.onWindowResize);
+    session.stopObserve();
     this.session = null;
   }
 }

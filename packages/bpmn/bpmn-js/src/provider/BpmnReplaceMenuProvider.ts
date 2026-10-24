@@ -27,6 +27,7 @@
  *   标准循环 ↻，再点当前态即清除；动作走 modeling.updateProperties（可撤销）。
  */
 import type { BpmnElementTypes } from '../meta/ElementTypes';
+import { metaId } from '../meta/ElementTypes';
 import type { BpmnFactory } from '../factory/BpmnFactory';
 import { bpmnIconHtml, loopMarkerIconHtml } from '../icons/BpmnIcons';
 import { loopKindOf, type LoopKind } from '../meta/LoopCharacteristics';
@@ -34,17 +35,20 @@ import { replaceTarget } from '../command/ReplaceElementHandler';
 import { BpmnPopup } from './BpmnPopup';
 
 export class BpmnReplaceMenuProvider {
-  static $inject = ['bpmnElementTypes', 'modeling', 'bpmnFactory', 'bpmnPopup', 'bpmnI18n'];
+  static $inject = ['popupMenu', 'bpmnElementTypes', 'modeling', 'bpmnFactory', 'bpmnPopup', 'bpmnI18n'];
 
   static readonly MENU_ID = 'bpmn-replace';
 
   constructor(
+    popupMenu: any,
     private readonly elementTypes: BpmnElementTypes,
     private readonly modeling: any,
     private readonly bpmnFactory: BpmnFactory,
     private readonly bpmnPopup: BpmnPopup,
     private readonly i18n: any
-  ) {}
+  ) {
+    popupMenu.registerProvider(BpmnReplaceMenuProvider.MENU_ID, this);
+  }
 
   getPopupMenuEntries(target: any): Record<string, any> {
     const bo = target.businessObject;
@@ -59,7 +63,7 @@ export class BpmnReplaceMenuProvider {
       if (this.elementTypes.matchesElement(candidate, target)) {
         continue;
       }
-      entries[`replace-${candidate.label}`] = {
+      entries[`replace-${metaId(candidate)}`] = {
         label: this.i18n.t(candidate.label),
         imageHtml: bpmnIconHtml(candidate),
         title: this.i18n.t(candidate.label),
@@ -114,14 +118,3 @@ export class BpmnReplaceMenuProvider {
     this.bpmnPopup.open(target, BpmnReplaceMenuProvider.MENU_ID, { kind: 'pad', target }, this.i18n.t('更改元素类型'));
   }
 }
-
-/** 菜单注册接线（popupMenu.registerProvider 需要显式调用） */
-export class ReplaceMenuWiring {
-  static $inject = ['popupMenu', 'popupMenuProvider'];
-
-  constructor(popupMenu: any, provider: BpmnReplaceMenuProvider) {
-    popupMenu.registerProvider(ReplaceMenuProviderId, provider);
-  }
-}
-
-const ReplaceMenuProviderId = BpmnReplaceMenuProvider.MENU_ID;

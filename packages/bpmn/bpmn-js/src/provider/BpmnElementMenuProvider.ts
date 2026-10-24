@@ -63,14 +63,6 @@ const CREATE_GROUPS = [
   'artifacts'
 ];
 
-/** 子流程条目的展开态：注册表以 symbol 区分展开/折叠两态 */
-function subProcessExpanded(meta: ShapeTypeMeta): boolean | undefined {
-  if (meta.type !== 'bpmn:SubProcess') {
-    return undefined;
-  }
-  return meta.symbol !== 'subProcessCollapsed';
-}
-
 /** 按 palette 分组过滤注册表并构建弹框条目；place 收创建后的落形动作 */
 function buildEntries(
   elementTypes: BpmnElementTypes,
@@ -95,16 +87,7 @@ function buildEntries(
       imageHtml: bpmnIconHtml(meta),
       title: i18n.t(meta.label),
       action: () => {
-        place(
-          meta,
-          elementFactory.createShape({
-            type: meta.type,
-            eventSymbol: meta.eventSymbol,
-            nonInterrupting: meta.nonInterrupting || undefined,
-            symbol: meta.symbol,
-            isExpanded: subProcessExpanded(meta)
-          })
-        );
+        place(meta, elementFactory.createShape(elementTypes.createAttrs(meta)));
         // PopupMenu.trigger 不自动关闭（引擎契约），动作方负责收起
         close();
       }
@@ -193,14 +176,16 @@ export class BpmnCreateMenuProvider {
       if (container) {
         host = container;
         position = center;
-      } else if (this.elementRegistry.filter((el: any) => el.businessObject?.$type === 'bpmn:Participant').length > 0) {
-        // 有池但中心不在池内：落首个池的可用区中心（头带按朝向避开），不裸投根平面
-        const pool = this.elementRegistry.filter((el: any) => el.businessObject?.$type === 'bpmn:Participant')[0];
-        host = pool;
-        const poolArea = poolInnerRect(pool, SIZES.POOL_HEADER, this.orientationService.isHorizontal());
-        position = { x: poolArea.x + poolArea.width / 2, y: poolArea.y + poolArea.height / 2 };
       } else {
-        position = center;
+        // 有池但中心不在池内：落首个池的可用区中心（头带按朝向避开），不裸投根平面
+        const pools = this.elementRegistry.filter((el: any) => el.businessObject?.$type === 'bpmn:Participant');
+        if (pools.length > 0) {
+          host = pools[0];
+          const poolArea = poolInnerRect(host, SIZES.POOL_HEADER, this.orientationService.isHorizontal());
+          position = { x: poolArea.x + poolArea.width / 2, y: poolArea.y + poolArea.height / 2 };
+        } else {
+          position = center;
+        }
       }
     } else {
       // 容器宿主（context pad "+" 场景）：落点取可用区中心——池须按朝向避头带，其余取形心

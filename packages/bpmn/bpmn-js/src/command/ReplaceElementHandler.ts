@@ -232,7 +232,13 @@ function swapReferences(definitions: any, from: any, to: any): void {
   visit(definitions);
 }
 
-/** 供菜单构建目标描述（nonInterrupting/symbol 随事件符号与子流程变体传递） */
+/**
+ * 供菜单构建替换目标描述（nonInterrupting/symbol 随事件符号与子流程变体传递）。
+ * 与 BpmnElementTypes.createAttrs 分工：createAttrs 是创建路径的画布载荷
+ * （含 isExpanded）；替换载荷刻意不带展开位——折叠/展开由调用方以 collapsed
+ * 单独传（context pad 折叠钮取反、替换菜单按条目 symbol 推导），handler 对
+ * SubProcess 缺省 collapsed=false 的收口语义与创建路径不同，故不复用 createAttrs。
+ */
 export function replaceTarget(meta: ShapeTypeMeta): { type: string; eventSymbol?: string; nonInterrupting?: boolean; symbol?: string } {
   const t: { type: string; eventSymbol?: string; nonInterrupting?: boolean; symbol?: string } = { type: meta.type };
   if (meta.eventSymbol) t.eventSymbol = meta.eventSymbol;

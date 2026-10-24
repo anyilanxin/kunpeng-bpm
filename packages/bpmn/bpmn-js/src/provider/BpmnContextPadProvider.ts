@@ -25,7 +25,7 @@
  * 可整体替换（didi 组件 `contextPadProvider`）。
  */
 import type { BpmnElementTypes } from '../meta/ElementTypes';
-import { isContainerType } from '../meta/ElementTypes';
+import { isContainerType, metaId } from '../meta/ElementTypes';
 import { BpmnAlignMenuProvider } from './BpmnAlignMenuProvider';
 import { BpmnAppendMenuProvider, BpmnCreateMenuProvider } from './BpmnElementMenuProvider';
 import { bpmnEntryHtml } from '../icons/BpmnIcons';
@@ -96,17 +96,14 @@ export class BpmnContextPadProvider {
         const meta = metas.find((m) => m.paletteGroup === 'activities' || m.paletteGroup === 'gateways' || m.paletteGroup === 'endEvents' || m.paletteGroup === 'subProcesses')
           ?? metas[0];
         if (!meta) continue;
-        entries[`append-${meta.label}`] = {
+        entries[`append-${metaId(meta)}`] = {
           group: 'append',
           html: bpmnEntryHtml(meta),
           title: `${this.i18n.t('追加')} ${this.i18n.t(meta.label)}`,
           action: {
             click: () => {
-              const shape = this.elementFactory.createShape({
-                type: meta.type,
-                eventSymbol: meta.eventSymbol,
-                isExpanded: meta.symbol === 'subProcessExpanded' ? true : meta.symbol === 'subProcessCollapsed' ? false : undefined
-              });
+              // 创建载荷统一走注册表 createAttrs（nonInterrupting/symbol 与弹框一致）
+              const shape = this.elementFactory.createShape(this.elementTypes.createAttrs(meta));
               this.autoPlace.append(element, shape, {
                 connection: { type: 'bpmn:SequenceFlow' }
               });
@@ -174,8 +171,8 @@ export class BpmnContextPadProvider {
     }
 
     // ---- 替换（可替换族）：pad 锚定（与追加/创建弹框同锚；切换钮重开亦用此锚） ----
-    const meta = this.replaceFamilyOf(element);
-    if (meta) {
+    // SubProcess 折叠/展开替换（同族同型不同尺寸）——可替换族直接查注册表
+    if (this.elementTypes.shapeMeta(type)?.replaceFamily) {
       entries['replace'] = {
         group: 'edit',
         html: toolEntryHtml('wrench'),
@@ -291,15 +288,5 @@ export class BpmnContextPadProvider {
   private isFlowNode(element: any): boolean {
     const t = element.businessObject?.$type;
     return !!t && (this.elementTypes.family(t) === 'event' || this.elementTypes.family(t) === 'activity' || this.elementTypes.family(t) === 'gateway');
-  }
-
-  private replaceFamilyOf(element: any): string | null {
-    const t = element.businessObject?.$type;
-    const meta = this.elementTypes.shapeMeta(t);
-    if (!meta?.replaceFamily) {
-      return null;
-    }
-    // SubProcess 折叠/展开替换（同族同型不同尺寸）
-    return meta.replaceFamily;
   }
 }

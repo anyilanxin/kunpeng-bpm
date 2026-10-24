@@ -34,17 +34,15 @@
  * 双列。修正公式：普通条目 ×46 + separator ×11 + 边距 50（沿用引擎语义
  * top 20 + toggle 10 + bottom 20）。
  *
- * 三信号与 BpmnPopup 贴靠引擎同构（真实浏览器 window resize / 支持
- * ResizeObserver 的环境 / 嵌入式 webview 两类事件都可能不派发时的轮询兜底）：
- * 签名比对通过才触发，轮询仅两次整数比较的量级。触发走公共 API
- * `canvas.resized()`（顺带失效 viewbox 缓存，语义即"容器变了"）。
+ * 三信号监听与 BpmnPopup 贴靠共用 util/Dom.observeBox（真实浏览器 window
+ * resize / 支持 ResizeObserver 的环境 / 嵌入式 webview 两类事件都可能不派发
+ * 时的轮询兜底）：签名比对通过才触发，轮询仅两次整数比较的量级。触发走公共
+ * API `canvas.resized()`（顺带失效 viewbox 缓存，语义即"容器变了"）。
  */
 import type EventBus from 'diagram-js/lib/core/EventBus';
 import type Canvas from 'diagram-js/lib/core/Canvas';
 import type Palette from 'diagram-js/lib/features/palette/Palette';
-
-/** 轮询间隔：150ms 与 BpmnPopup 贴靠引擎一致（肉眼无感、开销可忽略） */
-const POLL_MS = 150;
+import { observeBox } from '../util/Dom';
 
 /** 普通条目行高（引擎 CSS 契约） */
 const ENTRY_H = 46;
@@ -82,16 +80,10 @@ export class BpmnPaletteLayout {
       canvas.resized();
     };
 
-    window.addEventListener('resize', check);
-    const observer = new ResizeObserver(check);
-    observer.observe(container);
-    const timer = window.setInterval(check, POLL_MS);
+    // 三信号监听（窗口 resize / 容器 ResizeObserver / 轮询兜底）统一走 observeBox
+    const stopObserve = observeBox(container, check);
 
-    eventBus.on('diagram.destroy', () => {
-      window.removeEventListener('resize', check);
-      observer.disconnect();
-      window.clearInterval(timer);
-    });
+    eventBus.on('diagram.destroy', stopObserve);
 
     check();
   }

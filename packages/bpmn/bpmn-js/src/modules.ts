@@ -97,7 +97,7 @@ import { BpmnPaletteProvider } from './provider/BpmnPaletteProvider';
 import { BpmnContextPadProvider } from './provider/BpmnContextPadProvider';
 import { BpmnPopup } from './provider/BpmnPopup';
 import { BpmnPaletteLayout } from './provider/BpmnPaletteLayout';
-import { BpmnReplaceMenuProvider, ReplaceMenuWiring } from './provider/BpmnReplaceMenuProvider';
+import { BpmnReplaceMenuProvider } from './provider/BpmnReplaceMenuProvider';
 import { BpmnAlignMenuProvider } from './provider/BpmnAlignMenuProvider';
 import { BpmnAppendMenuProvider, BpmnCreateMenuProvider } from './provider/BpmnElementMenuProvider';
 import { BpmnOutlineProvider } from './provider/BpmnOutlineProvider';
@@ -230,13 +230,12 @@ export const BpmnBehaviorModule: ModuleDeclaration = {
 
 /** 面板与菜单 Provider */
 export const BpmnInteractionModule: ModuleDeclaration = {
-  __init__: ['paletteProvider', 'contextPadProvider', 'popupMenuProvider', 'replaceMenuWiring', 'bpmnAlignMenuProvider', 'bpmnAppendMenuProvider', 'bpmnCreateMenuProvider', 'bpmnOutlineProvider', 'bpmnPaletteLayout'],
+  __init__: ['paletteProvider', 'contextPadProvider', 'popupMenuProvider', 'bpmnAlignMenuProvider', 'bpmnAppendMenuProvider', 'bpmnCreateMenuProvider', 'bpmnOutlineProvider', 'bpmnPaletteLayout'],
   'bpmnPopup': ['type', BpmnPopup],
   'bpmnPaletteLayout': ['type', BpmnPaletteLayout],
   'paletteProvider': ['type', BpmnPaletteProvider],
   'contextPadProvider': ['type', BpmnContextPadProvider],
   'popupMenuProvider': ['type', BpmnReplaceMenuProvider],
-  'replaceMenuWiring': ['type', ReplaceMenuWiring],
   'bpmnAlignMenuProvider': ['type', BpmnAlignMenuProvider],
   'bpmnAppendMenuProvider': ['type', BpmnAppendMenuProvider],
   'bpmnCreateMenuProvider': ['type', BpmnCreateMenuProvider],

@@ -168,14 +168,9 @@ export class BpmnPaletteProvider {
 
   private newShape(meta: any): any {
     // 折叠子流程的任务盒尺寸不在此补偿：isExpanded:false 已随 attrs 传入，
-    // BpmnElementFactory.defaultSize 感知该属性统一给形（单一事实源）
-    return this.elementFactory.createShape({
-      type: meta.type,
-      eventSymbol: meta.eventSymbol,
-      nonInterrupting: meta.nonInterrupting || undefined,
-      symbol: meta.symbol,
-      isExpanded: meta.symbol === 'subProcessExpanded' || meta.symbol === 'subProcessEvent' ? true : meta.symbol === 'subProcessCollapsed' ? false : undefined
-    });
+    // BpmnElementFactory.defaultSize 感知该属性统一给形（单一事实源）；
+    // 载荷字段集统一走注册表 createAttrs
+    return this.elementFactory.createShape(this.elementTypes.createAttrs(meta));
   }
 
   private startCreate(event: any, meta: any): void {
