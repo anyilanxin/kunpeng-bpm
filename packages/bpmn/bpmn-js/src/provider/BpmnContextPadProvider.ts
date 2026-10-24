@@ -36,11 +36,11 @@ import { BpmnPopup } from './BpmnPopup';
 import type { BpmnMode } from '../mode/BpmnMode';
 
 const APPENDABLE_BY_FAMILY: Record<string, string[]> = {
-  // 快捷集各族只留一个普通网关（排他）：并行/包含等变体经替换菜单由用户
-  // 自行切换——组件不预设"并行网关有分必有合"的成对语义，开合由用户定义
-  event: ['bpmn:Task', 'bpmn:ExclusiveGateway', 'bpmn:EndEvent'],
-  activity: ['bpmn:Task', 'bpmn:ExclusiveGateway', 'bpmn:EndEvent', 'bpmn:SubProcess'],
-  gateway: ['bpmn:Task', 'bpmn:ExclusiveGateway', 'bpmn:EndEvent']
+  // 快捷追加序：结束 → 网关 → 任务 → 中间事件（活动族尾随子流程）——收束/
+  // 分叉等常用元素靠前；各族只留一个普通网关（排他），变体经替换菜单切换
+  event: ['bpmn:EndEvent', 'bpmn:ExclusiveGateway', 'bpmn:Task', 'bpmn:IntermediateThrowEvent'],
+  activity: ['bpmn:EndEvent', 'bpmn:ExclusiveGateway', 'bpmn:Task', 'bpmn:IntermediateThrowEvent', 'bpmn:SubProcess'],
+  gateway: ['bpmn:EndEvent', 'bpmn:ExclusiveGateway', 'bpmn:Task', 'bpmn:IntermediateThrowEvent']
 };
 
 export class BpmnContextPadProvider {
@@ -92,19 +92,27 @@ export class BpmnContextPadProvider {
     const type = bo.$type;
     const entries: Record<string, any> = {};
 
-    // ---- 追加族（流节点） ----
-    if (this.isFlowNode(element) && type !== 'bpmn:EndEvent' && type !== 'bpmn:BoundaryEvent') {
+    // ---- 追加族（流节点；快捷追加序见 APPENDABLE_BY_FAMILY） ----
+    const appendableFlowNode = this.isFlowNode(element) && type !== 'bpmn:EndEvent' && type !== 'bpmn:BoundaryEvent';
+    if (appendableFlowNode) {
       const family = this.elementTypes.family(type);
       const appendTargets = APPENDABLE_BY_FAMILY[family ?? ''] ?? ['bpmn:Task'];
       for (const targetType of appendTargets) {
         const metas = this.elementTypes.paletteShapeEntries().filter((m) => m.type === targetType);
-        const meta = metas.find((m) => m.paletteGroup === 'activities' || m.paletteGroup === 'gateways' || m.paletteGroup === 'endEvents' || m.paletteGroup === 'subProcesses')
-          ?? metas[0];
+        // 中间事件取无符号的普通款（追加总是独立中间事件，符号变体走替换/弹框）
+        const meta = metas.find((m) =>
+          (m.paletteGroup === 'activities' || m.paletteGroup === 'gateways' || m.paletteGroup === 'endEvents'
+            || m.paletteGroup === 'subProcesses' || m.paletteGroup === 'intermediateThrow')
+          && (targetType !== 'bpmn:IntermediateThrowEvent' || !m.eventSymbol)
+        ) ?? metas[0];
         if (!meta) continue;
+        const appendTitle = targetType === 'bpmn:IntermediateThrowEvent'
+          ? this.i18n.t('追加 中间事件')
+          : `${this.i18n.t('追加')} ${this.i18n.t(meta.label)}`;
         entries[`append-${metaId(meta)}`] = {
           group: 'append',
           html: bpmnEntryHtml(meta),
-          title: `${this.i18n.t('追加')} ${this.i18n.t(meta.label)}`,
+          title: appendTitle,
           action: {
             click: () => {
               // 创建载荷统一走注册表 createAttrs（nonInterrupting/symbol 与弹框一致）
@@ -124,54 +132,13 @@ export class BpmnContextPadProvider {
           }
         };
       }
-      // ---- "…"：全量追加弹框（快捷追加之外的全部可追加类型） ----
-      if (!this.popupMenu.isEmpty(element, BpmnAppendMenuProvider.MENU_ID)) {
-        entries['append-more'] = {
-          group: 'append',
-          html: toolEntryHtml('more'),
-          title: this.i18n.t('追加更多元素'),
-          action: {
-            click: () => this.openElementMenu(element, BpmnAppendMenuProvider.MENU_ID, '追加元素')
-          }
-        };
-      }
     }
 
-    // ---- "+"：容器内创建弹框（池/泳道/展开子流程） ----
-    if (isContainerType(type, element.isExpanded) && !this.popupMenu.isEmpty(element, BpmnCreateMenuProvider.MENU_ID)) {
-      entries['create-inside'] = {
-        group: 'edit',
-        html: toolEntryHtml('plus'),
-        title: this.i18n.t('创建元素'),
-        action: {
-          click: () => this.openElementMenu(element, BpmnCreateMenuProvider.MENU_ID, '创建元素')
-        }
-      };
-    }
-
-    // ---- 连线（流节点/池） ----
-    if (this.isFlowNode(element) || type === 'bpmn:Participant') {
-      entries['connect'] = {
-        group: 'connect',
-        html: toolEntryHtml('connect'),
-        title: this.i18n.t('连线'),
-        action: {
-          click: (event: any) => {
-            const mid = {
-              x: element.x + element.width / 2,
-              y: element.y + element.height / 2
-            };
-            this.connect.start(event, element, mid, true);
-          }
-        }
-      };
-    }
-
-    // ---- 文本注释（任意形状元素可注；注记放元素上方，经 Association 关联） ----
+    // ---- 文本注释（任意形状元素可注；注记放元素斜角位，经 Association 关联） ----
     if (!element.waypoints && !element.labelTarget && type !== 'bpmn:TextAnnotation') {
       const annotationMeta = this.elementTypes.shapeMeta('bpmn:TextAnnotation')!;
       entries['annotate'] = {
-        group: 'connect',
+        group: 'append',
         html: bpmnEntryHtml(annotationMeta),
         title: this.i18n.t('添加文本注释'),
         action: {
@@ -187,6 +154,33 @@ export class BpmnContextPadProvider {
         }
       };
     }
+
+    // ---- "…"：全量追加弹框（快捷追加之外的全部可追加类型） ----
+    if (appendableFlowNode && !this.popupMenu.isEmpty(element, BpmnAppendMenuProvider.MENU_ID)) {
+      entries['append-more'] = {
+        group: 'append',
+        html: toolEntryHtml('more'),
+        title: this.i18n.t('追加更多元素'),
+        action: {
+          click: () => this.openElementMenu(element, BpmnAppendMenuProvider.MENU_ID, '追加元素')
+        }
+      };
+    }
+
+    // ---- "+"：容器内创建弹框（池/泳道/展开子流程） ----
+    if (isContainerType(type, element.isExpanded) && !this.popupMenu.isEmpty(element, BpmnCreateMenuProvider.MENU_ID)) {
+      entries['create-inside'] = {
+        group: 'edit',
+        html: toolEntryHtml('plus'),
+        title: this.i18n.t('创建元素'),
+        action: {
+          click: () => this.openElementMenu(element, BpmnCreateMenuProvider.MENU_ID, '创建元素')
+        }
+      };
+    }
+
+    // ---- 文本注释（任意形状元素可注；注记放元素上方，经 Association 关联） ----
+    // （已随快捷追加序上移至追加族之后，见上方 annotate 块）
 
     // ---- 替换（可替换族）：pad 锚定（与追加/创建弹框同锚；切换钮重开亦用此锚） ----
     // SubProcess 折叠/展开替换（同族同型不同尺寸）——可替换族直接查注册表
@@ -262,6 +256,24 @@ export class BpmnContextPadProvider {
         click: () => this.modeling.removeElements([element])
       }
     };
+
+    // ---- 连线（流节点/池；收尾位——手动连线是低频兜底入口，靠后不抢焦点） ----
+    if (this.isFlowNode(element) || type === 'bpmn:Participant') {
+      entries['connect'] = {
+        group: 'connect',
+        html: toolEntryHtml('connect'),
+        title: this.i18n.t('连线'),
+        action: {
+          click: (event: any) => {
+            const mid = {
+              x: element.x + element.width / 2,
+              y: element.y + element.height / 2
+            };
+            this.connect.start(event, element, mid, true);
+          }
+        }
+      };
+    }
 
     return entries;
   }
