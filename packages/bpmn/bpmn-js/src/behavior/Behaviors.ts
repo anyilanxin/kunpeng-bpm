@@ -348,6 +348,18 @@ export class CollaborationBehavior extends CommandInterceptor {
         this.modeling.moveShape(label, { x: 0, y: 0 }, pool);
       }
     }
+    // 连线跟随入池：源/目标均被收编的连线一并归池——滞留协作根上渲染序
+    // 在池之下，会被不透明池体遮住不可见；连线标签随连线归池
+    const adopted = new Set(loose);
+    const conns = (root.children ?? []).filter(
+      (c: any) => c.waypoints && adopted.has(c.source) && adopted.has(c.target)
+    );
+    for (const conn of conns) {
+      this.modeling.moveConnection(conn, { x: 0, y: 0 }, pool);
+      for (const label of conn.labels ?? []) {
+        this.modeling.moveShape(label, { x: 0, y: 0 }, pool);
+      }
+    }
   }
 }
 
