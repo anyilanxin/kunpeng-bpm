@@ -36,10 +36,10 @@ import { BpmnPopup } from './BpmnPopup';
 import type { BpmnMode } from '../mode/BpmnMode';
 
 const APPENDABLE_BY_FAMILY: Record<string, string[]> = {
-  // 快捷追加序：结束 → 网关 → 任务 → 中间事件（活动族尾随子流程）——收束/
-  // 分叉等常用元素靠前；各族只留一个普通网关（排他），变体经替换菜单切换
+  // 快捷追加序：结束 → 网关 → 任务 → 中间事件——收束/分叉等常用元素靠前；
+  // 各族只留一个普通网关（排他），子流程等其余类型走"追加更多元素"弹框
   event: ['bpmn:EndEvent', 'bpmn:ExclusiveGateway', 'bpmn:Task', 'bpmn:IntermediateThrowEvent'],
-  activity: ['bpmn:EndEvent', 'bpmn:ExclusiveGateway', 'bpmn:Task', 'bpmn:IntermediateThrowEvent', 'bpmn:SubProcess'],
+  activity: ['bpmn:EndEvent', 'bpmn:ExclusiveGateway', 'bpmn:Task', 'bpmn:IntermediateThrowEvent'],
   gateway: ['bpmn:EndEvent', 'bpmn:ExclusiveGateway', 'bpmn:Task', 'bpmn:IntermediateThrowEvent']
 };
 
