@@ -70,6 +70,13 @@
   margin: 0; /* 引擎 0 2px 2px 0 外距让位 flex gap */
 }
 
+/* 底色与 palette 同面：引擎默认条目底/白晕取 --bio-surface（纯白），在
+   点阵画布与浅灰面板（--bio-surface-subtle）之间偏白扎眼，暗色下同理
+   偏亮一档——对齐面板同面后令牌级联动（白晕阴影同变量，暗色随宿主令牌） */
+.djs-parent {
+  --context-pad-entry-background-color: var(--bio-surface-subtle);
+}
+
 /* 预览模式（BpmnMode）：隐藏元素面板与上下文面板——只读预览模型。
  * 规则层（BpmnRules）同步否决全部编辑动作，此为 UI 防线而非唯一防线。 */
 .djs-container.bpmn-preview-mode .djs-palette,
