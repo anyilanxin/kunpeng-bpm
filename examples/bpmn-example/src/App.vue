@@ -144,7 +144,7 @@ function createInstance(formKind: 'edit' | 'navigated' | 'view'): Modeler {
       additionalModules: editorModules(),
       propertiesPanel: { parent: panelHost.value! },
       // 面板头部记法图标注入内核透出的 iconOfElement：画布/palette/面板三处同源
-      bpmnElementIconRenderer: (element: any) => iconOfElement(element, 32),
+      bpmnElementIconRenderer: (element: any) => iconOfElement(element, 32, 'currentColor'),
       colorPicker: { colors: CUSTOM_COLOR_PICKER_COLORS }
     });
   }
@@ -544,6 +544,12 @@ console.info(
   color-scheme: dark;
   --x-surface: #212124;
   --x-border: #3a3a40;
+}
+
+/* 注入记法图标的白色内底（事件圆/任务盒 fill="#ffffff"）换为面板表面色——
+   双色缩样在暗色下才可读（描边经 currentColor 已随图标令牌翻转） */
+.dark .bio-properties-panel-header-type-icon svg [fill='#ffffff'] {
+  fill: hsl(228, 6%, 13%);
 }
 
 /* 面板令牌覆盖在消费根（.bio-properties-panel）上，与默认宿主位置无关 */
