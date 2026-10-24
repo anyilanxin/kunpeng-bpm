@@ -23,6 +23,8 @@
  * 对齐 / 分布图标（自绘 18 网格 SVG）：圆头轴线 + 描边"固定框" + 半透明"移动框"，
  * 分布方向用括号取代轴线。context pad 触发图标与弹框菜单条目共用一套。
  */
+import { svgShell, entryShell } from './shell';
+
 const STROKE = 'fill="none" stroke="currentColor" stroke-width="1.5"';
 
 const axisV = (x: number) => `<path d="M${x},1.5 V16.5" ${STROKE} stroke-linecap="round"/>`;
@@ -49,10 +51,10 @@ const ICON_BODIES: Record<string, string> = {
 
 /** 独立 SVG 字符串（弹框菜单条目 imageHtml 用） */
 export function alignIconHtml(name: string, size = 20): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 18 18" aria-hidden="true">${ICON_BODIES[name] ?? ''}</svg>`;
+  return svgShell(ICON_BODIES[name] ?? '', 18, size);
 }
 
 /** context pad 自定义条目 html（裸 SVG 收不到交互，必须包标准 .entry 外壳） */
 export function alignPadEntryHtml(): string {
-  return `<div class="entry" draggable="true">${alignIconHtml('align', 18)}</div>`;
+  return entryShell(alignIconHtml('align', 18));
 }

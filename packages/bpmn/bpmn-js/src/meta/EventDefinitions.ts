@@ -74,6 +74,21 @@ function invert(map: Record<string, string>): Record<string, string> {
 
 export const EventDefinitions = {
   /**
+   * 非中断形态推导（单一来源；画布 drawEvent 与面板 iconOfElement 共消费）：
+   * 边界事件 cancelActivity=false / 事件子流程开始事件 isInterrupting=false
+   * （规范 §10.5.2 / Table 10.86），其余事件恒为中断形态。
+   */
+  nonInterruptingOf(event: { $type: string; cancelActivity?: boolean; isInterrupting?: boolean }): boolean {
+    if (event.$type === 'bpmn:BoundaryEvent') {
+      return event.cancelActivity === false;
+    }
+    if (event.$type === 'bpmn:StartEvent') {
+      return event.isInterrupting === false;
+    }
+    return false;
+  },
+
+  /**
    * 取事件符号：单定义按 $type 映射；多定义（规范 §10.3.12 multiple）按
    * parallelMultiple 属性推导 parallelMultiple（开口加号），否则 multiple（五边形）。
    */

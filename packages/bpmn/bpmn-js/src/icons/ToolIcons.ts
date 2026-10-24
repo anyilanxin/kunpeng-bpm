@@ -29,6 +29,7 @@
  * 子流程折叠钮：盒内 +/-（规范折叠标记语义）。
  */
 import { iconSetAsset } from './IconSet';
+import { svgShell, entryShell } from './shell';
 
 const S = 'fill="none" stroke="currentColor" stroke-width="1.5"';
 
@@ -88,10 +89,10 @@ const ICON_BODIES: Record<string, string> = {
 export type ToolIconName = keyof typeof ICON_BODIES;
 
 export function toolIconHtml(name: ToolIconName, size = 18): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 18 18" aria-hidden="true">${ICON_BODIES[name]}</svg>`;
+  return svgShell(ICON_BODIES[name], 18, size);
 }
 
-/** palette / context pad 动作条目 html（裸 SVG 收不到交互，必须包标准 .entry 外壳） */
+/** palette / context pad 动作条目 html（外壳单一来源 icons/shell） */
 export function toolEntryHtml(name: ToolIconName, size = 18): string {
-  return `<div class="entry" draggable="true">${toolIconHtml(name, size)}</div>`;
+  return entryShell(toolIconHtml(name, size));
 }

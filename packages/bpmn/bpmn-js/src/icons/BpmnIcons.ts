@@ -46,6 +46,11 @@ import {
   drawAdHocMarker,
   drawLoopMarker,
   circle,
+  eventRingWeight,
+  gatewayMarkerOf,
+  isDoubleRingEvent,
+  loopMarkerAssetKey,
+  NON_INTERRUPTING_DASH,
   type LoopMarkerKind,
   type StyleTheme
 } from '../render/Symbols';
@@ -53,6 +58,7 @@ import { EventDefinitions } from '../meta/EventDefinitions';
 import { isEventFamily, isGatewayFamily } from '../meta/ElementTypes';
 import { loopKindOf, type LoopKind } from '../meta/LoopCharacteristics';
 import { iconSetSvg, type IconSetKey } from './IconSet';
+import { svgShell, entryShell } from './shell';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const ICON_STROKE = '#000000';
@@ -257,18 +263,12 @@ export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20): string {
 
   if (isEventFamily(t)) {
     parts.push(canvasGroup(EVENT_K, 38, 38, (g) => {
-      // 画布同款环重：开始/中间/边界 2，结束 4（规范 §10.2 线型）；中间·边界双环内圈 r-3
-      const thick = t === 'bpmn:EndEvent' ? 4 : 2;
-      const outer = circle(g, 19, 19, 19, stroke, '#ffffff', thick);
+      // 环重/双环/虚线笔型与画布 drawEvent 同源（Symbols 常量，单一事实源）
+      const outer = circle(g, 19, 19, 19, stroke, '#ffffff', eventRingWeight(t));
       if (meta.nonInterrupting) {
-        // 非中断（规范 §10.5）：外环虚线，与画布 drawEvent 同款 6:4
-        // （周期 10px 约 12 段，划隔比 1.5——过密的均匀虚线在常规缩放下
-        // 近似实线，中断/非中断无法区分）
-        outer.setAttribute('stroke-dasharray', '6 4');
+        outer.setAttribute('stroke-dasharray', NON_INTERRUPTING_DASH);
       }
-      if (
-        t === 'bpmn:IntermediateCatchEvent' || t === 'bpmn:IntermediateThrowEvent' || t === 'bpmn:BoundaryEvent'
-      ) {
+      if (isDoubleRingEvent(t)) {
         circle(g, 19, 19, 16, stroke, 'none', 2);
       }
       if (sym) {
@@ -280,10 +280,8 @@ export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20): string {
       // 画布同源 drawGatewayShape（闭合菱形，描边 2），标记占 0.72 半宽（drawGatewayMarker 同参）；
       // 未登记网关类型（如复杂网关）只画菱形不加标记——标记语义须类型明确，不默认顶替
       drawGatewayShape(g, 52, 52, theme);
-      const markerType = t === 'bpmn:ExclusiveGateway' ? 'exclusive'
-        : t === 'bpmn:ParallelGateway' ? 'parallel'
-        : t === 'bpmn:InclusiveGateway' ? 'inclusive'
-        : t === 'bpmn:EventBasedGateway' ? 'eventBased' : null;
+      // 标记映射单一来源（Symbols.gatewayMarkerOf，与画布同源；此前缺 complex/实例化变体）
+      const markerType = gatewayMarkerOf({ $type: t });
       if (markerType) {
         drawGatewayMarker(g, markerType, 26, 26, 26 * 0.72, theme);
       }
@@ -332,12 +330,12 @@ export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20): string {
     }));
   }
 
-  return `<svg xmlns="${SVG_NS}" viewBox="0 0 36 36" width="${size}" height="${size}" aria-hidden="true">${parts.join('')}</svg>`;
+  return svgShell(parts.join(''), 36, size);
 }
 
 /** palette / context pad 类型条目 html（裸 SVG 收不到交互，必须包标准 .entry 外壳） */
 export function bpmnEntryHtml(meta: BpmnIconMeta, size = 18): string {
-  return `<div class="entry" draggable="true">${bpmnIconHtml(meta, size)}</div>`;
+  return entryShell(bpmnIconHtml(meta, size));
 }
 
 /**
@@ -345,8 +343,7 @@ export function bpmnEntryHtml(meta: BpmnIconMeta, size = 18): string {
  * markerMiParallel / markerMiSequential），currentColor 随按钮态着色（active 高亮）。
  */
 export function loopMarkerIconHtml(kind: LoopMarkerKind, size = 16): string {
-  const key: IconSetKey = kind === 'loop' ? 'markerLoop' : kind === 'parallel' ? 'markerMiParallel' : 'markerMiSequential';
-  return iconSetSvg(key, size, 'currentColor');
+  return iconSetSvg(loopMarkerAssetKey(kind), size, 'currentColor');
 }
 
 /**
@@ -359,11 +356,7 @@ export function iconOfElement(element: any, size = 20): string {
   const meta: BpmnIconMeta = { type };
   if (isEventFamily(type)) {
     meta.eventSymbol = EventDefinitions.symbolOf(bo) || undefined;
-    // 非中断变体（边界 cancelActivity=false / 事件子流程开始 isInterrupting=false）
-    meta.nonInterrupting =
-      type === 'bpmn:BoundaryEvent' ? bo.cancelActivity === false
-        : type === 'bpmn:StartEvent' ? bo.isInterrupting === false
-          : false;
+    meta.nonInterrupting = EventDefinitions.nonInterruptingOf(bo);
   }
   if (type === 'bpmn:SubProcess') {
     meta.symbol = bo.triggeredByEvent

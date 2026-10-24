@@ -43,7 +43,13 @@ import {
   drawAnnotationBracket,
   drawTransactionBorder,
   drawActivityMarkerRow,
-  diamondPath
+  drawBox,
+  diamondPath,
+  eventRingWeight,
+  gatewayMarkerOf,
+  isDoubleRingEvent,
+  NON_INTERRUPTING_DASH,
+  type StyleTheme
 } from './Symbols';
 import { loopKindOf } from '../meta/LoopCharacteristics';
 import {
@@ -52,6 +58,9 @@ import {
   INTERNAL_FONT
 } from '../label/LabelGeometry';
 import { SIZES, isEventFamily, isGatewayFamily } from '../meta/ElementTypes';
+
+/** 形状绘制策略：(visuals, shape, theme) → 画布局部坐标绘制 */
+type ShapePainter = (visuals: SVGElement, shape: any, theme: StyleTheme) => void;
 
 export interface BpmnRendererConfig {
   defaultStrokeColor?: string;
@@ -123,19 +132,47 @@ export class BpmnRenderer extends BaseRenderer {
   ) {
     super(eventBus, 2);
     this.config = { ...DEFAULT_CONFIG, ...rendererConfig };
+    this.defaultTheme = Object.freeze({
+      stroke: this.config.defaultStrokeColor,
+      fill: this.config.defaultFillColor,
+      labelColor: this.config.labelColor
+    });
   }
 
   private config: Required<BpmnRendererConfig>;
 
-  /** 元素级主题：bioc 颜色（element.colors，DI 扩展往返）优先于全局缺省 */
-  private themeFor(element: any) {
+  /**
+   * 精确 $type → 绘制策略（策略表，构造期一次建表）：drawShape 分发 O(1)，
+   * 替代原 switch(true) 顺序落斗（任务族最坏 ~12 次比较）。事件/网关两族
+   * $type 变体多，走族谓词兜底；任务族为缺省策略。
+   */
+  private readonly paintersByType = new Map<string, ShapePainter>([
+    ['bpmn:Participant', (v, s, t) => this.drawParticipant(v, s, t)],
+    ['bpmn:Lane', (v, s, t) => this.drawLane(v, s, t)],
+    ['bpmn:SubProcess', (v, s, t) => this.drawSubProcess(v, s, t)],
+    ['bpmn:Transaction', (v, s, t) => this.paintTransaction(v, s, t)],
+    ['bpmn:AdHocSubProcess', (v, s, t) => this.paintAdHoc(v, s, t)],
+    ['bpmn:CallActivity', (v, s, t) => this.paintCallActivity(v, s, t)],
+    ['bpmn:DataObjectReference', (v, s, t) => drawDataObjectShape(v, s, t)],
+    ['bpmn:DataStoreReference', (v, s, t) => drawDataStoreShape(v, s, t)],
+    [
+      'bpmn:TextAnnotation',
+      (v, s, t) => {
+        drawAnnotationBracket(v, s, t);
+        this.drawAnnotationText(v, s);
+      }
+    ],
+    ['bpmn:Group', (v, s, t) => this.drawGroup(v, s, t)]
+  ]);
+
+  /** 元素级主题：bioc 颜色（element.colors，DI 扩展往返）优先于全局缺省；
+   * 无元素色返回冻结缺省（热路径零分配）。构造器内赋值（依赖 config 先就位） */
+  private readonly defaultTheme: Readonly<StyleTheme>;
+
+  private themeFor(element: any): Readonly<StyleTheme> {
     const colors = element?.colors;
     if (!colors?.fill && !colors?.stroke) {
-      return {
-        stroke: this.config.defaultStrokeColor,
-        fill: this.config.defaultFillColor,
-        labelColor: this.config.labelColor
-      };
+      return this.defaultTheme;
     }
     return {
       stroke: colors.stroke ?? this.config.defaultStrokeColor,
@@ -155,97 +192,89 @@ export class BpmnRenderer extends BaseRenderer {
       this.drawLabel(visuals, shape);
       return visuals;
     }
-    const bo = shape.businessObject;
-    const type = bo.$type;
+    const type = shape.businessObject.$type;
     const theme = this.themeFor(shape);
-
-    switch (true) {
-      case isEventFamily(type):
-        this.drawEvent(visuals, shape, theme);
-        break;
-      case isGatewayFamily(type):
-        this.drawGateway(visuals, shape, theme);
-        break;
-      case type === 'bpmn:Participant':
-        this.drawParticipant(visuals, shape, theme);
-        break;
-      case type === 'bpmn:Lane':
-        this.drawLane(visuals, shape, theme);
-        break;
-      case type === 'bpmn:SubProcess':
-        this.drawSubProcess(visuals, shape, theme);
-        break;
-      case type === 'bpmn:Transaction':
-        // 事务子流程（规范 §10.5.6）：双线边框；标记行（补偿/循环）同活动族
-        drawTransactionBorder(visuals, shape, theme);
-        drawActivityMarkerRow(visuals, shape, {
-          loop: loopKindOf(bo) ?? undefined,
-          compensation: bo.forCompensation === true
-        }, theme);
-        this.drawInternalLabel(visuals, shape, 'top');
-        break;
-      case type === 'bpmn:AdHocSubProcess':
-        // Ad-hoc 子流程（规范 §10.5.5）：普通圆角盒 + 底部波浪号标记
-        this.drawRoundedBox(visuals, shape, theme, 2);
-        drawActivityMarkerRow(visuals, shape, {
-          loop: loopKindOf(bo) ?? undefined,
-          compensation: bo.forCompensation === true,
-          adHoc: true
-        }, theme);
-        this.drawInternalLabel(visuals, shape, 'top');
-        break;
-      case type === 'bpmn:CallActivity':
-        // 规范 §10.2.3：调用活动=加粗边框（取 4：与结束事件粗环同重，边框即"调用"语义）
-        this.drawRoundedBox(visuals, shape, theme, 4);
-        drawActivityMarkerRow(visuals, shape, {
-          loop: loopKindOf(bo) ?? undefined,
-          compensation: bo.forCompensation === true
-        }, theme);
-        this.drawInternalLabel(visuals, shape);
-        break;
-      case type === 'bpmn:DataObjectReference':
-        drawDataObjectShape(visuals, shape, theme);
-        break;
-      case type === 'bpmn:DataStoreReference':
-        drawDataStoreShape(visuals, shape, theme);
-        break;
-      case type === 'bpmn:TextAnnotation':
-        drawAnnotationBracket(visuals, shape, theme);
-        this.drawAnnotationText(visuals, shape);
-        break;
-      case type === 'bpmn:Group':
-        this.drawGroup(visuals, shape, theme);
-        break;
-      default:
-        // 任务族
-        this.drawRoundedBox(visuals, shape, theme, 2);
-        const meta = this.elementTypes.shapeMeta(type);
-        if (meta?.symbol) {
-          drawTaskMarker(visuals, meta.symbol, shape, theme);
-        }
-        drawActivityMarkerRow(visuals, shape, {
-          loop: loopKindOf(bo) ?? undefined,
-          compensation: bo.forCompensation === true
-        }, theme);
-        this.drawInternalLabel(visuals, shape);
-        break;
-    }
+    this.painterFor(type)(visuals, shape, theme);
     return visuals;
   }
 
+  /** 类型 → 绘制策略：精确表 O(1) → 事件/网关族兜底 → 任务族缺省 */
+  private painterFor(type: string): ShapePainter {
+    return (
+      this.paintersByType.get(type) ??
+      (isEventFamily(type)
+        ? (v, s, t) => this.drawEvent(v, s, t)
+        : isGatewayFamily(type)
+          ? (v, s, t) => this.drawGateway(v, s, t)
+          : (v, s, t) => this.paintTask(v, s, t))
+    );
+  }
+
+  /** 任务族：圆角盒 + 类型字标 + 标记行 + 形内标签 */
+  private paintTask(visuals: SVGElement, shape: any, theme: StyleTheme): void {
+    const bo = shape.businessObject;
+    this.drawRoundedBox(visuals, shape, theme, 2);
+    const meta = this.elementTypes.shapeMeta(bo.$type);
+    if (meta?.symbol) {
+      drawTaskMarker(visuals, meta.symbol, shape, theme);
+    }
+    this.paintActivityMarkers(visuals, shape, theme);
+    this.drawInternalLabel(visuals, shape);
+  }
+
+  /** 事务子流程（规范 §10.5.6）：双线边框；标记行（补偿/循环）同活动族 */
+  private paintTransaction(visuals: SVGElement, shape: any, theme: StyleTheme): void {
+    drawTransactionBorder(visuals, shape, theme);
+    this.paintActivityMarkers(visuals, shape, theme);
+    this.drawInternalLabel(visuals, shape, 'top');
+  }
+
+  /** Ad-hoc 子流程（规范 §10.5.5）：普通圆角盒 + 底部波浪号标记 */
+  private paintAdHoc(visuals: SVGElement, shape: any, theme: StyleTheme): void {
+    this.drawRoundedBox(visuals, shape, theme, 2);
+    this.paintActivityMarkers(visuals, shape, theme, { adHoc: true });
+    this.drawInternalLabel(visuals, shape, 'top');
+  }
+
+  /** 调用活动（规范 §10.2.3）：加粗边框（取 4：与结束事件粗环同重，边框即"调用"语义） */
+  private paintCallActivity(visuals: SVGElement, shape: any, theme: StyleTheme): void {
+    this.drawRoundedBox(visuals, shape, theme, 4);
+    this.paintActivityMarkers(visuals, shape, theme);
+    this.drawInternalLabel(visuals, shape);
+  }
+
+  /** 活动底部标记行（循环特性 + 补偿）——任务/调用活动/事务/Ad-hoc 共用 */
+  private paintActivityMarkers(
+    visuals: SVGElement,
+    shape: any,
+    theme: StyleTheme,
+    extra: { adHoc?: boolean; collapsed?: boolean } = {}
+  ): void {
+    const bo = shape.businessObject;
+    drawActivityMarkerRow(visuals, shape, {
+      loop: loopKindOf(bo) ?? undefined,
+      compensation: bo.forCompensation === true,
+      ...extra
+    }, theme);
+  }
+
+  /** 连线线型样式表：dash 笔型按类型查表（公共属性在基线 attrs 统一给出） */
+  private static readonly CONNECTION_DASH: Record<string, string> = {
+    'bpmn:MessageFlow': '7 5',
+    'bpmn:Association': '1.5 4',
+    'bpmn:DataInputAssociation': '6 4',
+    'bpmn:DataOutputAssociation': '6 4'
+  };
+
   override drawConnection(visuals: SVGElement, connection: any): SVGElement {
     const bo = connection.businessObject;
-    const stroke = connection.colors?.stroke ?? this.config.defaultStrokeColor;
+    const stroke = this.themeFor(connection).stroke;
     const points = connection.waypoints;
     const last = points[points.length - 1];
     const prev = points[points.length - 2] ?? last;
 
     // 带末端箭头的类型：线段终点与箭头尖端一起后退（避开目标描边带）
-    const hasArrow =
-      bo.$type === 'bpmn:SequenceFlow' ||
-      bo.$type === 'bpmn:MessageFlow' ||
-      bo.$type === 'bpmn:DataInputAssociation' ||
-      bo.$type === 'bpmn:DataOutputAssociation';
+    const hasArrow = BpmnRenderer.ENDPOINT_DECORATORS.has(bo.$type);
     const angle = Math.atan2(last.y - prev.y, last.x - prev.x);
     const tip = hasArrow
       ? {
@@ -256,60 +285,65 @@ export class BpmnRenderer extends BaseRenderer {
     const linePoints = hasArrow ? [...points.slice(0, -1), tip] : points;
 
     const line = create('path');
-    const attrs: Record<string, string | number> = {
+    const dash = BpmnRenderer.CONNECTION_DASH[bo.$type];
+    attr(line, {
       d: roundedPath(linePoints, CORNER_RADIUS),
       fill: 'none',
       stroke,
       'stroke-width': 1.5,
       'stroke-linejoin': 'round',
-      'stroke-linecap': 'round'
-    };
-    switch (bo.$type) {
-      case 'bpmn:MessageFlow':
-        attrs['stroke-dasharray'] = '7 5';
-        break;
-      case 'bpmn:Association':
-        attrs['stroke-dasharray'] = '1.5 4';
-        attrs['stroke-linecap'] = 'round';
-        break;
-      case 'bpmn:DataInputAssociation':
-      case 'bpmn:DataOutputAssociation':
-        attrs['stroke-dasharray'] = '6 4';
-        break;
-      default:
-        break;
-    }
-    attr(line, attrs);
+      'stroke-linecap': 'round',
+      ...(dash ? { 'stroke-dasharray': dash } : {})
+    });
     append(visuals, line);
 
-    switch (bo.$type) {
-      case 'bpmn:MessageFlow':
-        this.appendOpenArrow(visuals, prev, tip, stroke);
-        this.appendSourceCircle(visuals, points[0], stroke);
-        break;
-      case 'bpmn:DataInputAssociation':
-      case 'bpmn:DataOutputAssociation':
-        this.appendOpenArrow(visuals, prev, tip, stroke);
-        break;
-      case 'bpmn:SequenceFlow':
-        this.appendFilledArrow(visuals, prev, tip, stroke);
+    const decorate = BpmnRenderer.endpointDecorators(bo);
+    if (decorate) {
+      decorate(this, visuals, { points, prev, tip, stroke, bo });
+    }
+    return visuals;
+  }
+
+  /** 连线端点装饰契约：各类型一个装饰器，策略表分发（无装饰的类型不进表） */
+  private static readonly ENDPOINT_DECORATORS: Map<string, (r: BpmnRenderer, g: SVGElement, ctx: {
+    points: any[]; prev: any; tip: any; stroke: string; bo: any;
+  }) => void> = new Map([
+    [
+      'bpmn:MessageFlow',
+      (r, g, { points, prev, tip, stroke }) => {
+        r.appendOpenArrow(g, prev, tip, stroke);
+        r.appendSourceCircle(g, points[0], stroke);
+      }
+    ],
+    [
+      'bpmn:DataInputAssociation',
+      (r, g, { prev, tip, stroke }) => r.appendOpenArrow(g, prev, tip, stroke)
+    ],
+    [
+      'bpmn:DataOutputAssociation',
+      (r, g, { prev, tip, stroke }) => r.appendOpenArrow(g, prev, tip, stroke)
+    ],
+    [
+      'bpmn:SequenceFlow',
+      (r, g, { points, tip, stroke, bo }) => {
+        r.appendFilledArrow(g, points[points.length - 2] ?? tip, tip, stroke);
         // 条件流菱形（规范 §10.5.1）：条件表达式存在且源非网关（网关出线本身
-        // 即条件分支语境，规范示例不加菱形）；默认流（斜杠）优先不叠加
+        // 即条件分支语境，规范示例不加菱形）；默认流（斜杠）优先不叠加。
         // 默认流判定：源元素 default 属性指向本流（XSD 契约；无独立标志位）
         const sourceDefault = bo.sourceRef?.default;
         const isDefaultFlow = sourceDefault === bo || sourceDefault?.id === bo.id;
         if (bo.conditionExpression && !isDefaultFlow && !isGatewayFamily(bo.sourceRef?.$type)) {
-          this.appendDiamondMarker(visuals, points[0], points[1] ?? points[0], stroke);
+          r.appendDiamondMarker(g, points[0], points[1] ?? points[0], stroke);
         }
         if (isDefaultFlow) {
-          this.appendSlashMarker(visuals, points[0], points[1] ?? points[0], stroke);
+          r.appendSlashMarker(g, points[0], points[1] ?? points[0], stroke);
         }
-        break;
-      default:
-        break;
-    }
+      }
+    ]
+  ]);
 
-    return visuals;
+  private static endpointDecorators(bo: any) {
+    return BpmnRenderer.ENDPOINT_DECORATORS.get(bo.$type) ?? null;
   }
 
   override getShapePath(shape: any): string {
@@ -349,36 +383,27 @@ export class BpmnRenderer extends BaseRenderer {
     const r = shape.width / 2;
     const type = bo.$type;
 
-    // 非中断（规范 §10.5.2/Table 10.86）：边界 cancelActivity=false、
-    // 事件子流程内开始 isInterrupting=false —— 外环虚线
-    const nonInterrupting =
-      type === 'bpmn:BoundaryEvent' ? bo.cancelActivity === false
-        : type === 'bpmn:StartEvent' ? bo.isInterrupting === false
-          : false;
+    // 非中断（规范 §10.5.2/Table 10.86）：外环虚线（推导单一来源，面板图标同源）
+    const nonInterrupting = EventDefinitions.nonInterruptingOf(bo);
 
     // 规范线型：开始=细单线；中间/边界=细双线；结束=粗单线。
-    // 非中断 dash=6/4（36px 外圈周长约 113px，周期 10px 得约 11 个划段——
-    // 处于人眼最易分辨的段数区间，划隔比 1.5 与分组虚线/数据关联线笔语言
-    // 一致；过密（如 3.5/3.5 约 16 段）在常规缩放下近似实线无法区分中断
-    // 形态——自有取值）
-    const strokeW = type === 'bpmn:EndEvent' ? 4 : 2;
+    // 非中断 dash 笔型见 Symbols.NON_INTERRUPTING_DASH 注释
     const circleEl = create('circle');
     attr(circleEl, {
-      cx, cy, r, fill: theme.fill, stroke: theme.stroke, 'stroke-width': strokeW,
-      ...(nonInterrupting ? { 'stroke-dasharray': '6 4' } : {})
+      cx, cy, r, fill: theme.fill, stroke: theme.stroke, 'stroke-width': eventRingWeight(type),
+      ...(nonInterrupting ? { 'stroke-dasharray': NON_INTERRUPTING_DASH } : {})
     });
     append(visuals, circleEl);
     // 中间/边界事件=双环（规范 §10.5.2），内环 r-4：等比图标库双环几何
     // （32 视窗外环带 [15.1,16.6]/内环带 [11.7,13.5]，映射 38px 事件即 r 与
     // r-4、缝约 2px）；非中断双环同为虚线（图标库非中断记法实测=两族各 7
     // 段虚线弧 r≈15.2/11.9，即"双虚线环"而非单虚线环）
-    const hasInner =
-      type === 'bpmn:IntermediateCatchEvent' || type === 'bpmn:IntermediateThrowEvent' || type === 'bpmn:BoundaryEvent';
+    const hasInner = isDoubleRingEvent(type);
     if (hasInner) {
       const inner = create('circle');
       attr(inner, {
         cx, cy, r: r - 4, fill: 'none', stroke: theme.stroke, 'stroke-width': 2,
-        ...(nonInterrupting ? { 'stroke-dasharray': '6 4' } : {})
+        ...(nonInterrupting ? { 'stroke-dasharray': NON_INTERRUPTING_DASH } : {})
       });
       append(visuals, inner);
     }
@@ -404,44 +429,21 @@ export class BpmnRenderer extends BaseRenderer {
     const hw = shape.width / 2;
     drawGatewayShape(visuals, shape.width, shape.height, theme);
 
-    let marker: string | null = null;
-    if (bo.$type === 'bpmn:ExclusiveGateway') {
-      marker = bo.isMarkerVisible === false ? null : 'exclusive';
-    } else if (bo.$type === 'bpmn:ParallelGateway') {
-      marker = 'parallel';
-    } else if (bo.$type === 'bpmn:InclusiveGateway') {
-      marker = 'inclusive';
-    } else if (bo.$type === 'bpmn:ComplexGateway') {
-      marker = 'complex';
-    } else if (bo.$type === 'bpmn:EventBasedGateway') {
-      // 实例化变体（规范 §10.6.6）：instantiate 标记=多实例开始事件（五边形）；
-      // eventGatewayType=Parallel 为并行事件网关（开口加号）
-      if (bo.instantiate === true) {
-        marker = bo.eventGatewayType === 'Parallel' ? 'eventBasedParallel' : 'eventBasedInstantiate';
-      } else {
-        marker = 'eventBased';
-      }
-    }
+    // 标记映射单一来源（Symbols.gatewayMarkerOf，面板图标同源；含实例化变体）
+    const marker = gatewayMarkerOf(bo);
     if (marker) {
       drawGatewayMarker(visuals, marker, cx, cy, hw * 0.72, theme);
     }
   }
 
+  /** 任务盒圆角 9（自有取值：≈高度的 1/9，接近规范示例比例） */
+  private static readonly TASK_BOX_RADIUS = 9;
+
   private drawRoundedBox(visuals: SVGElement, shape: any, theme: any, strokeWidth: number): void {
-    const radius = 9; // 自有取值：任务盒圆角 9 ≈ 高度的 1/9，接近规范示例比例
-    const rect = create('rect');
-    attr(rect, {
-      x: 0,
-      y: 0,
-      width: shape.width,
-      height: shape.height,
-      rx: radius,
-      ry: radius,
-      fill: theme.fill,
-      stroke: theme.stroke,
-      'stroke-width': strokeWidth
+    drawBox(visuals, 0, 0, shape.width, shape.height, theme, {
+      strokeWidth,
+      radius: BpmnRenderer.TASK_BOX_RADIUS
     });
-    append(visuals, rect);
   }
 
   private drawSubProcess(visuals: SVGElement, shape: any, theme: any): void {
@@ -449,14 +451,11 @@ export class BpmnRenderer extends BaseRenderer {
     const loopKind = loopKindOf(bo);
     if (bo.triggeredByEvent) {
       // 事件子流程（规范 §10.5.4）：虚线边框（短划风格同分组记法，自有取值 7:5）
-      const rect = create('rect');
-      attr(rect, {
-        x: 0, y: 0, width: shape.width, height: shape.height,
-        rx: 9, ry: 9,
-        fill: theme.fill, stroke: theme.stroke, 'stroke-width': 2,
-        'stroke-dasharray': '7 5'
+      drawBox(visuals, 0, 0, shape.width, shape.height, theme, {
+        strokeWidth: 2,
+        radius: BpmnRenderer.TASK_BOX_RADIUS,
+        dash: '7 5'
       });
-      append(visuals, rect);
     } else {
       this.drawRoundedBox(visuals, shape, theme, 2);
     }
@@ -470,26 +469,19 @@ export class BpmnRenderer extends BaseRenderer {
 
   private drawParticipant(visuals: SVGElement, shape: any, theme: any): void {
     const horizontal = this.orientationService.isHorizontal();
-    const rect = create('rect');
-    attr(rect, {
-      x: 0,
-      y: 0,
-      width: shape.width,
-      height: shape.height,
-      // 池体实底：内容区遮住画布网格（与业界设计器一致，头带同色靠分隔线区分）
-      fill: theme.fill,
-      stroke: theme.stroke,
-      'stroke-width': 2
-    });
-    append(visuals, rect);
+    // 池体实底：内容区遮住画布网格（与业界设计器一致，头带同色靠分隔线区分）
+    drawBox(visuals, 0, 0, shape.width, shape.height, theme, { strokeWidth: 2 });
 
     // 头带（规范：池标签带；水平池=左端竖带，垂直池=顶端横带）
-    const band = create('rect');
-    attr(band, horizontal
-      ? { x: 0, y: 0, width: SIZES.POOL_HEADER, height: shape.height }
-      : { x: 0, y: 0, width: shape.width, height: SIZES.POOL_HEADER });
-    attr(band, { fill: theme.fill, stroke: theme.stroke, 'stroke-width': 2 });
-    append(visuals, band);
+    drawBox(
+      visuals,
+      0,
+      0,
+      horizontal ? SIZES.POOL_HEADER : shape.width,
+      horizontal ? shape.height : SIZES.POOL_HEADER,
+      theme,
+      { strokeWidth: 2 }
+    );
 
     if (horizontal) {
       this.drawRotatedLabel(visuals, shape, SIZES.POOL_HEADER);
@@ -500,18 +492,8 @@ export class BpmnRenderer extends BaseRenderer {
   }
 
   private drawLane(visuals: SVGElement, shape: any, theme: any): void {
-    const rect = create('rect');
-    attr(rect, {
-      x: 0,
-      y: 0,
-      width: shape.width,
-      height: shape.height,
-      // 道体实底（同池体）：内容区不透网格，色板着色时道体随之变色
-      fill: theme.fill,
-      stroke: theme.stroke,
-      'stroke-width': 1.5
-    });
-    append(visuals, rect);
+    // 道体实底（同池体）：内容区不透网格，色板着色时道体随之变色
+    drawBox(visuals, 0, 0, shape.width, shape.height, theme, { strokeWidth: 1.5 });
     if (this.orientationService.isHorizontal()) {
       this.drawRotatedLabel(visuals, shape, 28);
     } else {
@@ -521,20 +503,12 @@ export class BpmnRenderer extends BaseRenderer {
   }
 
   private drawGroup(visuals: SVGElement, shape: any, theme: any): void {
-    const rect = create('rect');
-    attr(rect, {
-      x: 0,
-      y: 0,
-      width: shape.width,
-      height: shape.height,
-      rx: 8,
-      ry: 8,
-      fill: 'none',
-      stroke: theme.stroke,
-      'stroke-width': 2,
-      'stroke-dasharray': '7 5'
+    drawBox(visuals, 0, 0, shape.width, shape.height, theme, {
+      strokeWidth: 2,
+      radius: 8,
+      dash: '7 5',
+      hollow: true
     });
-    append(visuals, rect);
   }
 
   // ---------------- 标签 ----------------
@@ -613,12 +587,19 @@ export class BpmnRenderer extends BaseRenderer {
 
   // ---------------- 连线端点装饰 ----------------
 
-  private appendFilledArrow(visuals: SVGElement, from: any, to: any, stroke: string): void {
+  /** 箭头两翼端点（from→to 方向；实心/开口两种箭头共用同一翼几何） */
+  private static arrowWingTips(from: any, to: any): { p1: { x: number; y: number }; p2: { x: number; y: number } } {
     const angle = Math.atan2(to.y - from.y, to.x - from.x);
     const a1 = angle + Math.PI - ARROW_HALF_ANGLE;
     const a2 = angle + Math.PI + ARROW_HALF_ANGLE;
-    const p1 = { x: to.x + ARROW_W * Math.cos(a1), y: to.y + ARROW_W * Math.sin(a1) };
-    const p2 = { x: to.x + ARROW_W * Math.cos(a2), y: to.y + ARROW_W * Math.sin(a2) };
+    return {
+      p1: { x: to.x + ARROW_W * Math.cos(a1), y: to.y + ARROW_W * Math.sin(a1) },
+      p2: { x: to.x + ARROW_W * Math.cos(a2), y: to.y + ARROW_W * Math.sin(a2) }
+    };
+  }
+
+  private appendFilledArrow(visuals: SVGElement, from: any, to: any, stroke: string): void {
+    const { p1, p2 } = BpmnRenderer.arrowWingTips(from, to);
     const arrow = create('path');
     attr(arrow, {
       d: `M${to.x},${to.y} L${p1.x},${p1.y} L${p2.x},${p2.y} Z`,
@@ -633,11 +614,7 @@ export class BpmnRenderer extends BaseRenderer {
   }
 
   private appendOpenArrow(visuals: SVGElement, from: any, to: any, stroke: string): void {
-    const angle = Math.atan2(to.y - from.y, to.x - from.x);
-    const a1 = angle + Math.PI - ARROW_HALF_ANGLE;
-    const a2 = angle + Math.PI + ARROW_HALF_ANGLE;
-    const p1 = { x: to.x + ARROW_W * Math.cos(a1), y: to.y + ARROW_W * Math.sin(a1) };
-    const p2 = { x: to.x + ARROW_W * Math.cos(a2), y: to.y + ARROW_W * Math.sin(a2) };
+    const { p1, p2 } = BpmnRenderer.arrowWingTips(from, to);
     const arrow = create('path');
     attr(arrow, {
       d: `M${p1.x},${p1.y} L${to.x},${to.y} L${p2.x},${p2.y}`,
