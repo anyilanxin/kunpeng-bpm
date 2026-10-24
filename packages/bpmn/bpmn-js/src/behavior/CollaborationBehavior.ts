@@ -113,8 +113,11 @@ export class CollaborationBehavior extends CommandInterceptor {
       return;
     }
     this.modeling.resizeShape(pool, bounds);
+    // 零位移换父：几何不变，连线必须原样保留——diagram-js MoveShapeHandler
+    // 默认对被移元素的每条进出连线调 layoutConnection（收养时每条线被源/目标
+    // 各重排一次），拖拽后的移动路径形态会被双重 repair+snap 收敛成畸形多折线
     for (const el of loose) {
-      this.modeling.moveShape(el, { x: 0, y: 0 }, pool);
+      this.modeling.moveShape(el, { x: 0, y: 0 }, pool, undefined, { layout: false });
       // 外部标签是独立画布元素，moveShape 不自动跟随换父（位置不变，仅归池）
       for (const label of el.labels ?? []) {
         this.modeling.moveShape(label, { x: 0, y: 0 }, pool);
