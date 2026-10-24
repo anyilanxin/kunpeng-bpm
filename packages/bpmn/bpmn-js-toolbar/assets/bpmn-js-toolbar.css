@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2026 anyilanxin zxh (anyilanxin@aliyun.com). All rights reserved.
+ * Copyright (c) 2026 anyilanxin zxh (aliyun@aliyun.com). All rights reserved.
  * SPDX-License-Identifier: GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -7,7 +7,7 @@
  * under the terms of the GNU General Public License version 2 only, as
  * published by the Free Software Foundation.  The copyright holder designates
  * this particular file as subject to the "Classpath" exception as provided
- * in the LICENSE file and directories/ that accompany this code.
+ * in the LICENSE file that accompany this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -23,6 +23,8 @@
  * 悬浮工具栏皮肤：全走 --bio-* 语义令牌（宿主 .djs-container 令牌作用域，
  * 暗色由宿主令牌热切换，本文件零硬编码色）。相对画布水平居中：工具栏挂在
  * 画布容器内（容器随宿主布局伸缩——属性面板让位/窗口缩放均跟随画布宽）。
+ * 宽度上限 min(画布½, 视口⅓) 由服务层 reflow 以行内 max-width 施加，装不下
+ * 的尾段收进「更多」弹层。
  */
 
 .bpmn-toolbar {
@@ -31,8 +33,8 @@
   left: 50%;
   transform: translateX(-50%);
   /* 显式 max-content：absolute+transform 的 shrink-to-fit 宽度计算会无谓压缩
-     flex 子项（按钮 28→26、取色器文字换行）——定宽取内容自然宽，窄容器由
-     max-width 兜住居中不出界 */
+     flex 子项（按钮 28→26、取色器文字换行）——定宽取内容自然宽；行内
+     max-width 由 reflow 按上限施加（min(画布½, 视口⅓)），样式表兜底防越界 */
   width: max-content;
   max-width: calc(100% - 20px);
   z-index: 90; /* 图层面之上、弹框（200）/上下文面板（100）之下 */
@@ -47,6 +49,12 @@
   border: 1px solid var(--bio-border);
   border-radius: var(--bio-radius-lg);
   box-shadow: 0 2px 8px var(--bio-shadow-subtle);
+}
+
+/* reflow 已按段测宽收纳溢出，段间不再允许压缩（压缩会重新出现按钮挤窄/
+   文字换行——max-content 定宽防的同一类 shrink-to-fit 行为） */
+.bpmn-toolbar > * {
+  flex-shrink: 0;
 }
 
 .bpmn-toolbar-group {
@@ -121,4 +129,31 @@
    规则且更晚注入）——与内核 bpmn-preview-mode 隐藏规则同款 important 手法 */
 .bpmn-toolbar.bpmn-toolbar--readonly [data-edit-only='true'] {
   display: none !important;
+}
+
+/* 「更多」溢出弹层：收纳主栏装不下的尾段落（DOM 节点原样移入，监听器与
+   状态同步不变）；竖排成列，段落内仍是横排组。hidden 属性与 display:flex
+   并存时 author 规则会盖掉 UA 的 [hidden]{display:none}，须显式落 none */
+.bpmn-toolbar-popup {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 4px;
+  background: var(--bio-surface-overlay);
+  border: 1px solid var(--bio-border);
+  border-radius: var(--bio-radius-lg);
+  box-shadow: 0 2px 8px var(--bio-shadow-subtle);
+}
+
+.bpmn-toolbar-popup[hidden] {
+  display: none;
+}
+
+/* 弹层竖排语境下分隔线无意义（段落间距即分组） */
+.bpmn-toolbar-popup .bpmn-toolbar-sep {
+  display: none;
 }

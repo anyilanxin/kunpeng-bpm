@@ -46,5 +46,10 @@ export const ICONS = {
     '<path clip-rule="evenodd" d="M24 6c9.941 0 18 8.059 18 18s-8.059 18-18 18S6 33.941 6 24 14.059 6 24 6Z" />' +
       '<path d="M30 24a6 6 0 1 1-12 0 6 6 0 0 1 12 0Z" />' +
       '<path d="M30 24a6 6 0 1 1-12 0 6 6 0 0 1 12 0Z" fill="currentColor" stroke="none" />'
+  ),
+  more: wrap(
+    '<circle cx="14" cy="24" r="4" fill="currentColor" stroke="none" />' +
+      '<circle cx="24" cy="24" r="4" fill="currentColor" stroke="none" />' +
+      '<circle cx="34" cy="24" r="4" fill="currentColor" stroke="none" />'
   )
 } as const;
