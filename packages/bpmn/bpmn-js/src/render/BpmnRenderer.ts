@@ -121,14 +121,16 @@ function roundedPath(points: any[], r: number): string {
 }
 
 export class BpmnRenderer extends BaseRenderer {
-  static $inject = ['eventBus', 'bpmnElementTypes', 'textRenderer', 'config.bpmnRenderer', 'orientationService'];
+  static $inject = ['eventBus', 'bpmnElementTypes', 'textRenderer', 'config.bpmnRenderer', 'orientationService', 'elementRegistry', 'graphicsFactory'];
 
   constructor(
     eventBus: EventBus,
     private readonly elementTypes: BpmnElementTypes,
     private readonly textUtil: TextUtil,
     rendererConfig: BpmnRendererConfig,
-    private readonly orientationService: { isHorizontal(): boolean }
+    private readonly orientationService: { isHorizontal(): boolean },
+    private readonly elementRegistry: any,
+    private readonly graphicsFactory: any
   ) {
     super(eventBus, 2);
     this.config = { ...DEFAULT_CONFIG, ...rendererConfig };
@@ -167,7 +169,29 @@ export class BpmnRenderer extends BaseRenderer {
 
   /** 元素级主题：bioc 颜色（element.colors，DI 扩展往返）优先于全局缺省；
    * 无元素色返回冻结缺省（热路径零分配）。构造器内赋值（依赖 config 先就位） */
-  private readonly defaultTheme: Readonly<StyleTheme>;
+  private defaultTheme: Readonly<StyleTheme>;
+
+  /**
+   * 运行期主题切换（暗色模式）：合并覆盖缺省并全量重绘。元素级 bioc 颜色
+   * 不受影响（优先级在 themeFor 内恒定）；缺省主题不写 DI/XML——无元素色
+   * 的元素随主题走，导出无痕。
+   */
+  setTheme(overrides: BpmnRendererConfig): void {
+    this.config = { ...this.config, ...overrides };
+    this.defaultTheme = Object.freeze({
+      stroke: this.config.defaultStrokeColor,
+      fill: this.config.defaultFillColor,
+      labelColor: this.config.labelColor
+    });
+    for (const element of this.elementRegistry.getAll()) {
+      // GraphicsFactory.update(type, element, gfx)：按元素形态分发重绘（root 无视觉，跳过）
+      this.graphicsFactory.update(
+        element.waypoints ? 'connection' : 'shape',
+        element,
+        this.elementRegistry.getGraphics(element)
+      );
+    }
+  }
 
   private themeFor(element: any): Readonly<StyleTheme> {
     const colors = element?.colors;

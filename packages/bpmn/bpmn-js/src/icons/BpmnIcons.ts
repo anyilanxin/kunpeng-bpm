@@ -352,7 +352,7 @@ export function loopMarkerIconHtml(kind: LoopMarkerKind, size = 16): string {
  * 画布元素 → 记法缩样 SVG（公开 API：属性面板等宿主 UI 传当前选中元素即可）。
  * 变体自动推导：事件取事件定义符号、子流程取折叠形态、活动取循环特性标记。
  */
-export function iconOfElement(element: any, size = 20): string {
+export function iconOfElement(element: any, size = 20, fill = '#000000'): string {
   const bo = element?.businessObject;
   const type: string = bo?.$type ?? element?.type ?? '';
   const meta: BpmnIconMeta = { type };
@@ -369,5 +369,5 @@ export function iconOfElement(element: any, size = 20): string {
   if (loop) {
     meta.loop = loop;
   }
-  return bpmnIconHtml(meta, size);
+  return bpmnIconHtml(meta, size, fill);
 }

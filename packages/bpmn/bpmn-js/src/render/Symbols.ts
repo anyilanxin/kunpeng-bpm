@@ -367,7 +367,7 @@ export function drawDataStoreShape(g: Element, shape: { x: number; y: number; wi
     `M0,${N(top)} V${N(bottom)} A${N(rx)},${N(ry)} 0 0 0 ${N(width)},${N(bottom)} V${N(top)} ` +
       `A${N(rx)},${N(ry)} 0 0 1 0,${N(top)} Z`,
     theme.stroke,
-    theme.fill === 'none' ? 'none' : '#fff',
+    theme.fill,
     1.8
   );
   // 顶椭圆完整描边（上下两半均覆盖）
