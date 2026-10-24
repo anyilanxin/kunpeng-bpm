@@ -200,6 +200,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* 注入图标经 currentColor 消费此令牌——与自带 bpmn-font 图标同一暗色通道 */
+  color: var(--header-icon-fill-color);
 }
 
 .bio-properties-panel-header-type-icon svg {
