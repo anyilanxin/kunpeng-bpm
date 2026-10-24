@@ -196,6 +196,16 @@
   overflow: hidden;
 }
 
+.bio-properties-panel-header-type-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bio-properties-panel-header-type-icon svg {
+  display: block;
+}
+
 .bio-properties-panel-header-icon {
   fill: var(--header-icon-fill-color);
   display: flex;

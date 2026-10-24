@@ -13,7 +13,7 @@
  *   只消费组件包公开 API（saveXML/importXML），组件包本身不含视图切换功能
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { Modeler, Viewer, NavigatedViewer } from '@kunpeng-io/bpmn-js';
+import { Modeler, Viewer, NavigatedViewer, iconOfElement } from '@kunpeng-io/bpmn-js';
 import {
   BpmnPropertiesPanelModule,
   BpmnPropertiesProviderModule,
@@ -125,6 +125,8 @@ function createInstance(formKind: 'edit' | 'navigated' | 'view'): Modeler {
       ...common,
       additionalModules: editorModules(),
       propertiesPanel: { parent: panelHost.value! },
+      // 面板头部记法图标注入内核透出的 iconOfElement：画布/palette/面板三处同源
+      bpmnElementIconRenderer: (element: any) => iconOfElement(element, 32),
       colorPicker: { colors: CUSTOM_COLOR_PICKER_COLORS }
     });
   }

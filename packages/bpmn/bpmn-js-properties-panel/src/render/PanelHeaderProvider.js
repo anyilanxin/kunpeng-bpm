@@ -101,6 +101,21 @@ export const PanelHeaderProvider = (translate) => {
         return () => <img class="bio-properties-panel-header-template-icon" width="32" height="32" src={ templateIcon } alt="" />;
       }
 
+      // 宿主注入的 BPMN 记法图标渲染器（如 @kunpeng-io/bpmn-js 的 BpmnIcons.iconOfElement，
+      // 画布/palette/面板头部三处同源）：返回 SVG html 字符串（本包包装为组件）或直接返回
+      // preact 组件；未注入回落本包自带图标集
+      const iconRenderer = useService('config.bpmnElementIconRenderer', false);
+
+      if (iconRenderer) {
+        const rendered = iconRenderer(element);
+
+        if (rendered) {
+          return typeof rendered === 'function'
+            ? rendered
+            : () => <span class="bio-properties-panel-header-type-icon" dangerouslySetInnerHTML={ { __html: rendered } }></span>;
+        }
+      }
+
       return iconsByType[ concreteType ];
     },
 
