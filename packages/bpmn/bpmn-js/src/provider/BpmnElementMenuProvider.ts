@@ -63,6 +63,32 @@ const CREATE_GROUPS = [
   'artifacts'
 ];
 
+/**
+ * 弹框条目缓存（按宿主元素 WeakMap）：context pad 打开对同一元素会先
+ * isEmpty 判空再 open 取条目（经 PopupMenu._getContext 各触发一次完整构建，
+ * ~48-68 条含 SVG 串），选中变化是高频路径——判空+开启同批直接命中缓存。
+ * 失效契约：命令栈变化（几何/结构/落点占用变化）统一清空；条目闭包捕获的
+ * 落点在两次命令之间保持有效。
+ */
+export class PopupMenuEntriesCache {
+  private entries = new WeakMap<object, Record<string, any>>();
+
+  constructor(eventBus: { on(event: string, fn: () => void): unknown }) {
+    eventBus.on('commandStack.changed', () => {
+      this.entries = new WeakMap();
+    });
+  }
+
+  get(target: object, build: () => Record<string, any>): Record<string, any> {
+    let cached = this.entries.get(target);
+    if (!cached) {
+      cached = build();
+      this.entries.set(target, cached);
+    }
+    return cached;
+  }
+}
+
 /** 按 palette 分组过滤注册表并构建弹框条目；place 收创建后的落形动作 */
 function buildEntries(
   elementTypes: BpmnElementTypes,
@@ -99,20 +125,23 @@ function buildEntries(
 export class BpmnAppendMenuProvider {
   static readonly MENU_ID = 'bpmn-append';
 
-  static $inject = ['popupMenu', 'bpmnElementTypes', 'elementFactory', 'autoPlace', 'bpmnI18n'];
+  static $inject = ['popupMenu', 'eventBus', 'bpmnElementTypes', 'elementFactory', 'autoPlace', 'bpmnI18n'];
 
   constructor(
     popupMenu: any,
+    eventBus: any,
     private readonly elementTypes: BpmnElementTypes,
     private readonly elementFactory: any,
     private readonly autoPlace: any,
     private readonly i18n: any
   ) {
     this.popupMenu = popupMenu;
+    this.cache = new PopupMenuEntriesCache(eventBus);
     popupMenu.registerProvider(BpmnAppendMenuProvider.MENU_ID, this);
   }
 
   private readonly popupMenu: any;
+  private readonly cache: PopupMenuEntriesCache;
 
   getPopupMenuEntries(target: any): Record<string, any> {
     // 仅流节点可作为追加源（与 context pad 快捷追加同一判定）
@@ -120,7 +149,7 @@ export class BpmnAppendMenuProvider {
     if (family !== 'event' && family !== 'activity' && family !== 'gateway') {
       return {};
     }
-    return buildEntries(
+    return this.cache.get(target, () => buildEntries(
       this.elementTypes,
       this.i18n,
       APPEND_GROUPS,
@@ -132,17 +161,18 @@ export class BpmnAppendMenuProvider {
       },
       () => this.popupMenu.close(),
       this.elementFactory
-    );
+    ));
   }
 }
 
 export class BpmnCreateMenuProvider {
   static readonly MENU_ID = 'bpmn-create';
 
-  static $inject = ['popupMenu', 'bpmnElementTypes', 'elementFactory', 'modeling', 'bpmnI18n', 'canvas', 'elementRegistry', 'orientationService'];
+  static $inject = ['popupMenu', 'eventBus', 'bpmnElementTypes', 'elementFactory', 'modeling', 'bpmnI18n', 'canvas', 'elementRegistry', 'orientationService'];
 
   constructor(
     popupMenu: any,
+    eventBus: any,
     private readonly elementTypes: BpmnElementTypes,
     private readonly elementFactory: any,
     private readonly modeling: any,
@@ -152,10 +182,12 @@ export class BpmnCreateMenuProvider {
     private readonly orientationService: { isHorizontal(): boolean }
   ) {
     this.popupMenu = popupMenu;
+    this.cache = new PopupMenuEntriesCache(eventBus);
     popupMenu.registerProvider(BpmnCreateMenuProvider.MENU_ID, this);
   }
 
   private readonly popupMenu: any;
+  private readonly cache: PopupMenuEntriesCache;
 
   getPopupMenuEntries(target: any): Record<string, any> {
     const type = target.businessObject?.$type;
@@ -195,20 +227,22 @@ export class BpmnCreateMenuProvider {
       position = { x: area.x + area.width / 2, y: area.y + area.height / 2 };
     }
 
-    const placement = this.resolvePlacement(host, position);
-    const hostTarget = placement.host;
-    const placePosition = placement.position;
-    return buildEntries(
-      this.elementTypes,
-      this.i18n,
-      CREATE_GROUPS,
-      'create',
-      (_meta, shape) => {
-        this.modeling.createShape(shape, placePosition, hostTarget);
-      },
-      () => this.popupMenu.close(),
-      this.elementFactory
-    );
+    return this.cache.get(target, () => {
+      const placement = this.resolvePlacement(host, position);
+      const hostTarget = placement.host;
+      const placePosition = placement.position;
+      return buildEntries(
+        this.elementTypes,
+        this.i18n,
+        CREATE_GROUPS,
+        'create',
+        (_meta, shape) => {
+          this.modeling.createShape(shape, placePosition, hostTarget);
+        },
+        () => this.popupMenu.close(),
+        this.elementFactory
+      );
+    });
   }
 
   /**

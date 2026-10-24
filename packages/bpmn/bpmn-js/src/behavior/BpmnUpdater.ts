@@ -238,53 +238,97 @@ export class BpmnUpdater extends CommandInterceptor {
    * 几何重算（本组件不支持嵌套泳道创建，保持导入语义原样）。
    */
   private syncLaneMembership(elements: any[]): void {
-    const pools = new Set<any>();
+    // 池聚合：同批变更元素按所属池分组处理
+    const pools = new Map<any, any[]>();
     for (const element of elements) {
       let parent = element;
       while (parent) {
         if (parent.businessObject?.$type === 'bpmn:Participant') {
-          pools.add(parent);
+          const bucket = pools.get(parent) ?? [];
+          bucket.push(element);
+          pools.set(parent, bucket);
           break;
         }
         parent = parent.parent;
       }
     }
-    for (const pool of pools) {
+    for (const [pool, changed] of pools) {
       const lanes = (pool.children ?? []).filter((c: any) => c.businessObject?.$type === 'bpmn:Lane');
       if (lanes.length === 0) {
         continue;
       }
-      // 落池元素以池为父、落道元素以道为父（moveShape 目标可为道），统一按
-      // 池的后代收集流节点做几何归属
-      const nodes: any[] = [];
-      const collect = (container: any): void => {
-        for (const child of container.children ?? []) {
-          if (child.businessObject?.$type === 'bpmn:Lane') {
-            collect(child);
-            continue;
-          }
-          if (
-            !child.waypoints &&
-            !child.labelTarget &&
-            child.businessObject &&
-            typeof child.businessObject.$instanceOf === 'function' &&
-            child.businessObject.$instanceOf('bpmn:FlowNode')
-          ) {
-            nodes.push(child);
-          }
-        }
-      };
-      collect(pool);
-      for (const lane of lanes) {
-        const members = nodes.filter(
-          (n: any) =>
-            n.x + n.width / 2 >= lane.x &&
-            n.x + n.width / 2 <= lane.x + lane.width &&
-            n.y + n.height / 2 >= lane.y &&
-            n.y + n.height / 2 <= lane.y + lane.height
-        );
-        lane.businessObject.flowNodeRef = members.map((n: any) => n.businessObject);
+      // 带界/池体几何变化会整体改变带内归属 → 全池重算（原语义不变）；
+      // 普通节点移动只影响自身进出道 → 单点差分（热路径：每次命令收尾必经，
+      // 原实现全池 O(道×节点) 重扫）
+      const bandChanged = changed.some(
+        (e: any) => e === pool || e.businessObject?.$type === 'bpmn:Lane'
+      );
+      if (bandChanged) {
+        this.recomputePoolMembership(pool, lanes);
+        continue;
       }
+      for (const element of changed) {
+        const bo = element.businessObject;
+        if (
+          !bo ||
+          element.waypoints ||
+          element.labelTarget ||
+          typeof bo.$instanceOf !== 'function' ||
+          !bo.$instanceOf('bpmn:FlowNode')
+        ) {
+          continue;
+        }
+        const cx = element.x + element.width / 2;
+        const cy = element.y + element.height / 2;
+        const inside = (lane: any): boolean =>
+          cx >= lane.x && cx <= lane.x + lane.width && cy >= lane.y && cy <= lane.y + lane.height;
+        const geometric = lanes.find(inside);
+        const registered = lanes.find((lane: any) => (lane.businessObject.flowNodeRef ?? []).includes(bo));
+        if (geometric === registered) {
+          continue;
+        }
+        if (registered) {
+          removeFrom(registered.businessObject.flowNodeRef, bo);
+        }
+        if (geometric) {
+          (geometric.businessObject.flowNodeRef ??= []).push(bo);
+        }
+      }
+    }
+  }
+
+  /** 全池泳道归属重算：按几何中心落带重建每条道的 flowNodeRef（带界变化路径） */
+  private recomputePoolMembership(pool: any, lanes: any[]): void {
+    // 落池元素以池为父、落道元素以道为父（moveShape 目标可为道），统一按
+    // 池的后代收集流节点做几何归属
+    const nodes: any[] = [];
+    const collect = (container: any): void => {
+      for (const child of container.children ?? []) {
+        if (child.businessObject?.$type === 'bpmn:Lane') {
+          collect(child);
+          continue;
+        }
+        if (
+          !child.waypoints &&
+          !child.labelTarget &&
+          child.businessObject &&
+          typeof child.businessObject.$instanceOf === 'function' &&
+          child.businessObject.$instanceOf('bpmn:FlowNode')
+        ) {
+          nodes.push(child);
+        }
+      }
+    };
+    collect(pool);
+    for (const lane of lanes) {
+      const members = nodes.filter(
+        (n: any) =>
+          n.x + n.width / 2 >= lane.x &&
+          n.x + n.width / 2 <= lane.x + lane.width &&
+          n.y + n.height / 2 >= lane.y &&
+          n.y + n.height / 2 <= lane.y + lane.height
+      );
+      lane.businessObject.flowNodeRef = members.map((n: any) => n.businessObject);
     }
   }
 

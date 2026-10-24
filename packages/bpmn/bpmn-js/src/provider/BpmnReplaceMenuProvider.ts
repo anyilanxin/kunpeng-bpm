@@ -32,23 +32,28 @@ import type { BpmnFactory } from '../factory/BpmnFactory';
 import { bpmnIconHtml, loopMarkerIconHtml } from '../icons/BpmnIcons';
 import { loopKindOf, type LoopKind } from '../meta/LoopCharacteristics';
 import { replaceTarget } from '../command/ReplaceElementHandler';
+import { PopupMenuEntriesCache } from './BpmnElementMenuProvider';
 import { BpmnPopup } from './BpmnPopup';
 
 export class BpmnReplaceMenuProvider {
-  static $inject = ['popupMenu', 'bpmnElementTypes', 'modeling', 'bpmnFactory', 'bpmnPopup', 'bpmnI18n'];
+  static $inject = ['popupMenu', 'eventBus', 'bpmnElementTypes', 'modeling', 'bpmnFactory', 'bpmnPopup', 'bpmnI18n'];
 
   static readonly MENU_ID = 'bpmn-replace';
 
   constructor(
     popupMenu: any,
+    eventBus: any,
     private readonly elementTypes: BpmnElementTypes,
     private readonly modeling: any,
     private readonly bpmnFactory: BpmnFactory,
     private readonly bpmnPopup: BpmnPopup,
     private readonly i18n: any
   ) {
+    this.cache = new PopupMenuEntriesCache(eventBus);
     popupMenu.registerProvider(BpmnReplaceMenuProvider.MENU_ID, this);
   }
+
+  private readonly cache: PopupMenuEntriesCache;
 
   getPopupMenuEntries(target: any): Record<string, any> {
     const bo = target.businessObject;
@@ -56,28 +61,32 @@ export class BpmnReplaceMenuProvider {
     if (!meta?.replaceFamily) {
       return {};
     }
+    // 族 id 在闭包外定格（闭包会丢失 optional narrowing）
+    const familyId = meta.replaceFamily;
 
-    const entries: Record<string, any> = {};
     // 自身排除走注册表统一身份比较（matchesElement 四轴：类型/事件符号/非中断/折叠态）
-    for (const candidate of this.elementTypes.replaceTargets(meta.replaceFamily)) {
-      if (this.elementTypes.matchesElement(candidate, target)) {
-        continue;
-      }
-      entries[`replace-${metaId(candidate)}`] = {
-        label: this.i18n.t(candidate.label),
-        imageHtml: bpmnIconHtml(candidate),
-        title: this.i18n.t(candidate.label),
-        action: () => {
-          this.modeling.replaceElement(target, {
-            // replaceTarget 打包 type/eventSymbol/nonInterrupting/symbol——
-            // symbol 必传：替换处理器按 subProcessEvent 落 triggeredByEvent
-            ...replaceTarget(candidate),
-            collapsed: candidate.symbol === 'subProcessCollapsed'
-          });
+    return this.cache.get(target, () => {
+      const entries: Record<string, any> = {};
+      for (const candidate of this.elementTypes.replaceTargets(familyId)) {
+        if (this.elementTypes.matchesElement(candidate, target)) {
+          continue;
         }
-      };
-    }
-    return entries;
+        entries[`replace-${metaId(candidate)}`] = {
+          label: this.i18n.t(candidate.label),
+          imageHtml: bpmnIconHtml(candidate),
+          title: this.i18n.t(candidate.label),
+          action: () => {
+            this.modeling.replaceElement(target, {
+              // replaceTarget 打包 type/eventSymbol/nonInterrupting/symbol——
+              // symbol 必传：替换处理器按 subProcessEvent 落 triggeredByEvent
+              ...replaceTarget(candidate),
+              collapsed: candidate.symbol === 'subProcessCollapsed'
+            });
+          }
+        };
+      }
+      return entries;
+    });
   }
 
   /**

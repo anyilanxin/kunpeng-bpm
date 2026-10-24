@@ -42,6 +42,12 @@ import {
   isSubProcessFamily
 } from '../meta/ElementTypes';
 
+/** 连线端点池作用域：一次判定内单次计算、推断链与校验器全链共享 */
+interface PoolScope {
+  sourcePool: any;
+  targetPool: any;
+}
+
 export class BpmnRules extends RuleProvider {
   static $inject = ['eventBus', 'canvas', 'bpmnMode', 'orientationService'];
 
@@ -117,11 +123,13 @@ export class BpmnRules extends RuleProvider {
     if (!source || !target || source === target) {
       return false;
     }
-    const type = context.type ?? this.inferConnectionType(source, target);
+    // 池归属（父链攀爬）单次计算贯穿推断链与校验器——此前一次判定重复算 3-6 遍
+    const scope: PoolScope = { sourcePool: this.poolOf(source), targetPool: this.poolOf(target) };
+    const type = context.type ?? this.inferConnectionType(source, target, scope);
     if (!type) {
       return false;
     }
-    const verdict = this.validateConnection(type, source, target);
+    const verdict = this.validateConnection(type, source, target, scope);
     return verdict ? { type } : false;
   }
 
@@ -133,26 +141,29 @@ export class BpmnRules extends RuleProvider {
     if (!source || !target || source === target || !type) {
       return false;
     }
-    return this.validateConnection(type, source, target);
+    return this.validateConnection(type, source, target, {
+      sourcePool: this.poolOf(source),
+      targetPool: this.poolOf(target)
+    });
   }
 
   /**
    * 连线类型推断（职责链）：按优先级依次过策略，首个命中者定类型，全不中 =
    * 不可连。新增连线语义 = 插入一个策略函数，既有策略不动（开闭）。
    */
-  private readonly connectionInferenceChain: Array<(source: any, target: any) => string | null> = [
-    (source, target) => this.inferMessageFlow(source, target),
+  private readonly connectionInferenceChain: Array<(source: any, target: any, scope: PoolScope) => string | null> = [
+    (source, target, scope) => this.inferMessageFlow(source, target, scope),
     (source, target) => this.inferDataAssociation(source, target),
     (source, target) => this.inferAssociation(source, target),
-    (source, target) => this.inferSequenceFlow(source, target)
+    (source, target, scope) => this.inferSequenceFlow(source, target, scope)
   ];
 
-  private inferConnectionType(source: any, target: any): string | null {
+  private inferConnectionType(source: any, target: any, scope: PoolScope): string | null {
     if (!source.businessObject?.$type || !target.businessObject?.$type) {
       return null;
     }
     for (const infer of this.connectionInferenceChain) {
-      const type = infer(source, target);
+      const type = infer(source, target, scope);
       if (type) {
         return type;
       }
@@ -161,13 +172,13 @@ export class BpmnRules extends RuleProvider {
   }
 
   /** 消息流：跨参与者（池↔池；池↔对端池内节点；规范 §8.4.3 Collaboration） */
-  private inferMessageFlow(source: any, target: any): string | null {
+  private inferMessageFlow(source: any, target: any, scope: PoolScope): string | null {
     const st = source.businessObject?.$type;
     const tt = target.businessObject?.$type;
     const crossPool =
       st === 'bpmn:Participant' || tt === 'bpmn:Participant'
-        ? st !== tt || this.poolOf(source) !== this.poolOf(target)
-        : this.poolOf(source) !== this.poolOf(target);
+        ? st !== tt || scope.sourcePool !== scope.targetPool
+        : scope.sourcePool !== scope.targetPool;
     return crossPool && (st === 'bpmn:Participant' || tt === 'bpmn:Participant' || (this.isPoolLevelNode(source) && this.isPoolLevelNode(target)))
       ? 'bpmn:MessageFlow'
       : null;
@@ -188,8 +199,8 @@ export class BpmnRules extends RuleProvider {
   }
 
   /** 顺序流：同作用域流节点 */
-  private inferSequenceFlow(source: any, target: any): string | null {
-    return this.isFlowNode(source) && this.isFlowNode(target) && this.poolOf(source) === this.poolOf(target)
+  private inferSequenceFlow(source: any, target: any, scope: PoolScope): string | null {
+    return this.isFlowNode(source) && this.isFlowNode(target) && scope.sourcePool === scope.targetPool
       ? 'bpmn:SequenceFlow'
       : null;
   }
@@ -198,9 +209,9 @@ export class BpmnRules extends RuleProvider {
    * 连线校验（策略表）：每类连线一个独立校验器；未登记类型放行（插件可加规则）。
    * 各校验器职责单一，端点类型缺失的公共判定统一在前置守卫完成。
    */
-  private readonly connectionValidators: Record<string, (source: any, target: any) => boolean> = {
-    'bpmn:SequenceFlow': (source, target) => this.validateSequenceFlow(source, target),
-    'bpmn:MessageFlow': (source, target) => this.validateMessageFlow(source, target),
+  private readonly connectionValidators: Record<string, (source: any, target: any, scope: PoolScope) => boolean> = {
+    'bpmn:SequenceFlow': (source, target, scope) => this.validateSequenceFlow(source, target, scope),
+    'bpmn:MessageFlow': (source, target, scope) => this.validateMessageFlow(source, target, scope),
     'bpmn:Association': (source, target) =>
       isArtifactFamily(source.businessObject?.$type) || isArtifactFamily(target.businessObject?.$type),
     'bpmn:DataAssociation': (source, target) => {
@@ -210,16 +221,16 @@ export class BpmnRules extends RuleProvider {
     }
   };
 
-  private validateConnection(type: string, source: any, target: any): boolean {
+  private validateConnection(type: string, source: any, target: any, scope: PoolScope): boolean {
     if (!source.businessObject?.$type || !target.businessObject?.$type) {
       return false;
     }
     const validate = this.connectionValidators[type];
-    return validate ? validate(source, target) : true;
+    return validate ? validate(source, target, scope) : true;
   }
 
   /** 顺序流：两侧流节点；结束事件无出边、开始事件无入边、边界事件不作目标；同作用域 */
-  private validateSequenceFlow(source: any, target: any): boolean {
+  private validateSequenceFlow(source: any, target: any, scope: PoolScope): boolean {
     const st = source.businessObject?.$type;
     const tt = target.businessObject?.$type;
     if (!this.isFlowNode(source) || !this.isFlowNode(target)) {
@@ -229,17 +240,17 @@ export class BpmnRules extends RuleProvider {
     if (tt === 'bpmn:StartEvent') return false;
     if (st === 'bpmn:BoundaryEvent' && this.isBoundaryHost(target, source)) return false;
     if (tt === 'bpmn:BoundaryEvent') return false; // 其中断语义由 attach 通道承载，不作顺序流目标
-    return this.poolOf(source) === this.poolOf(target);
+    return scope.sourcePool === scope.targetPool;
   }
 
   /** 消息流：端点至少一端为池，或双端均为池级节点；且必须跨参与者 */
-  private validateMessageFlow(source: any, target: any): boolean {
+  private validateMessageFlow(source: any, target: any, scope: PoolScope): boolean {
     const st = source.businessObject?.$type;
     const tt = target.businessObject?.$type;
     const endpointsValid =
       st === 'bpmn:Participant' || tt === 'bpmn:Participant' ||
       (this.isPoolLevelNode(source) && this.isPoolLevelNode(target));
-    return endpointsValid && this.poolOf(source) !== this.poolOf(target);
+    return endpointsValid && scope.sourcePool !== scope.targetPool;
   }
 
   // ---------- 形状 ----------
@@ -412,11 +423,13 @@ export class BpmnRules extends RuleProvider {
     }
 
     const root = this.canvas.getRootElement();
-    return shapes.every((shape) => this.canMoveShape(shape, target, root, shapes, context.position));
+    // 根上是否有池整批一次算好共享（原逐 shape 各扫一遍根 children）
+    const rootPools = this.rootHasPools();
+    return shapes.every((shape) => this.canMoveShape(shape, target, root, rootPools, shapes, context.position));
   }
 
   /** 单形状移动策略：池（仅根/原父）→ 边界事件（宿主规则）→ 其余（canContain） */
-  private canMoveShape(shape: any, target: any, root: any, shapes: any[], position: any): boolean {
+  private canMoveShape(shape: any, target: any, root: any, rootPools: boolean, shapes: any[], position: any): boolean {
     const type = shape.businessObject?.$type;
     if (type === 'bpmn:Participant') {
       return target === root || target === shape.parent;
@@ -424,7 +437,7 @@ export class BpmnRules extends RuleProvider {
     if (type === 'bpmn:BoundaryEvent') {
       return this.canMoveBoundaryEvent(shape, target, shapes, position);
     }
-    return this.canContain(shape, target);
+    return this.canContain(shape, target, rootPools);
   }
 
   /**
@@ -443,9 +456,9 @@ export class BpmnRules extends RuleProvider {
     return !position || distanceToBorder(target, position) <= ATTACH_EDGE_TOLERANCE;
   }
 
-  private canContain(shape: any, target: any): boolean {
+  private canContain(shape: any, target: any, rootPools?: boolean): boolean {
     if (this.isRootElement(target)) {
-      return !this.rootHasPools() || shape.businessObject?.$type === 'bpmn:Participant';
+      return !(rootPools ?? this.rootHasPools()) || shape.businessObject?.$type === 'bpmn:Participant';
     }
     return isContainerType(target.businessObject?.$type, target.isExpanded);
   }

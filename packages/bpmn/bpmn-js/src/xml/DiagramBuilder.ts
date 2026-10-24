@@ -49,6 +49,8 @@ export class DiagramBuilder {
   ) {}
 
   build(parseResult: BpmnParseResult): void {
+    // 容器索引按文档重建（实例复用跨多次导入，残留旧文档容器会污染几何父级推导）
+    this.containerIndex.length = 0;
     const { definitions, semanticById, planeTargetId } = parseResult;
     const diById = new Map<string, DiView>();
     for (const diagram of definitions.diagrams ?? []) {
@@ -263,6 +265,9 @@ export class DiagramBuilder {
     }
   }
 
+  /** 几何容器索引：建图期自上而下收集的池/道/子流程画布元素（几何父级推导候选） */
+  private readonly containerIndex: any[] = [];
+
   private addShape(bo: any, di: DiView, fallbackParent: any, created: Map<string, any>): any {
     if (created.has(bo.id)) {
       return created.get(bo.id);
@@ -280,6 +285,9 @@ export class DiagramBuilder {
     });
     const parent = this.resolveParent(shape, fallbackParent);
     this.canvas.addShape(shape, parent);
+    if (isPoolFamily(bo.$type) || isSubProcessFamily(bo.$type)) {
+      this.containerIndex.push(shape);
+    }
     created.set(bo.id, shape);
     this.addLabel(shape, bo, di);
     return shape;
@@ -307,31 +315,26 @@ export class DiagramBuilder {
     this.canvas.addShape(label, element.parent ?? this.canvas.getRootElement());
   }
 
-  /** 几何父级：最内层包含节点中心的容器；边界事件直接挂宿主父级 */
+  /**
+   * 几何父级：包含节点中心的**最小面积**容器（=原自根递归取最内层的语义；
+   * 容器互为包含关系，不包含者其子容器亦不可能包含该点）。候选取建图期
+   * 自上而下收集的 containerIndex（容器先于内容创建，推导时索引已完备），
+   * 免去逐形状自根递归扫画布——无池大图导入 O(n²) 热点的根除。
+   */
   private resolveParent(shape: any, fallbackParent: any): any {
     const cx = shape.x + shape.width / 2;
     const cy = shape.y + shape.height / 2;
     let best: any = null;
     let bestArea = Infinity;
-
-    const visit = (parent: any): void => {
-      for (const child of parent.children ?? []) {
-        const bo = child.businessObject;
-        if (!bo || !(isPoolFamily(bo.$type) || isSubProcessFamily(bo.$type)) || child === shape) {
-          continue;
-        }
-        if (contains(child, cx, cy)) {
-          const area = child.width * child.height;
-          if (area < bestArea) {
-            bestArea = area;
-            best = child;
-          }
-          visit(child);
+    for (const container of this.containerIndex) {
+      if (contains(container, cx, cy)) {
+        const area = container.width * container.height;
+        if (area < bestArea) {
+          bestArea = area;
+          best = container;
         }
       }
-    };
-    visit(this.canvas.getRootElement());
-
+    }
     return best ?? fallbackParent;
   }
 }
