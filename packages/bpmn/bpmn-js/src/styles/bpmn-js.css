@@ -119,6 +119,23 @@
   height: 24px;
   border-radius: 3px;
 }
+/* 面板/操作钮条目悬停反馈:背景提亮(与弹框条目同族 6% 灰)+ 图标随悬停主题色
+   (diagram-js 默认仅改 color,图标须 currentColor 才可见)+ 抓取光标提示可拖建 */
+.djs-palette .entry,
+.djs-context-pad .entry {
+  cursor: grab;
+}
+
+.djs-palette .entry:active,
+.djs-context-pad .entry:active {
+  cursor: grabbing;
+}
+
+.djs-palette .entry:hover,
+.djs-context-pad .entry:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
 .djs-popup .djs-popup-header .entry:hover { background: rgba(0, 0, 0, 0.06); }
 .djs-popup .djs-popup-header .entry.active { background: rgba(0, 0, 0, 0.08); }
 

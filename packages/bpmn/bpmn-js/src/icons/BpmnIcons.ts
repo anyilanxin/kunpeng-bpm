@@ -240,17 +240,17 @@ const TASK_BOX = { x: 0, y: 0, width: 116, height: 78 };
  * 公开 API：宿主/插件（如属性面板展示选中元素图标）可直接传元素类型
  * 字符串（如 'bpmn:UserTask'）或类型元数据（含事件符号/子流程形态/循环特性变体）。
  */
-export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20): string {
+export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20, fill = '#000000'): string {
   const meta = typeof source === 'string' ? { type: source } : source;
 
   // 图标集优先：已确认映射的类型直接输出标准剪影图标（元素记法图标固定黑色，
   // 与原自绘 ICON_STROKE 一致；currentColor 场景由 loopMarkerIconHtml 等显式传）
   const setKey = iconSetKeyOf(meta);
   if (setKey) {
-    return iconSetSvg(setKey, size, '#000000');
+    return iconSetSvg(setKey, size, fill);
   }
 
-  const stroke = ICON_STROKE;
+  const stroke = fill === 'currentColor' ? 'currentColor' : ICON_STROKE;
   const theme: StyleTheme = { stroke, fill: '#ffffff', labelColor: stroke };
   const parts: string[] = [];
   const P = (d: string, extra = '', w = 1.8) =>
@@ -335,7 +335,9 @@ export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20): string {
 
 /** palette / context pad 类型条目 html（裸 SVG 收不到交互，必须包标准 .entry 外壳） */
 export function bpmnEntryHtml(meta: BpmnIconMeta, size = 18): string {
-  return entryShell(bpmnIconHtml(meta, size));
+  // currentColor:条目图标随容器文字色,palette/context pad 悬停主题色反馈可见
+  // (diagram-js 悬停语义=变色而非换底;固定 #000 会吞掉全部悬停反馈)
+  return entryShell(bpmnIconHtml(meta, size, 'currentColor'));
 }
 
 /**
