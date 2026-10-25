@@ -31,10 +31,11 @@
  */
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Form } from 'antd';
-import { FormEngine } from '@kunpeng-io/form-js';
-import type { FieldValue, FormData, FormSchema, FormValidationResult } from '@kunpeng-io/form-js';
+import { FormEngine, emptyRow } from '@kunpeng-io/form-js';
+import type { FieldValue, FormData, FormSchema, FormValidationResult, TableField } from '@kunpeng-io/form-js';
 import FieldRow from './FieldRow';
 import GroupSection from './GroupSection';
+import TableControl from './TableControl';
 
 export interface FormRendererHandle {
   /** 整单提交入口：揭示全部错误并返回校验结果 */
@@ -87,6 +88,49 @@ export const FormRenderer = forwardRef<FormRendererHandle, FormRendererProps>(fu
     onChange?.({ ...modelValue, [id]: value });
   }
 
+  // ---------- 明细表行操作（数据不可变更新；touched 用引擎同款三段定位键） ----------
+
+  function tableRowsOf(fieldId: string): FormData[] {
+    const value = modelValue[fieldId];
+    return Array.isArray(value) ? (value as FormData[]) : [];
+  }
+
+  function addRow(fieldId: string): void {
+    const field = engine.field(fieldId);
+    if (field.type !== 'table') {
+      throw new Error(`FormRenderer: 字段「${fieldId}」不是 table`);
+    }
+    onChange?.({ ...modelValue, [fieldId]: [...tableRowsOf(fieldId), emptyRow(field)] });
+  }
+
+  function removeRow(fieldId: string, rowIndex: number): void {
+    const oldRows = tableRowsOf(fieldId);
+    const rows = oldRows.filter((_, i) => i !== rowIndex);
+    const columns = (engine.field(fieldId) as TableField).columns;
+    onChange?.({ ...modelValue, [fieldId]: rows });
+    // 单元格 touched 键随行删除位移：被删行清除、其后行号 -1，避免错误提示挂到别的行
+    const touched = touchedRef.current;
+    for (const column of columns) {
+      touched.delete(`${fieldId}[${rowIndex}].${column.id}`);
+    }
+    for (let i = rowIndex + 1; i < oldRows.length; i++) {
+      for (const column of columns) {
+        const from = `${fieldId}[${i}].${column.id}`;
+        if (touched.has(from)) {
+          touched.delete(from);
+          touched.add(`${fieldId}[${i - 1}].${column.id}`);
+        }
+      }
+    }
+  }
+
+  function setCell(fieldId: string, rowIndex: number, columnId: string, value: FieldValue): void {
+    const rows = [...tableRowsOf(fieldId)];
+    rows[rowIndex] = { ...rows[rowIndex], [columnId]: value };
+    touchedRef.current.add(`${fieldId}[${rowIndex}].${columnId}`);
+    onChange?.({ ...modelValue, [fieldId]: rows });
+  }
+
   useImperativeHandle(ref, () => ({
     validate() {
       setRevealAll(true);
@@ -109,6 +153,17 @@ export const FormRenderer = forwardRef<FormRendererHandle, FormRendererProps>(fu
             engine={engine}
             errors={displayed}
             onSetValue={setValue}
+          />
+        ) : field.type === 'table' ? (
+          <TableControl
+            key={field.id}
+            field={field}
+            data={modelValue}
+            engine={engine}
+            errors={displayed}
+            onAddRow={addRow}
+            onRemoveRow={removeRow}
+            onSetCell={setCell}
           />
         ) : (
           <FieldRow

@@ -37,3 +37,19 @@
   margin-top: 4px;
   width: 100%;
 }
+
+/* 明细表：单元格错误（与 Vue 版同形；危险色取 antd 经典 error 色值） */
+.form-js-table {
+  width: 100%;
+}
+
+.form-js-cell-error {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #ff4d4f;
+  margin-top: 2px;
+}
+
+.form-js-table-actions {
+  margin-top: 8px;
+}
