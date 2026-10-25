@@ -32,6 +32,9 @@ catalog:
   '@bpmn-io/diagram-js-ui': ^0.2.4
   vue: ^3.5.44
 
+  # form 引擎渲染包直绑的 UI 库（peer，宿主/示例自装）
+  element-plus: ^2.14.7
+
   # bpmn / diagram 生态（npm 提供）
   diagram-js: ^15.28.0
   diagram-js-grid: ^2.1.0

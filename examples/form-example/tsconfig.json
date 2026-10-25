@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@kunpeng-io/form-js": ["../../packages/form/form-js/src/index.ts"],
+      "@kunpeng-io/form-js-vue": ["../../packages/form/form-js-vue/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue"]
+}

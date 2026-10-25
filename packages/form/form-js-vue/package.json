@@ -1,0 +1,44 @@
+{
+  "name": "@kunpeng-io/form-js-vue",
+  "version": "0.1.0",
+  "description": "form-js Vue 3 渲染器——消费统一设计协议，element-plus 直绑，FormEngine 为校验单一事实源",
+  "license": "GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0",
+  "type": "module",
+  "main": "./dist/form-js-vue.es.js",
+  "module": "./dist/form-js-vue.es.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/form-js-vue.es.js"
+    },
+    "./styles": "./dist/form-js-vue.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "licenses"
+  ],
+  "scripts": {
+    "build": "vite build --config vite.lib.config.ts && vue-tsc -p tsconfig.lib.json && node scripts/prepare-dist.mjs",
+    "typecheck": "vue-tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@kunpeng-io/form-js": "workspace:*"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0",
+    "element-plus": "^2.9.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "catalog:",
+    "element-plus": "catalog:",
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vue": "catalog:",
+    "vue-tsc": "^2.1.0"
+  }
+}
