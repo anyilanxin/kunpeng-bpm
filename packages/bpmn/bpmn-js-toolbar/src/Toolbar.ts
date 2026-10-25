@@ -21,14 +21,14 @@
  */
 /**
  * 悬浮工具栏服务：渲染进画布容器、相对画布水平居中（容器随宿主布局伸缩，
- * 面板让位/窗口缩放下恒居中）。三组内置动作（撤销重做 / 转置 / 缩放）走
+ * 面板让位/窗口缩放下恒居中）。三组内置动作（撤销重做 / 横纵布局 / 缩放）走
  * 内核服务；宿主经 `bpmnToolbar.actions` 注册应用级动作（导入导出、模式
  * 切换、取色器等——render() 可放任意控件），按 group 连续成组、换组分隔。
  * 宽度上限 min(画布容器宽 × ½, 视口宽 × ⅓)（常态最多占画布一半、小屏收敛
  * 到屏幕三分之一），装不下的尾段自动收进「更多」弹层（容器尺寸/模式变化
  * 即时重排）。
  *
- * 只读实例（Viewer/NavigatedViewer）可装配：撤销重做/转置依赖的
+ * 只读实例（Viewer/NavigatedViewer）可装配：撤销重做/横纵布局依赖的
  * commandStack/modeling 经注入器非严格解析（缺失即 null，整组不建），
  * 缩放组与宿主动作照常——宿主声明 showInPreview 的动作在预览态保留。
  *
@@ -105,6 +105,7 @@ export class BpmnToolbar {
   private readonly modeling: ModelingLike | null;
   private readonly undoBtn?: HTMLButtonElement;
   private readonly redoBtn?: HTMLButtonElement;
+  private readonly orientationBtn?: HTMLButtonElement;
   private readonly customControls: Array<{ spec: ToolbarActionSpec; el: HTMLElement }> = [];
   /** 顶层级段落（组/分隔线/宿主控件）的规范序——溢出收纳每轮全量回栏重排 */
   private readonly sections: HTMLElement[] = [];
@@ -154,18 +155,19 @@ export class BpmnToolbar {
     }
 
     if (this.modeling) {
+      // 布局单钮：图标标识当前朝向（横/纵各一款，随朝向换显），提示写明具体
+      // 目标朝向，点击翻转（构造先用横款占位，init 序列里 syncOrientation 归位）
       const orientation = group('orientation', true);
-      orientation.appendChild(
-        iconButton(
-          'orientation',
-          t('切换横/纵布局（全图转置）'),
-          ICONS.orientation,
-          () =>
-            this.modeling!.setOrientation(
-              this.orientationService.getOrientation() === 'vertical' ? 'horizontal' : 'vertical'
-            )
-        )
+      this.orientationBtn = iconButton(
+        'orientation',
+        t('切换为纵向布局'),
+        ICONS.orientationHorizontal,
+        () =>
+          this.modeling!.setOrientation(
+            this.orientationService.getOrientation() === 'vertical' ? 'horizontal' : 'vertical'
+          )
       );
+      orientation.appendChild(this.orientationBtn);
       this.root.appendChild(orientation);
     }
 
@@ -203,13 +205,19 @@ export class BpmnToolbar {
     window.addEventListener('resize', this.onViewportResize);
 
     eventBus.on('canvas.viewbox.changed', () => this.syncZoom());
-    eventBus.on('commandStack.changed', () => this.syncHistory());
+    // 朝向变化两路：转置命令（含撤销重做）与导入解析（标记/池 DI 推断）
+    eventBus.on('commandStack.changed', () => {
+      this.syncHistory();
+      this.syncOrientation();
+    });
+    eventBus.on('import.done', () => this.syncOrientation());
     eventBus.on('mode.changed', () => this.syncMode());
     eventBus.on('diagram.destroy', () => this.destroy());
 
     this.reflow();
     this.syncZoom();
     this.syncHistory();
+    this.syncOrientation();
     this.syncMode();
   }
 
@@ -223,6 +231,7 @@ export class BpmnToolbar {
     }
     this.syncZoom();
     this.syncHistory();
+    this.syncOrientation();
     this.syncMode();
   }
 
@@ -330,6 +339,17 @@ export class BpmnToolbar {
     }
     this.undoBtn.disabled = !this.commandStack.canUndo();
     this.redoBtn.disabled = !this.commandStack.canRedo();
+  }
+
+  /** 布局钮图标/提示随当前朝向显示：图标标识当前态（横=横箭头款/纵=纵箭头款），
+      提示写明点击将切到的具体目标朝向 */
+  private syncOrientation(): void {
+    if (!this.orientationBtn) {
+      return;
+    }
+    const horizontal = this.orientationService.getOrientation() === 'horizontal';
+    this.orientationBtn.innerHTML = horizontal ? ICONS.orientationHorizontal : ICONS.orientationVertical;
+    this.orientationBtn.title = this.bpmnI18n.t(horizontal ? '切换为纵向布局' : '切换为横向布局');
   }
 
   private syncMode(): void {
