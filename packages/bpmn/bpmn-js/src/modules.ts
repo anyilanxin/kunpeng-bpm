@@ -286,7 +286,10 @@ export const BpmnPopupMenuModule: ModuleDeclaration = {
     DistributeElementsModule,
     ContextPadModule,
     BpmnModelingModule,
-    BpmnRulesModule
+    BpmnRulesModule,
+    // 弹框「创建」放置建形后激活直编（BpmnCreateMenuProvider）：自包含
+    // 声明；无 Provider 注册时 activate 无害返回 false
+    DirectEditingModule
   ],
   __init__: ['popupMenuProvider', 'bpmnAlignMenuProvider', 'bpmnAppendMenuProvider', 'bpmnCreateMenuProvider'],
   'bpmnPopup': ['type', BpmnPopup],

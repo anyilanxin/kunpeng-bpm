@@ -44,7 +44,7 @@ import type Canvas from 'diagram-js/lib/core/Canvas';
 import type { BpmnMode } from '../mode/BpmnMode';
 import type { OrientationService } from '../meta/Orientation';
 
-const INTERNAL_TYPES = /^bpmn:(Task|UserTask|ServiceTask|ScriptTask|ManualTask|SendTask|ReceiveTask|BusinessRuleTask|CallActivity|SubProcess)/;
+const INTERNAL_TYPES = /^bpmn:(Task|UserTask|ServiceTask|ScriptTask|ManualTask|SendTask|ReceiveTask|BusinessRuleTask|CallActivity|SubProcess|Transaction|AdHocSubProcess)/;
 
 /** 编辑框最小宽（模型像素）：窄标签输入不逐字折行 */
 const EDIT_MIN_WIDTH = 46;

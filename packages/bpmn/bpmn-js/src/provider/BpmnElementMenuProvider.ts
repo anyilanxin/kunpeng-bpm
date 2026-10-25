@@ -173,7 +173,7 @@ export class BpmnAppendMenuProvider {
 export class BpmnCreateMenuProvider {
   static readonly MENU_ID = 'bpmn-create';
 
-  static $inject = ['popupMenu', 'eventBus', 'bpmnElementTypes', 'elementFactory', 'modeling', 'bpmnI18n', 'canvas', 'elementRegistry', 'orientationService'];
+  static $inject = ['popupMenu', 'eventBus', 'bpmnElementTypes', 'elementFactory', 'modeling', 'bpmnI18n', 'canvas', 'elementRegistry', 'orientationService', 'directEditing'];
 
   constructor(
     popupMenu: any,
@@ -184,7 +184,8 @@ export class BpmnCreateMenuProvider {
     private readonly i18n: any,
     private readonly canvas: any,
     private readonly elementRegistry: any,
-    private readonly orientationService: { isHorizontal(): boolean }
+    private readonly orientationService: { isHorizontal(): boolean },
+    private readonly directEditing: any
   ) {
     this.popupMenu = popupMenu;
     this.cache = new PopupMenuEntriesCache(eventBus);
@@ -242,7 +243,10 @@ export class BpmnCreateMenuProvider {
         CREATE_GROUPS,
         'create',
         (_meta, shape) => {
-          this.modeling.createShape(shape, placePosition, hostTarget);
+          const created = this.modeling.createShape(shape, placePosition, hostTarget);
+          // 新建即命名（2026-10-25 定规）：弹框放置是 modeling 直调、不经
+          // create/autoPlace 事件，就地激活（与 LabelBehavior 同一语义）
+          this.directEditing.activate(created);
         },
         () => this.popupMenu.close(),
         this.elementFactory
