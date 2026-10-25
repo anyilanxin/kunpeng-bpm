@@ -705,13 +705,27 @@ export class BpmnElementTypes {
   /** 替换族成员（全量；"与当前元素同形"的排除经 matchesElement 判定）。
    *  任务族（activity）额外收录四个子流程 morph 形态（用户定规 2026-10-25：
    *  折叠/展开 + Ad-hoc 折叠/展开——任务可改成的目标；事件/事务子流程不在列。
-   *  反向不开放：子流程元素的替换菜单仍只列子流程族） */
+   *  反向不开放：子流程元素的替换菜单仍只列子流程族）。
+   *  中间事件族（intermediateCatch/intermediateThrow 两族同集对称，用户定规
+   *  2026-10-25）：开始/结束事件 + 五捕获（消息/定时/条件/链接/信号）+ 六抛出
+   *  （消息/升级/链接/补偿/信号/多实例）；错误/升级/多实例/并行多实例捕获与
+   *  无定义抛出不在列。反向不开放：开始/结束元素的替换菜单仍只列各自族 */
   replaceTargets(familyId: string): ShapeTypeMeta[] {
     if (familyId === 'activity') {
       const morphSymbols = new Set(['subProcessExpanded', 'subProcessCollapsed', 'adHocSubProcess', 'adHocSubProcessCollapsed']);
       return SHAPE_TYPES.filter((meta) =>
         meta.replaceFamily === 'activity'
         || (meta.replaceFamily === 'subProcess' && morphSymbols.has(meta.symbol ?? ''))
+      );
+    }
+    if (familyId === 'intermediateCatch' || familyId === 'intermediateThrow') {
+      const catchSymbols = new Set(['message', 'timer', 'conditional', 'link', 'signal']);
+      const throwSymbols = new Set(['message', 'escalation', 'link', 'compensation', 'signal', 'multiple']);
+      return SHAPE_TYPES.filter((meta) =>
+        (meta.type === 'bpmn:StartEvent' && !meta.eventSymbol)
+        || (meta.type === 'bpmn:EndEvent' && !meta.eventSymbol)
+        || (meta.type === 'bpmn:IntermediateCatchEvent' && catchSymbols.has(meta.eventSymbol ?? ''))
+        || (meta.type === 'bpmn:IntermediateThrowEvent' && throwSymbols.has(meta.eventSymbol ?? ''))
       );
     }
     return SHAPE_TYPES.filter((meta) => meta.replaceFamily === familyId);
