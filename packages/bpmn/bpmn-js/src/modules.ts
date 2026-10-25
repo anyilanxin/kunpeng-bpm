@@ -105,6 +105,7 @@ import { BpmnReplaceMenuProvider } from './provider/BpmnReplaceMenuProvider';
 import { BpmnAlignMenuProvider } from './provider/BpmnAlignMenuProvider';
 import { BpmnAppendMenuProvider, BpmnCreateMenuProvider } from './provider/BpmnElementMenuProvider';
 import { AppendPreview } from './behavior/AppendPreview';
+import { LinkCatchBehavior } from './behavior/LinkCatchBehavior';
 import { BpmnOutlineProvider } from './provider/BpmnOutlineProvider';
 import { BpmnI18n } from './i18n/BpmnI18n';
 import { OrientationService } from './meta/Orientation';
@@ -221,13 +222,14 @@ export const BpmnModelingModule: ModuleDeclaration = {
 
 /** 交互行为：直编 / 自动摆放 / 注记自适应 / 外部标签元素生命周期 */
 export const BpmnBehaviorModule: ModuleDeclaration = {
-  __init__: ['bpmnLabelEditingProvider', 'labelBehavior', 'externalLabelBehavior', 'labelSupport', 'autoPlacementBehavior', 'textAnnotationBehavior', 'dropTargetBehavior', 'bpmnEditorActions'],
+  __init__: ['bpmnLabelEditingProvider', 'labelBehavior', 'externalLabelBehavior', 'labelSupport', 'autoPlacementBehavior', 'textAnnotationBehavior', 'dropTargetBehavior', 'linkCatchBehavior', 'bpmnEditorActions'],
   'bpmnLabelEditingProvider': ['type', BpmnLabelEditingProvider],
   'labelBehavior': ['type', LabelBehavior],
   'externalLabelBehavior': ['type', ExternalLabelBehavior],
   'autoPlacementBehavior': ['type', AutoPlacementBehavior],
   'textAnnotationBehavior': ['type', TextAnnotationBehavior],
   'dropTargetBehavior': ['type', DropTargetBehavior],
+  'linkCatchBehavior': ['type', LinkCatchBehavior],
   'bpmnEditorActions': ['type', BpmnEditorActions],
   // 基座标签随动语义：宿主拖动闭包含标签、删除级联删标签、撤销对称恢复
   'labelSupport': ['type', LabelSupport]

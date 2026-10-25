@@ -107,6 +107,11 @@ function buildEntries(
     if (!groupIds.includes(meta.paletteGroup ?? '')) {
       continue;
     }
+    // 追加必建入线（源→新元素顺序流），链接捕获不作入线目标（规则层拒绝）
+    // ——追加菜单不收录，放置走创建菜单
+    if (keyPrefix === 'append' && meta.type === 'bpmn:IntermediateCatchEvent' && meta.eventSymbol === 'link') {
+      continue;
+    }
     entries[`${keyPrefix}-${metaId(meta)}`] = {
       label: i18n.t(meta.label),
       group: { id: meta.paletteGroup!, name: i18n.t(groupLabels.get(meta.paletteGroup!)!) },

@@ -48,6 +48,7 @@ import {
   isPoolFamily,
   isSubProcessFamily
 } from '../meta/ElementTypes';
+import { EventDefinitions } from '../meta/EventDefinitions';
 import { poolInnerRect } from '../util/PoolGeometry';
 
 /** 平面矩形（重叠/包含判定的统一入参） */
@@ -254,6 +255,11 @@ export class BpmnRules extends RuleProvider {
     }
     if (st === 'bpmn:EndEvent') return false;
     if (tt === 'bpmn:StartEvent') return false;
+    // 链接捕获不作顺序流目标（规范 §10.3.3：其"入线"是匹配链接名的跳转接续，
+    // 不经顺序流进入；出线合法——从它流出继续流程）
+    if (tt === 'bpmn:IntermediateCatchEvent' && EventDefinitions.symbolOf(target.businessObject) === 'link') {
+      return false;
+    }
     if (st === 'bpmn:BoundaryEvent' && this.isBoundaryHost(target, source)) return false;
     if (tt === 'bpmn:BoundaryEvent') return false; // 其中断语义由 attach 通道承载，不作顺序流目标
     return scope.sourcePool === scope.targetPool;
