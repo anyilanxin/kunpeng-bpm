@@ -173,10 +173,14 @@ export const EditorPlatformModules: ModuleDeclaration[] = [
   EditorActionsModule
 ];
 
-/** diagram-js 平台特性集（Modeler 全量=查看底座+导航+编辑增量；可被宿主裁剪：不传我们的默认集、自拼 modules） */
+/** diagram-js 平台特性集（Modeler 全量=查看底座+滚轮缩放+编辑增量；可被宿主裁剪：
+ *  不传我们的默认集、自拼 modules）。**不含 MoveCanvas/KeyboardMove**——画布拖拽
+ *  平移与方向键移视口是导航形态（NavigatedViewer）的交互：MoveCanvas 在 svg
+ *  聚焦后接管元素/空白 mousedown 为画布平移（抓手），编辑形态会与"空白拖拽
+ *  即框选"及元素移动冲突（KeyboardModule 装配后 svg 可聚焦即被引爆）。 */
 export const PlatformModules: ModuleDeclaration[] = [
   ...ViewerPlatformModules,
-  ...NavigationModules,
+  ZoomScrollModule,
   ...EditorPlatformModules
 ];
 
