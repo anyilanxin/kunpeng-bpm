@@ -264,11 +264,13 @@ export class BpmnRenderer extends BaseRenderer {
     this.drawInternalLabel(visuals, shape, shape.isExpanded === false ? 'middle' : 'top');
   }
 
-  /** 调用活动（规范 §10.2.3）：加粗边框（取 4：与结束事件粗环同重，边框即"调用"语义） */
+  /** 调用活动（规范 §10.2.3；记法按用户方参照截图 2026-10-25）：与折叠子流程
+   *  完全同款（底部 [+] 方块浮于框内、标签居中），唯一区别=外框加粗
+   *  （取 4：与结束事件粗环同重，边框即"调用"语义） */
   private paintCallActivity(visuals: SVGElement, shape: any, theme: StyleTheme): void {
     this.drawRoundedBox(visuals, shape, theme, 4);
-    this.paintActivityMarkers(visuals, shape, theme);
-    this.drawInternalLabel(visuals, shape);
+    this.paintActivityMarkers(visuals, shape, theme, { collapsed: true });
+    this.drawInternalLabel(visuals, shape, 'middle');
   }
 
   /** 活动底部标记行（循环特性 + 补偿）——任务/调用活动/事务/Ad-hoc 共用 */
