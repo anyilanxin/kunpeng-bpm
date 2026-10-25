@@ -234,18 +234,22 @@
 /* ── 平面面包屑（plane/PlaneBreadcrumb）：画布左上角层级路径 ──
    主平面隐藏（[hidden] 显式声明——display:flex 会盖掉 UA 的 [hidden] 隐藏，
    同悬浮卡弹层陷阱）；祖先段主题蓝可点、当前段加重不可点。
-   无卡片底（用户定规：不悬浮——白底/投影/圆角/内距全无，裸排画布上，
-   参照宿主截图的纯文字路径样式）。 */
+   无卡片底（用户定规：不悬浮——白底/投影/圆角/内距全无，裸排画布上）。
+   起点避让左上悬浮 palette（20 + 94 两列宽 + 16 间距）；16px 字号（用户定规）。
+   层级过多不换行：容器单行溢出隐藏，早期段优先收缩成省略号
+   （flex-shrink 阶梯），当前段恒完整可见。 */
 .bpmn-plane-breadcrumb {
   position: absolute;
   top: 10px;
-  left: 12px;
+  left: 130px;
+  right: 16px;
   z-index: 60;
   display: flex;
   align-items: center;
-  gap: 6px;
-  max-width: calc(100% - 24px);
-  font-size: 12px;
+  gap: 8px;
+  overflow: hidden;
+  font-size: 16px;
+  line-height: 22px;
   color: #1a1a1a;
   user-select: none;
 }
@@ -253,7 +257,6 @@
   display: none;
 }
 .bpmn-plane-breadcrumb-crumb {
-  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -263,6 +266,10 @@
   font: inherit;
   color: #1c6ee0;
   cursor: pointer;
+  /* 非当前段可收缩（挤让空间），下限 24px 保省略号可点回跳 */
+  flex-shrink: 1;
+  min-width: 24px;
+  max-width: 260px;
 }
 .bpmn-plane-breadcrumb-crumb:hover {
   text-decoration: underline;
@@ -271,10 +278,14 @@
   color: inherit;
   font-weight: 600;
   cursor: default;
+  /* 当前段不收缩不截断——层级再深也完整可见 */
+  flex-shrink: 0;
+  max-width: none;
 }
 .bpmn-plane-breadcrumb-crumb.current:hover {
   text-decoration: none;
 }
 .bpmn-plane-breadcrumb-separator {
   color: #7f7f7f;
+  flex-shrink: 0;
 }
