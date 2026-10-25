@@ -323,13 +323,14 @@ export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20, fill = '#
         rect.setAttribute(k, String(v));
       }
       g.appendChild(rect);
-      if (t === 'bpmn:SubProcess') {
-        // 折叠 [+]：画布 drawCollapsedMarker 同形（底边跨骑、底部中央）
+      if (t === 'bpmn:SubProcess' || t === 'bpmn:CallActivity') {
+        // 折叠 [+]：画布 drawCollapsedMarker 同形（浮于框内底缘上方、底部中央）；
+        // 调用活动与折叠子流程同款记法（画布 2026-10-25 对齐参照），边框 4 加粗为唯一区别
         drawCollapsedMarker(g, TASK_BOX, theme);
       } else if (t === 'bpmn:AdHocSubProcess') {
         // 折叠临时子流程：[+] 左、波浪号右（画布标记行同源同布局，规范 §12.3.2）
         drawActivityMarkerRow(g, TASK_BOX, { collapsed: true, adHoc: true }, theme);
-      } else if (t !== 'bpmn:CallActivity') {
+      } else {
         // 任务字标：画布 drawTaskMarker 同位（中心 14,14，半尺寸 8）
         taskGlyph(g, meta.symbol ?? '', 14, 14, 8, theme);
       }
