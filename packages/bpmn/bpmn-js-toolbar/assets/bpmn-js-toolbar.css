@@ -37,7 +37,9 @@
      max-width 由 reflow 按上限施加（min(画布½, 视口⅓)），样式表兜底防越界 */
   width: max-content;
   max-width: calc(100% - 20px);
-  z-index: 90; /* 图层面之上、弹框（200）/上下文面板（100）之下 */
+  /* 图层面之上、上下文面板（context pad=100）之上——工具栏弹层（更多/取色）
+     与 context pad 重叠时必须完整可见；仍低于 diagram-js 弹框（200）/提示（1000） */
+  z-index: 150;
   display: flex;
   align-items: center;
   gap: 6px;

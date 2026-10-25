@@ -534,7 +534,7 @@ console.info(
 
     <!-- 建模器画布宿主（卡片内容区·流程图侧）：常驻渲染，XML 视图由 XmlViewCard 的
          不透明内容区整体覆盖——display:none 会让导入时视口计算得 0 尺寸（SVGMatrix NaN）；
-         属性面板可见时画布右缘让出面板列宽；XML 视图下藏画布内悬浮件（工具栏 z-90
+         属性面板可见时画布右缘让出面板列宽；XML 视图下藏画布内悬浮件（工具栏 z-150
          会戳出 XML 卡片覆盖层，palette 等低层件不受影响） -->
     <div
       ref="canvasHost"
