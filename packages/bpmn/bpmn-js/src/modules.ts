@@ -64,6 +64,8 @@ import SchedulerModule from 'diagram-js/lib/features/scheduler';
 import HoverFixModule from 'diagram-js/lib/features/hover-fix';
 import GridSnappingModule from 'diagram-js/lib/features/grid-snapping';
 import ComplexPreviewModule from 'diagram-js/lib/features/complex-preview';
+import KeyboardModule from 'diagram-js/lib/features/keyboard';
+import KeyboardMoveSelectionModule from 'diagram-js/lib/features/keyboard-move-selection';
 import DirectEditingModule from 'diagram-js-direct-editing';
 // 画布导航（seata Editor.js 同款三件套：滚轮缩放 / 拖拽平移 / 方向键平移）
 import ZoomScrollModule from 'diagram-js/lib/navigation/zoomscroll';
@@ -98,6 +100,7 @@ import { AutoPlacementBehavior } from './behavior/AutoPlacementBehavior';
 import { CollaborationBehavior } from './behavior/CollaborationBehavior';
 import { TextAnnotationBehavior } from './behavior/TextAnnotationBehavior';
 import { DropTargetBehavior } from './behavior/DropTargetBehavior';
+import { BlankLassoBehavior } from './behavior/BlankLassoBehavior';
 import { ExternalLabelBehavior } from './behavior/ExternalLabelBehavior';
 import LabelSupport from 'diagram-js/lib/features/label-support/LabelSupport';
 import { BpmnLabelEditingProvider } from './label/LabelEditingProvider';
@@ -131,7 +134,7 @@ export const NavigationModules: ModuleDeclaration[] = [
   KeyboardMoveModule
 ];
 
-/** 编辑平台特性（Viewer → Modeler 增量）：选择 / 拖放 / 建连 / 面板 / 菜单 / 对齐分布 / 直编等 */
+/** 编辑平台特性（Viewer → Modeler 增量）：选择 / 拖放 / 建连 / 面板 / 菜单 / 对齐分布 / 直编 / 键盘多选等 */
 export const EditorPlatformModules: ModuleDeclaration[] = [
   SelectionModule,
   DraggingModule,
@@ -163,6 +166,10 @@ export const EditorPlatformModules: ModuleDeclaration[] = [
   GridSnappingModule,
   ComplexPreviewModule,
   DirectEditingModule,
+  // 键盘通道（参照工程同款）：Ctrl+A 全选 / Escape 取消选择 / Delete 删除；
+  // 方向键移动整个选区（多选后整体挪动）
+  KeyboardModule,
+  KeyboardMoveSelectionModule,
   EditorActionsModule
 ];
 
@@ -246,7 +253,7 @@ export const BpmnModelingModule: ModuleDeclaration = {
 /** 交互行为：直编 / 自动摆放 / 注记自适应 / 外部标签元素生命周期（自包含：直编/编辑动作/选择基座） */
 export const BpmnBehaviorModule: ModuleDeclaration = {
   __depends__: [DirectEditingModule, EditorActionsModule, SelectionModule],
-  __init__: ['bpmnLabelEditingProvider', 'labelBehavior', 'externalLabelBehavior', 'labelSupport', 'autoPlacementBehavior', 'textAnnotationBehavior', 'dropTargetBehavior', 'linkCatchBehavior', 'bpmnEditorActions'],
+  __init__: ['bpmnLabelEditingProvider', 'labelBehavior', 'externalLabelBehavior', 'labelSupport', 'autoPlacementBehavior', 'textAnnotationBehavior', 'dropTargetBehavior', 'linkCatchBehavior', 'blankLassoBehavior', 'bpmnEditorActions'],
   'bpmnLabelEditingProvider': ['type', BpmnLabelEditingProvider],
   'labelBehavior': ['type', LabelBehavior],
   'externalLabelBehavior': ['type', ExternalLabelBehavior],
@@ -254,6 +261,8 @@ export const BpmnBehaviorModule: ModuleDeclaration = {
   'textAnnotationBehavior': ['type', TextAnnotationBehavior],
   'dropTargetBehavior': ['type', DropTargetBehavior],
   'linkCatchBehavior': ['type', LinkCatchBehavior],
+  // 空白拖拽即框选（编辑态无激活工具时；lassoTool 缺席自放弃）
+  'blankLassoBehavior': ['type', BlankLassoBehavior],
   'bpmnEditorActions': ['type', BpmnEditorActions],
   // 基座标签随动语义：宿主拖动闭包含标签、删除级联删标签、撤销对称恢复
   'labelSupport': ['type', LabelSupport]

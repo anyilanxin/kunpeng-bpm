@@ -91,6 +91,9 @@ export class Modeler {
 
     this.diagram = new Diagram({
       ...pluginConfig,
+      // 键盘通道缺省绑 document（Ctrl+A 全选/Delete/方向键移动选区）；
+      // 宿主传了 keyboard 配置则以宿主为准
+      keyboard: pluginConfig.keyboard ?? { bindTo: document },
       canvas: { container, width, height },
       modules: effectiveModules
     });
