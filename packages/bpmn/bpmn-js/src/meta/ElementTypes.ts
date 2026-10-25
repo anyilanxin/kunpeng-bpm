@@ -587,14 +587,13 @@ export function isContainerType(type?: string | null, isExpanded?: boolean): boo
 export class BpmnElementTypes {
   static $inject = ['config.paletteQuickIds'];
 
-  /** 默认快捷集（10 条；见上方取值说明），宿主未传 paletteQuickIds 时生效 */
+  /** 默认快捷集（9 条；见上方取值说明），宿主未传 paletteQuickIds 时生效 */
   static readonly PALETTE_QUICK_IDS: readonly string[] = [
     'StartEvent',
     'IntermediateThrowEvent',
     'EndEvent',
     'ExclusiveGateway',
     'Task',
-    'SubProcess-collapsed',
     'DataObjectReference',
     'DataStoreReference',
     'Participant',
