@@ -107,7 +107,8 @@ export class DrillBadges {
       event.preventDefault();
       this.planeService.drillDown(element);
     });
-    // 右下角外侧 12px（overlays 位置语义：right/bottom 负值=向外偏出元素边）
+    // 右下角外侧 12px（overlays 位置语义：right/bottom 负值=向外偏出元素边；
+    // 保持原距——再近会与 context pad 重叠）
     this.overlays.add(element, OVERLAY_TYPE, {
       html: button,
       position: { right: -12, bottom: -12 }

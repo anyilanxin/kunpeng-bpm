@@ -207,10 +207,10 @@
   background: rgba(28, 110, 224, 0.8);
 }
 
-/* ── 下钻徽标（折叠子流程右下角外侧悬浮钮，plane/DrillBadges）──
-   蓝底白角标（用户定规色 #0095ff、无阴影）：22px 点击区、4px 圆角与弹框
-   家族同族；overlays 为 HTML 通道不随画布缩放，恒定像素可点。
-   hover/active 为自有加深派生（-18%/-32% 明度，同色相无跳变）。 */
+/* ── 下钻徽标（折叠子流程右下角外侧，plane/DrillBadges）──
+   蓝底白角标（用户定规色 #0095ff）：22px 点击区；overlays 为 HTML 通道
+   不随画布缩放，恒定像素可点。无阴影、无 hover/active 底色变化
+   （用户定规：悬浮反馈不要，鼠标手型即可）。 */
 .bpmn-drill-badge {
   display: flex;
   align-items: center;
@@ -223,12 +223,6 @@
   background: #0095ff;
   color: #ffffff;
   cursor: pointer;
-}
-.bpmn-drill-badge:hover {
-  background: #007ad1;
-}
-.bpmn-drill-badge:active {
-  background: #0065ad;
 }
 
 /* ── 平面面包屑（plane/PlaneBreadcrumb）：画布左上角层级路径 ──
