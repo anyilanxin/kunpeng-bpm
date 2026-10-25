@@ -24,6 +24,24 @@ html, body {
   right: 16px !important;
 }
 
+/* 折叠钮 "MAP" 文字 → 自绘折页地图图标（用户定规用图标；剪影自有设计：
+   三折页轮廓+两道折缝，stroke 经 mask 通道随 currentColor，hover 变色随上游） */
+.djs-minimap:not(.open) .toggle {
+  font-size: 0;
+  letter-spacing: 0;
+}
+
+.djs-minimap:not(.open) .toggle::before {
+  content: '';
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M2.5,5 L6.8,3.3 L11.2,5 L15.5,3.3 V13 L11.2,14.7 L6.8,13 L2.5,14.7 Z M6.8,3.3 V13 M11.2,5 V14.7' fill='none' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center / contain;
+  mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M2.5,5 L6.8,3.3 L11.2,5 L15.5,3.3 V13 L11.2,14.7 L6.8,13 L2.5,14.7 Z M6.8,3.3 V13 M11.2,5 V14.7' fill='none' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+
 /* 视图切换分段选择器（流程图 | XML）样式已随组件移入 src/components/XmlViewCard.vue */
 
 /* 画布宿主尺寸由 App.vue scoped 样式负责；这里只透底色（网格背景=插件挂载点，核心不绘制） */
