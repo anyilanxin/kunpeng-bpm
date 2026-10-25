@@ -16,7 +16,7 @@
  * - 流程图/XML 视图切换是示例自有的卡片组件（components/XmlViewCard.vue），
  *   只消费组件包公开 API（saveXML/importXML），组件包本身不含视图切换功能
  */
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue';
 import { Modeler, Viewer, NavigatedViewer, iconOfElement } from '@kunpeng-io/bpmn-js';
 import { BpmnToolbarModule } from '@kunpeng-io/bpmn-js-toolbar';
 import type { ToolbarActionSpec } from '@kunpeng-io/bpmn-js-toolbar';
@@ -45,14 +45,20 @@ const panelOpen = ref(true);
 /** 面板可见 = 编辑态 + 流程图视图 + 用户未收起 */
 const panelVisible = computed(() => form.value === 'edit' && view.value === 'diagram' && panelOpen.value);
 
-// 渲染器主题缺省（BpmnRenderer DEFAULT_CONFIG）：取色器初值与未着色元素的实际观感一致
-const DEFAULT_STROKE = '#000000';
-const DEFAULT_FILL = '#ffffff';
+/** 取色器回显缺省随当前渲染主题（未着色元素的实际观感）：与 RENDERER_THEMES 同源 */
+function pickerDefault(kind: 'fill' | 'stroke'): string {
+  const theme = RENDERER_THEMES[dark.value ? 'dark' : 'light'];
+  return kind === 'fill' ? theme.defaultFillColor : theme.defaultStrokeColor;
+}
 
-const fillColor = ref(DEFAULT_FILL);
-const strokeColor = ref(DEFAULT_STROKE);
-/** 单选中的可着色元素（标签元素着色其宿主） */
-const colorTarget = ref<any>(null);
+const fillColor = ref('#ffffff');
+const strokeColor = ref('#000000');
+/** 单选中的可着色元素（标签元素着色其宿主）。
+ *  必须 shallowRef：深层 ref 读出的是 reactive 代理，传给 modeling.setColor 后
+ *  elements.changed 链上 GraphicsFactory 迭代代理的 children 会触发 JS 代理
+ *  不变量错误（object-refs 把 children 定义为只读非配置数据属性，代理 get
+ *  不得换值）→ DI 同步监听器被跳过、bioc 色落不了 XML、命令栈事件链断 */
+const colorTarget = shallowRef<any>(null);
 
 /** 取色器原始 input 元素（插件 render() 一次性建 DOM，选择变化由示例自持监听回写） */
 let fillColorInput: HTMLInputElement | null = null;
@@ -77,11 +83,12 @@ function bindSelectionEvents(): void {
   });
 }
 
-/** 回显取色器：选择/颜色变化后写原始 input（工具栏 DOM 是插件一次性建的） */
+/** 回显取色器：选择/颜色变化后写原始 input（工具栏 DOM 是插件一次性建的）；
+    未着色字段回显当前主题缺省（原生 color input 无"无值"态） */
 function syncColorInputs(): void {
   const colors = colorTarget.value?.colors;
-  fillColor.value = colors?.fill || DEFAULT_FILL;
-  strokeColor.value = colors?.stroke || DEFAULT_STROKE;
+  fillColor.value = colors?.fill || pickerDefault('fill');
+  strokeColor.value = colors?.stroke || pickerDefault('stroke');
   if (fillColorInput) {
     fillColorInput.value = fillColor.value;
     fillColorInput.disabled = !colorTarget.value;
@@ -92,15 +99,22 @@ function syncColorInputs(): void {
   }
 }
 
-function applyColors(): void {
+/** 提交被改字段；对侧字段仅在元素已有显式色时回传保留。ColorHandler 是
+    colors 整替语义（未传字段=清除回落主题缺省）——未显式的对侧不传，
+    观感恰是元素当前渲染（不会把"回显用的缺省值"误写成显式色） */
+function applyColors(kind: 'fill' | 'stroke'): void {
   if (!colorTarget.value || !modeler || form.value !== 'edit') {
     return;
   }
-  // 空值字段传 undefined = 清除该字段（ColorHandler 语义：回落主题缺省）
-  modeler.get<any>('modeling').setColor(colorTarget.value, {
-    fill: fillColor.value || undefined,
-    stroke: strokeColor.value || undefined
-  });
+  const other: 'fill' | 'stroke' = kind === 'fill' ? 'stroke' : 'fill';
+  const colors: { fill?: string; stroke?: string } = {
+    [kind]: kind === 'fill' ? fillColor.value : strokeColor.value
+  };
+  const otherExplicit = colorTarget.value.colors?.[other];
+  if (otherExplicit) {
+    colors[other] = otherExplicit;
+  }
+  modeler.get<any>('modeling').setColor(colorTarget.value, colors);
 }
 
 function clearColors(): void {
@@ -146,11 +160,13 @@ const RENDERER_THEMES = {
 } as const;
 const dark = ref(false);
 
-/** 暗色切换：令牌作用域 + 渲染缺省热切换（运行期 setTheme 全量重绘，不重建实例） */
+/** 暗色切换：令牌作用域 + 渲染缺省热切换（运行期 setTheme 全量重绘，不重建实例）；
+    未着色元素的取色器回显随主题缺省换挡 */
 function toggleDark(): void {
   dark.value = !dark.value;
   document.documentElement.classList.toggle('dark', dark.value);
   modeler?.get<any>('bpmnRenderer').setTheme(RENDERER_THEMES[dark.value ? 'dark' : 'light']);
+  syncColorInputs();
 }
 
 /** 按形态建实例：工具栏插件三形态通用装配（只读底座缺的编辑组由插件自行不建），
@@ -258,7 +274,7 @@ function colorControl(kind: 'fill' | 'stroke'): ToolbarActionSpec {
         } else {
           strokeColor.value = input.value;
         }
-        applyColors();
+        applyColors(kind);
       });
       if (kind === 'fill') {
         fillColorInput = input;
