@@ -34,7 +34,7 @@ export class PlaneBreadcrumb {
 
   private readonly container: HTMLElement;
 
-  constructor(eventBus: EventBus, canvas: Canvas, private readonly planeService: PlaneService) {
+  constructor(eventBus: EventBus, private readonly canvas: Canvas, private readonly planeService: PlaneService) {
     this.container = document.createElement('div');
     this.container.className = 'bpmn-plane-breadcrumb';
     this.container.hidden = true;
@@ -53,6 +53,7 @@ export class PlaneBreadcrumb {
       return;
     }
     this.container.hidden = false;
+    this.avoidToolbar();
     const nodes: Node[] = [];
     stack.forEach((frame, index) => {
       if (index > 0) {
@@ -78,5 +79,23 @@ export class PlaneBreadcrumb {
       nodes.push(crumb);
     });
     this.container.replaceChildren(...nodes);
+  }
+
+  /**
+   * 与画布顶部悬浮工具栏自动错开：工具栏（.bpmn-toolbar，宿主经
+   * additionalModules 可选装配）同样悬在容器顶部带，与面包屑同 top 会重叠。
+   * 每次渲染时探测一次并落到其下方 8px；未装配工具栏则回落样式表默认 top
+   * （内核不硬编码可选插件的几何）。
+   */
+  private avoidToolbar(): void {
+    const host = this.canvas.getContainer() as HTMLElement;
+    const toolbar = host.querySelector<HTMLElement>(':scope > .bpmn-toolbar');
+    if (!toolbar) {
+      this.container.style.top = '';
+      return;
+    }
+    const toolbarBottom = toolbar.getBoundingClientRect().bottom;
+    const hostTop = host.getBoundingClientRect().top;
+    this.container.style.top = `${Math.round(toolbarBottom - hostTop + 8)}px`;
   }
 }
