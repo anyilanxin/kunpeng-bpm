@@ -77,7 +77,9 @@ export class BlankLassoBehavior {
       if (toolManager && YIELDING_TOOLS.some((tool) => toolManager.isActive(tool))) {
         return;
       }
-      lassoTool.activateSelection(event, true);
+      // autoActivate=false：按下不动（纯点击）不进框选态——无 crosshair 光标/
+      // 无框选视觉，位移超过基座阈值后才真正启动框选（点击空白=清选不变）
+      lassoTool.activateSelection(event, false);
     });
   }
 }
