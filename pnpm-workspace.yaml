@@ -34,6 +34,12 @@ catalog:
 
   # form 引擎渲染包直绑的 UI 库（peer，宿主/示例自装）
   element-plus: ^2.14.7
+  antd: ^6.6.7
+  dayjs: ^1.11.23
+  react: ^19.3.1
+  react-dom: ^19.3.1
+  '@types/react': ^19.3.0
+  '@types/react-dom': ^19.3.0
 
   # bpmn / diagram 生态（npm 提供）
   diagram-js: ^15.28.0

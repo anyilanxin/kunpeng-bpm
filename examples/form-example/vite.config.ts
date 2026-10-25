@@ -11,6 +11,9 @@ export default defineConfig({
       '@kunpeng-io/form-js': fileURLToPath(new URL('../../packages/form/form-js/src/index.ts', import.meta.url)),
       '@kunpeng-io/form-js-vue': fileURLToPath(
         new URL('../../packages/form/form-js-vue/src/index.ts', import.meta.url)
+      ),
+      '@kunpeng-io/form-js-react': fileURLToPath(
+        new URL('../../packages/form/form-js-react/src/index.ts', import.meta.url)
       )
     }
   },

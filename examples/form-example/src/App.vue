@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { FormEngine, FormRenderer } from '@kunpeng-io/form-js-vue';
 import type { FormValidationResult } from '@kunpeng-io/form-js-vue';
+import { mountReactPanel } from './react/mount';
 import { demoSchema } from './schema';
 
 const schema = demoSchema;
@@ -19,6 +20,14 @@ function onReset(): void {
   data.value = new FormEngine(schema).defaults();
   renderer.value?.reset();
 }
+
+// React 渲染区在 Vue 挂载后挂进 #react-root（Vue 热更重挂时幂等重建）
+onMounted(() => {
+  const el = document.getElementById('react-root');
+  if (el) {
+    mountReactPanel(el);
+  }
+});
 </script>
 
 <template>
@@ -38,9 +47,7 @@ function onReset(): void {
       </section>
       <section class="panel">
         <h2>React 渲染器</h2>
-        <div id="react-root" class="react-root">
-          <p class="placeholder">阶段 3 接入：React root 挂载在本 Vue 宿主页内</p>
-        </div>
+        <div id="react-root" class="react-root"></div>
       </section>
     </div>
     <section class="dump">
@@ -97,11 +104,6 @@ function onReset(): void {
   display: flex;
   gap: 8px;
   margin-top: 8px;
-}
-
-.react-root .placeholder {
-  color: #aaa;
-  font-size: 13px;
 }
 
 .dump {

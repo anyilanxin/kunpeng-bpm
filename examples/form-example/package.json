@@ -10,11 +10,18 @@
   },
   "dependencies": {
     "@kunpeng-io/form-js": "workspace:*",
+    "@kunpeng-io/form-js-react": "workspace:*",
     "@kunpeng-io/form-js-vue": "workspace:*",
+    "antd": "catalog:",
+    "dayjs": "catalog:",
     "element-plus": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
     "vue": "^3.5.0"
   },
   "devDependencies": {
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "@vitejs/plugin-vue": "^6.0.10",
     "typescript": "^5.6.0",
     "vite": "^8.3.5",

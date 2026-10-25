@@ -1,0 +1,43 @@
+{
+  "name": "@kunpeng-io/form-js-react",
+  "version": "0.1.0",
+  "description": "form-js 动态表单 React 渲染器（antd 直绑，校验单一事实源为 @kunpeng-io/form-js 引擎）",
+  "license": "GPL-2.0-only WITH Classpath-exception-2.0",
+  "type": "module",
+  "module": "./dist/form-js-react.es.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/form-js-react.es.js"
+    },
+    "./styles": "./dist/form-js-react.css"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "licenses"
+  ],
+  "scripts": {
+    "build": "vite build -c vite.lib.config.ts && tsc -p tsconfig.lib.json && node scripts/prepare-dist.mjs",
+    "typecheck": "tsc -p tsconfig.lib.json --noEmit"
+  },
+  "dependencies": {
+    "@kunpeng-io/form-js": "workspace:*",
+    "dayjs": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "antd": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "antd": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}
