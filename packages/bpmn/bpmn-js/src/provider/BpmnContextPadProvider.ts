@@ -291,9 +291,12 @@ export class BpmnContextPadProvider {
     return entries;
   }
 
-  /** 对齐菜单：pad 左缘正下方展开（BpmnPopup 统一参数与锚定） */
+  /** 对齐菜单：pad 左缘正下方展开；无搜索 + 图标栅格每行 3 个（2026-10-25 定规） */
   private openAlignMenu(elements: any[]): void {
-    this.bpmnPopup.open(elements, BpmnAlignMenuProvider.MENU_ID, { kind: 'pad', target: elements }, this.i18n.t('对齐 / 分布'));
+    this.bpmnPopup.open(elements, BpmnAlignMenuProvider.MENU_ID, { kind: 'pad', target: elements }, this.i18n.t('对齐 / 分布'), {
+      search: false,
+      className: 'bpmn-align-popup'
+    });
   }
 
   /** 元素弹框（替换/追加/创建）：同款 pad 锚定与家族样式 */

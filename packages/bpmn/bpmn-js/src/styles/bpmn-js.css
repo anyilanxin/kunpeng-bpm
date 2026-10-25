@@ -168,6 +168,19 @@
 /* 条目行：舒展行高（参考样式行距明显大于默认 5px 紧排） */
 .djs-popup .djs-popup-body .entry { padding: 6px 8px; }
 
+/* 对齐/分布弹框（bpmn-align-popup）：无搜索的图标栅格，每行 3 个
+   （2026-10-25 产品定规）——组各自成栅格不跨行混排，条目图标居中占格 */
+.djs-popup.bpmn-align-popup .djs-popup-body .djs-popup-group {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+.djs-popup.bpmn-align-popup .djs-popup-body .djs-popup-group .entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px;
+}
+
 /* ── 直编输入框外观 ──
    diagram-js-direct-editing 的 TextBox 默认为内联「白底 + 1px #ccc 边」裸框
    （该包不附任何 CSS），调整手柄更是无样式空 div——与弹框家族不配。

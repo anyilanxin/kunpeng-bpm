@@ -89,9 +89,17 @@ export class BpmnPopup {
 
   /**
    * 打开家族弹框。搜索框在可操作条目多于 5 个时自动出现（PopupMenu
-   * 组件契约），小菜单天然无搜索框，无需调用方区分。
+   * 组件契约），小菜单天然无搜索框，无需调用方区分；变体弹框（如对齐
+   * 栅格）可经 options 关搜索并挂根类名（className 拼到 .djs-popup 根，
+   * 变体皮肤的 CSS 挂点）。
    */
-  open(target: unknown, menuId: string, anchor: BpmnPopupAnchor, title: string): void {
+  open(
+    target: unknown,
+    menuId: string,
+    anchor: BpmnPopupAnchor,
+    title: string,
+    options?: { search?: boolean; className?: string }
+  ): void {
     this.endSession();
     const position = this.place(anchor, null);
     // 面板宽度调节/窗口缩放不关弹框（不在引擎 CLOSE_EVENTS 内）——三信号监听
@@ -102,8 +110,11 @@ export class BpmnPopup {
     // 目标按引擎调用惯例宽松传递（PopupMenuTarget 可为元素/元素数组）
     this.popupMenu.open(target as any, menuId, position, {
       title,
-      search: true,
-      width: BpmnPopup.WIDTH
+      // 组件层 searchable = isDefined(search) && 条目>5——false 也算"已定义"
+      // 会照常开搜索，关搜索必须整个置 undefined（键缺席）
+      search: options?.search === false ? undefined : true,
+      width: BpmnPopup.WIDTH,
+      className: options?.className
     });
     // open() 同步渲染——按弹框真实高度精化一次（首次定位用的是估计高度）
     this.reposition();
