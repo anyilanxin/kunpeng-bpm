@@ -1,0 +1,44 @@
+{
+  "name": "@kunpeng-io/form-js-designer",
+  "version": "0.1.0",
+  "description": "form-js 动态表单可视化设计器（拖拽编排 + 属性编辑 + 协议 Schema 产出）",
+  "license": "GPL-2.0-only WITH Classpath-exception-2.0",
+  "type": "module",
+  "module": "./dist/form-js-designer.es.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/form-js-designer.es.js"
+    },
+    "./styles": "./dist/form-js-designer.css"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "licenses"
+  ],
+  "scripts": {
+    "build": "vite build -c vite.lib.config.ts && vue-tsc -p tsconfig.lib.json && node scripts/prepare-dist.mjs",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@kunpeng-io/form-js": "workspace:*",
+    "sortablejs": "catalog:"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0",
+    "element-plus": "^2.9.0"
+  },
+  "devDependencies": {
+    "@kunpeng-io/form-js-vue": "workspace:*",
+    "@types/sortablejs": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "element-plus": "catalog:",
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vue": "catalog:",
+    "vue-tsc": "^2.1.0"
+  }
+}

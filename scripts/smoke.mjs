@@ -272,6 +272,87 @@ if (!tableEngine.isVisible('note', { trips: [{ place: '北京' }], note: '' }) |
   process.exit(1);
 }
 
+// ---------- 设计器模型层（@kunpeng-io/form-js-designer）冒烟 ----------
+const designerEsm = await import('../packages/form/form-js-designer/dist/form-js-designer.es.js');
+const { DesignerModel: DM } = designerEsm;
+const dm = new DM();
+const ids = {};
+ids.text2 = dm.addField('text');
+for (const type of ['text', 'textarea', 'number', 'select', 'radio', 'checkbox', 'date', 'switch', 'table']) {
+  ids[type] = dm.addField(type);
+}
+ids.group = dm.addField('group');
+ids.inGroup = dm.addField('text', { parentId: ids.group });
+if (ids.text2 === ids.text || ids.text !== 'field-2') {
+  console.error('设计器 id 唯一化不符预期:', ids.text2, ids.text);
+  process.exit(1);
+}
+const dmSchema = dm.schema();
+const dmCheck = formEsm.validateSchema(dmSchema);
+if (!dmCheck.valid) {
+  console.error('设计器产出 Schema 未过结构校验:', dmCheck.errors.join(' | '));
+  process.exit(1);
+}
+// 容器规则：group 嵌套拒绝 / 拖入 table 列位拒绝
+let rejected = 0;
+try { dm.addField('group', { parentId: ids.group }); } catch { rejected += 1; }
+try { dm.addField('text', { parentId: ids.table }); } catch { rejected += 1; }
+if (rejected !== 2) {
+  console.error('设计器容器规则未拦截（group 嵌套 / 拖入表格）');
+  process.exit(1);
+}
+// 移动：组内字段移出到根首位的排序语义
+dm.moveField(ids.inGroup, { index: 0 });
+const rootIds = dm.tree().map((f) => f.id);
+if (rootIds[0] !== ids.inGroup || !dm.tree().some((f) => f.id === ids.group && f.children.length === 0)) {
+  console.error('设计器 moveField 移出组不符预期:', JSON.stringify(rootIds));
+  process.exit(1);
+}
+// 自移入后代拒绝
+try { dm.moveField(ids.group, { parentId: ids.group }); rejected = 99; } catch { /* 预期拦截 */ }
+if (rejected === 99) {
+  console.error('设计器未拦截移入自身');
+  process.exit(1);
+}
+// 属性更新：props 整块替换 + id 改名冲突
+dm.updateField(ids.number, { label: '数量', props: { min: 1, max: 10, step: 1 } });
+if (dm.field(ids.number).label !== '数量' || dm.field(ids.number).props.min !== 1) {
+  console.error('设计器 updateField 不符预期');
+  process.exit(1);
+}
+try { dm.updateField(ids.number, { id: ids.text }); rejected = 99; } catch { /* 预期拦截 */ }
+if (rejected === 99) {
+  console.error('设计器未拦截 id 改名冲突');
+  process.exit(1);
+}
+// 列命令：加列/改列/移动/删列
+const colId = dm.addColumn(ids.table, 'date');
+dm.updateColumn(ids.table, 1, { label: '天数' });
+dm.moveColumn(ids.table, 2, 0);
+const tableFieldNow = dm.field(ids.table);
+if (tableFieldNow.columns.length !== 3 || tableFieldNow.columns[0].id !== colId || tableFieldNow.columns[1].label !== '列一') {
+  console.error('设计器列命令不符预期:', JSON.stringify(tableFieldNow.columns.map((c) => c.id)));
+  process.exit(1);
+}
+dm.removeColumn(ids.table, 0);
+// 整树删除 + 导入还原
+dm.removeField(ids.group);
+if (dm.schema().fields.some((f) => f.id === ids.group)) {
+  console.error('设计器 removeField 未删净');
+  process.exit(1);
+}
+const dm2 = new DM(dm.schema());
+if (JSON.stringify(dm2.schema()) !== JSON.stringify(dm.schema())) {
+  console.error('设计器导入-导出不等价');
+  process.exit(1);
+}
+const designerJs = readFileSync(new URL('../packages/form/form-js-designer/dist/form-js-designer.es.js', import.meta.url), 'utf8');
+if (!designerJs.includes('Copyright (c) 2026 anyilanxin zxh') || !designerJs.includes('"Classpath" exception as provided')) {
+  console.error('form-js-designer 缺版权横幅');
+  process.exit(1);
+}
+console.log('form-js-designer smoke ok：模型命令（拖入/移动/删除/更新/列命令）、容器规则、id 唯一化、导入导出等价、版权横幅');
+
 for (const rel of ['form-js.es.js', 'form-js.cjs']) {
   const js = readFileSync(new URL(`../packages/form/form-js/dist/${rel}`, import.meta.url), 'utf8');
   if (!js.includes('Copyright (c) 2026 anyilanxin zxh') || !js.includes('"Classpath" exception as provided')) {
