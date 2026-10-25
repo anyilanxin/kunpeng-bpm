@@ -1,0 +1,33 @@
+{
+  "name": "@kunpeng-io/form-js",
+  "version": "0.1.0",
+  "description": "动态表单统一设计协议——Schema 类型体系 / 结构校验 / 校验引擎 / 规范序列化（框架无关，Node 可用）",
+  "license": "GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0",
+  "type": "module",
+  "main": "./dist/form-js.cjs",
+  "module": "./dist/form-js.es.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/form-js.es.js",
+      "require": "./dist/form-js.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "licenses"
+  ],
+  "scripts": {
+    "build": "vite build --config vite.lib.config.ts && tsc -p tsconfig.lib.json && node scripts/prepare-dist.mjs",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "rimraf": "catalog:"
+  }
+}
