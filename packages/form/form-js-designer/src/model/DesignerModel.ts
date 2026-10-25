@@ -51,19 +51,25 @@ interface FieldEntry {
 }
 
 export class DesignerModel {
-  private meta: Pick<FormSchema, 'id' | 'name' | 'description'>;
+  // meta 经 constructor → importSchema 赋值（TS 不跨方法追踪，显式断言）
+  private meta!: Pick<FormSchema, 'id' | 'name' | 'description'>;
   private fields: FieldDefinition[] = [];
 
   constructor(initial?: FormSchema) {
+    this.importSchema(initial);
+  }
+
+  /**
+   * 整体载入（导入已有表单 / 重置画布），与构造同语义：meta 归位、树整体替换。
+   * JSON 往返而非 structuredClone：宿主常以 reactive/ref 深代理持有 Schema，
+   * structuredClone 克隆 Proxy 直接抛 DataCloneError；协议数据约定 JSON 安全，
+   * JSON 往返既拷纯净值又免疫代理（模型内部从此与宿主响应式彻底隔离）
+   */
+  importSchema(initial?: FormSchema): void {
     this.meta = initial
       ? { id: initial.id, name: initial.name, description: initial.description }
       : { id: 'form-1' };
-    if (initial) {
-      // JSON 往返而非 structuredClone：宿主常以 reactive/ref 深代理持有 Schema，
-      // structuredClone 克隆 Proxy 直接抛 DataCloneError；协议数据约定 JSON 安全，
-      // JSON 往返既拷纯净值又免疫代理（模型内部从此与宿主响应式彻底隔离）
-      this.fields = JSON.parse(JSON.stringify(initial.fields));
-    }
+    this.fields = initial ? JSON.parse(JSON.stringify(initial.fields)) : [];
   }
 
   /** 产出 Schema（深拷贝，外部改动不回写设计态） */

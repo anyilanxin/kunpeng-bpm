@@ -5,7 +5,7 @@ import { FormDesigner } from '@kunpeng-io/form-js-designer';
 import type { FormSchema } from '@kunpeng-io/form-js';
 import { demoSchema } from './schema';
 
-/** 设计器视图：拖拽搭建 + 实时 Schema 产出（JSON 直读，完整导入导出 UI 属 D4） */
+/** 设计器视图：拖拽搭建 + 实时 Schema 产出（设计器内置导入/导出/预览；此处 dump 作双证） */
 // shallowRef：Schema 是纯 JSON 大对象且整体替换——深代理无谓且 DesignerModel 的
 // structuredClone 输入遇 Proxy 直接炸（协议数据勿入深层响应式，同画布元素契约）
 const schema = shallowRef<FormSchema>();
@@ -22,7 +22,7 @@ function importDemo(): void {
   <div class="designer-view">
     <div class="designer-bar">
       <ElButton size="small" @click="importDemo">导入演示 Schema</ElButton>
-      <span class="hint">左栏拖出字段 · 画布拖拽排序 · 选中编辑属性（属性编辑器随 D3 接入）</span>
+      <span class="hint">左栏拖出字段 · 画布拖拽排序 · 选中编辑属性 · 工具条切换预览/导入导出</span>
     </div>
     <FormDesigner :key="designerKey" v-model:schema="schema" />
     <div class="designer-dump">

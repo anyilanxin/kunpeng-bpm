@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@kunpeng-io/form-js": "workspace:*",
+    "@kunpeng-io/form-js-vue": "workspace:*",
     "sortablejs": "catalog:"
   },
   "peerDependencies": {
@@ -31,7 +32,6 @@
     "element-plus": "^2.9.0"
   },
   "devDependencies": {
-    "@kunpeng-io/form-js-vue": "workspace:*",
     "@types/sortablejs": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "element-plus": "catalog:",

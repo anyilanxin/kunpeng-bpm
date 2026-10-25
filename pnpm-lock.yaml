@@ -748,13 +748,13 @@ importers:
       '@kunpeng-io/form-js':
         specifier: workspace:*
         version: link:../form-js
+      '@kunpeng-io/form-js-vue':
+        specifier: workspace:*
+        version: link:../form-js-vue
       sortablejs:
         specifier: 'catalog:'
         version: 1.15.7
     devDependencies:
-      '@kunpeng-io/form-js-vue':
-        specifier: workspace:*
-        version: link:../form-js-vue
       '@types/sortablejs':
         specifier: 'catalog:'
         version: 1.15.9

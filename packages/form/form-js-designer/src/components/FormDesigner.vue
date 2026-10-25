@@ -28,13 +28,15 @@
  */
 <script setup lang="ts">
 import { computed, provide, ref, watch } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElButton, ElDialog, ElInput, ElMessage, ElRadioButton, ElRadioGroup } from 'element-plus';
+import { parseSchema, serializeSchema } from '@kunpeng-io/form-js';
 import { DesignerModel } from '../model/DesignerModel';
 import type { FieldDefinition, FormSchema } from '@kunpeng-io/form-js';
 import { DESIGNER_CONTEXT } from '../context';
 import FieldPalette from './FieldPalette.vue';
 import DesignCanvas from './DesignCanvas.vue';
 import PropertyPanel from './PropertyPanel.vue';
+import PreviewPane from './PreviewPane.vue';
 
 const props = defineProps<{
   /** 初始 Schema（编辑已有表单）；缺省空画布 */
@@ -48,6 +50,7 @@ const emit = defineEmits<{
 const model = new DesignerModel(props.schema);
 const revision = ref(0);
 const selectedId = ref<string | null>(null);
+const mode = ref<'design' | 'preview'>('design');
 
 // DesignerModel 是 mutate 式命令核心（树内引用恒稳），Vue 的 props 浅比较会跳过
 // 引用未变的子组件——视图侧一律取深拷贝，每次 revision 产全新结构驱动全树重渲
@@ -115,19 +118,98 @@ function updateField(id: string, patch: Record<string, unknown>): void {
   });
 }
 
+// ---------- 导入 / 导出（D4） ----------
+
+const importVisible = ref(false);
+const importText = ref('');
+const exportVisible = ref(false);
+/** 规范序 JSON（serializeSchema）：导出即协议文本，可原样回导入 */
+const exportText = computed(() => serializeSchema(currentSchema.value));
+
+function openImport(): void {
+  importText.value = '';
+  importVisible.value = true;
+}
+
+/** 导入：parseSchema 负责结构校验（非法抛 FormSchemaError，明细直出） */
+function confirmImport(): void {
+  try {
+    model.importSchema(parseSchema(importText.value));
+    selectedId.value = null;
+    importVisible.value = false;
+    revision.value += 1;
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : String(error));
+  }
+}
+
+async function copyExport(): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(exportText.value);
+    ElMessage.success('已复制到剪贴板');
+  } catch {
+    ElMessage.warning('剪贴板不可用，请手动全选复制');
+  }
+}
+
 provide(DESIGNER_CONTEXT, { model, run, select, selectedId, updateField });
 </script>
 
 <template>
   <div class="fjd-designer">
-    <FieldPalette />
-    <DesignCanvas :fields="fields" :selected-id="selectedId" @select="onSelect" @remove="onRemove" />
-    <PropertyPanel :field="selectedField" :schema="currentSchema" @select="onSelect" />
+    <div class="fjd-toolbar">
+      <ElRadioGroup v-model="mode" size="small">
+        <ElRadioButton value="design">设计</ElRadioButton>
+        <ElRadioButton value="preview">预览</ElRadioButton>
+      </ElRadioGroup>
+      <span class="fjd-toolbar-spacer" />
+      <ElButton size="small" @click="openImport">导入</ElButton>
+      <ElButton size="small" @click="exportVisible = true">导出</ElButton>
+    </div>
+
+    <div v-if="mode === 'design'" class="fjd-main">
+      <FieldPalette />
+      <DesignCanvas :fields="fields" :selected-id="selectedId" @select="onSelect" @remove="onRemove" />
+      <PropertyPanel :field="selectedField" :schema="currentSchema" @select="onSelect" />
+    </div>
+    <PreviewPane v-else :schema="currentSchema" />
+
+    <ElDialog v-model="importVisible" title="导入 Schema" width="560px" append-to-body>
+      <ElInput v-model="importText" type="textarea" :rows="10" placeholder="粘贴 form-js Schema JSON" />
+      <template #footer>
+        <ElButton size="small" @click="importVisible = false">取消</ElButton>
+        <ElButton size="small" type="primary" @click="confirmImport">导入</ElButton>
+      </template>
+    </ElDialog>
+
+    <ElDialog v-model="exportVisible" title="导出 Schema" width="560px" append-to-body>
+      <ElInput :model-value="exportText" type="textarea" :rows="10" readonly />
+      <template #footer>
+        <ElButton size="small" @click="copyExport">复制</ElButton>
+        <ElButton size="small" type="primary" @click="exportVisible = false">关闭</ElButton>
+      </template>
+    </ElDialog>
   </div>
 </template>
 
 <style scoped>
 .fjd-designer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fjd-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fjd-toolbar-spacer {
+  flex: 1;
+}
+
+.fjd-main {
   display: flex;
   gap: 12px;
   align-items: stretch;

@@ -346,12 +346,23 @@ if (JSON.stringify(dm2.schema()) !== JSON.stringify(dm.schema())) {
   console.error('设计器导入-导出不等价');
   process.exit(1);
 }
+// importSchema：既有实例整体重载（导入另一表单）+ 空重载（清画布）
+dm2.importSchema(sampleSchema);
+if (formEsm.serializeSchema(dm2.schema()) !== formEsm.serializeSchema(sampleSchema)) {
+  console.error('设计器 importSchema 重载不等价');
+  process.exit(1);
+}
+dm2.importSchema();
+if (dm2.schema().fields.length !== 0 || dm2.addField('text') !== 'field-1') {
+  console.error('设计器空重载未清画布/未重置 id 计数');
+  process.exit(1);
+}
 const designerJs = readFileSync(new URL('../packages/form/form-js-designer/dist/form-js-designer.es.js', import.meta.url), 'utf8');
 if (!designerJs.includes('Copyright (c) 2026 anyilanxin zxh') || !designerJs.includes('"Classpath" exception as provided')) {
   console.error('form-js-designer 缺版权横幅');
   process.exit(1);
 }
-console.log('form-js-designer smoke ok：模型命令（拖入/移动/删除/更新/列命令）、容器规则、id 唯一化、导入导出等价、版权横幅');
+console.log('form-js-designer smoke ok：模型命令（拖入/移动/删除/更新/列命令/导入重载）、容器规则、id 唯一化、导入导出等价、版权横幅');
 
 for (const rel of ['form-js.es.js', 'form-js.cjs']) {
   const js = readFileSync(new URL(`../packages/form/form-js/dist/${rel}`, import.meta.url), 'utf8');
