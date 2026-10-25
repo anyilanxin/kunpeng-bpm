@@ -69,13 +69,6 @@ const ICON_BODIES: Record<string, string> = {
   'lane-divide-three':
     `<rect x="2.5" y="5" width="13" height="8" rx="0.8" ${S}/>` +
     `<path d="M6.2,5 V13 M2.5,7.67 H15.5 M2.5,10.33 H15.5" ${S}/>`,
-  // 子流程折叠钮：盒内 +/-（+ = 展开、- = 折叠，规范折叠标记语义）
-  'subprocess-collapse':
-    `<rect x="3.5" y="3.5" width="11" height="11" rx="1.5" ${S}/>` +
-    `<path d="M9,6.8 V11.2 M6.8,9 H11.2" ${S} stroke-linecap="round"/>`,
-  'subprocess-expand':
-    `<rect x="3.5" y="3.5" width="11" height="11" rx="1.5" ${S}/>` +
-    `<path d="M6.8,9 H11.2" ${S} stroke-linecap="round"/>`,
   // 更多（…）：图标集 tool-more 三点，打开全量弹框（追加/创建）
   more: setScaled18('toolMore'),
   // 创建：粗十字（在选中容器内部新建元素）
