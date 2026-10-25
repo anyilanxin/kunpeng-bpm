@@ -29,7 +29,7 @@
  */
 import type BaseLayouter from 'diagram-js/lib/layout/BaseLayouter';
 import type CommandHandler from 'diagram-js/lib/command/CommandHandler';
-import { isEventFamily } from '../meta/ElementTypes';
+import { isEventFamily, isSubProcessFamily } from '../meta/ElementTypes';
 import type { BpmnElementTypes, ShapeTypeMeta } from '../meta/ElementTypes';
 import type { BpmnFactory } from '../factory/BpmnFactory';
 import type { BpmnDocumentState } from '../xml/DocumentState';
@@ -70,13 +70,14 @@ export class ReplaceElementHandler implements CommandHandler {
     const newBo = this.bpmnFactory.create<any>({ $type: target.type, id: oldBo.id, name: oldBo.name });
 
     // 与类型无关的既有关系整体迁移：连线端点引用、数据关联挂接；
-    // 容器子元素（flowElements/laneSets）仅容器族承接，边界宿主仅边界事件承接
-    // （非目标族属性不迁移，避免引擎把未描述属性收进 $attrs 外漏序列化）
+    // 容器子元素（flowElements/laneSets）由容器族承接；子流程族折叠形态
+    // （meta 无 isContainer——画布不收拖入）语义上仍是容器，其内容在下钻
+    // 平面，跨折叠形态 morph 必须带走，否则平面内容被孤儿化
     copyProperty(oldBo, newBo, 'incoming');
     copyProperty(oldBo, newBo, 'outgoing');
     copyProperty(oldBo, newBo, 'dataInputAssociations');
     copyProperty(oldBo, newBo, 'dataOutputAssociations');
-    if (meta.isContainer) {
+    if (meta.isContainer || isSubProcessFamily(target.type)) {
       copyProperty(oldBo, newBo, 'flowElements');
       copyProperty(oldBo, newBo, 'laneSets');
     }

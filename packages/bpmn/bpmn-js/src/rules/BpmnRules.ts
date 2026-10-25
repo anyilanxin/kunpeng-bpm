@@ -295,9 +295,11 @@ export class BpmnRules extends RuleProvider {
     const isRoot = this.isRootElement(target);
 
     if (type === 'bpmn:Participant') {
-      // 池只能建在根上；预估边界不与既有池重叠（拖池收养裸元素不受影响——裸元素不是池）
+      // 池只能建在顶层平面根（Process/Collaboration）——子流程下钻平面内禁建
+      // （协作是根级元素，规范 §8.4）；预估边界不与既有池重叠（拖池收养裸元素
+      // 不受影响——裸元素不是池）
       const rect = this.createRect(context.position, shape);
-      return isRoot && (!rect || !this.participantClash(rect));
+      return isRoot && !isSubProcessFamily(target.businessObject?.$type) && (!rect || !this.participantClash(rect));
     }
     if (type === 'bpmn:Lane') {
       return isPoolFamily(target.businessObject?.$type);

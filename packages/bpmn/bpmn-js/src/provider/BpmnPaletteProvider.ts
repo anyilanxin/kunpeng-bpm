@@ -37,7 +37,7 @@
  * 类型由 BpmnRules 按端点推断。
  */
 import type { BpmnElementTypes } from '../meta/ElementTypes';
-import { metaId, SIZES } from '../meta/ElementTypes';
+import { isSubProcessFamily, metaId, SIZES } from '../meta/ElementTypes';
 import { adoptionBounds } from '../util/PoolGeometry';
 import { bpmnEntryHtml } from '../icons/BpmnIcons';
 import { toolEntryHtml } from '../icons/ToolIcons';
@@ -132,6 +132,11 @@ export class BpmnPaletteProvider {
     // 序（…数据对象→数据存储→池→分组）会被聚簇打乱——独立分组让面板序
     // 与 quickIds 严格一致，创建弹框的分组展示不受影响（另走 PALETTE_GROUPS）
     this.elementTypes.paletteQuickShapeEntries().forEach((meta: any, index: number) => {
+      // 子流程下钻平面内不提供池（规则层同拒：池只建顶层平面根，协作是根级
+      // 元素）；平面切换后 PlaneService 触发 palette._rebuild 重取本表
+      if (meta.type === 'bpmn:Participant' && this.inSubProcessPlane()) {
+        return;
+      }
       // 无定义中间事件是双语义创建（拖空白=中间事件 / 拖活动上=边界事件），
       // title 单列；其余条目沿用「创建<label>」
       const isPlainIntermediate = metaId(meta) === 'IntermediateThrowEvent' && !meta.eventSymbol;
@@ -164,6 +169,11 @@ export class BpmnPaletteProvider {
     };
 
     return entries;
+  }
+
+  /** 当前画布根是否子流程下钻平面（平面内禁池/泳道） */
+  private inSubProcessPlane(): boolean {
+    return isSubProcessFamily(this.canvas.getRootElement().businessObject?.$type ?? '');
   }
 
   private newShape(meta: any): any {

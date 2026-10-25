@@ -206,3 +206,77 @@
 .djs-direct-editing-resize-handle:hover {
   background: rgba(28, 110, 224, 0.8);
 }
+
+/* ── 下钻徽标（折叠子流程右下角外侧悬浮钮，plane/DrillBadges）──
+   蓝底白角标（参照截图同语言）：22px 点击区、4px 圆角与弹框家族同族、
+   轻投影从画布浮起；overlays 为 HTML 通道不随画布缩放，恒定像素可点。 */
+.bpmn-drill-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: #1c6ee0;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+}
+.bpmn-drill-badge:hover {
+  background: #1558b8;
+}
+.bpmn-drill-badge:active {
+  background: #114a9c;
+}
+
+/* ── 平面面包屑（plane/PlaneBreadcrumb）：画布左上角层级路径 ──
+   主平面隐藏（[hidden] 显式声明——display:flex 会盖掉 UA 的 [hidden] 隐藏，
+   同悬浮卡弹层陷阱）；祖先段主题蓝可点、当前段加重不可点。 */
+.bpmn-plane-breadcrumb {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 24px);
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  font-size: 12px;
+  color: #1a1a1a;
+  user-select: none;
+}
+.bpmn-plane-breadcrumb[hidden] {
+  display: none;
+}
+.bpmn-plane-breadcrumb-crumb {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: #1c6ee0;
+  cursor: pointer;
+}
+.bpmn-plane-breadcrumb-crumb:hover {
+  text-decoration: underline;
+}
+.bpmn-plane-breadcrumb-crumb.current {
+  color: inherit;
+  font-weight: 600;
+  cursor: default;
+}
+.bpmn-plane-breadcrumb-crumb.current:hover {
+  text-decoration: none;
+}
+.bpmn-plane-breadcrumb-separator {
+  color: #7f7f7f;
+}

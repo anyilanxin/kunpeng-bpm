@@ -31,6 +31,7 @@ import TextUtil from 'diagram-js/lib/util/Text';
 
 // diagram-js 特性模块（公开依赖面）
 import InteractionEventsModule from 'diagram-js/lib/features/interaction-events';
+import OverlaysModule from 'diagram-js/lib/features/overlays';
 import SelectionModule from 'diagram-js/lib/features/selection';
 import DraggingModule from 'diagram-js/lib/features/dragging';
 import RulesModule from 'diagram-js/lib/features/rules';
@@ -80,6 +81,9 @@ import { BpmnRules } from './rules/BpmnRules';
 import { BpmnLayouter } from './layout/BpmnLayouter';
 import CroppingConnectionDocking from 'diagram-js/lib/layout/CroppingConnectionDocking';
 import { BpmnDocumentState } from './xml/DocumentState';
+import { PlaneService } from './plane/PlaneService';
+import { DrillBadges } from './plane/DrillBadges';
+import { PlaneBreadcrumb } from './plane/PlaneBreadcrumb';
 import { BpmnNamespaces } from './xml/BpmnNamespaces';
 import { BpmnModdle } from './meta/BpmnModdle';
 import { BpmnReader } from './xml/BpmnReader';
@@ -111,9 +115,10 @@ import { BpmnI18n } from './i18n/BpmnI18n';
 import { OrientationService } from './meta/Orientation';
 import { BpmnEditorActions } from './provider/BpmnEditorActions';
 
-/** 只读查看平台特性（Viewer 底座）：元素事件 / 鼠标 / 调度 / 悬停修正——无选择与编辑 */
+/** 只读查看平台特性（Viewer 底座）：元素事件 / 鼠标 / 调度 / 悬停修正 / overlays（下钻徽标等视图件三形态通用）——无选择与编辑 */
 export const ViewerPlatformModules: ModuleDeclaration[] = [
   InteractionEventsModule,
+  OverlaysModule,
   MouseModule,
   SchedulerModule,
   HoverFixModule
@@ -168,17 +173,21 @@ export const PlatformModules: ModuleDeclaration[] = [
   ...EditorPlatformModules
 ];
 
-/** BPMN 核心：类型表 / 工厂 / 渲染 / 词典 */
+/** BPMN 核心：类型表 / 工厂 / 渲染 / 词典 / 平面导航 */
 export const BpmnCoreModule: ModuleDeclaration = {
   // bpmnRenderer 必须急切构造：BaseRenderer 仅在构造时向 eventBus 注册，
   // 懒构造会导致画布落到 diagram-js 的 fuchsia 兜底渲染（seata 同款 __init__ 模式）。
   // bpmnMode 同理急切：初始 preview 模式的容器标记类须在首帧前挂上。
-  __init__: ['bpmnElementTypes', 'bpmnRenderer', 'bpmnMode'],
+  // planeService/drillBadges/planeBreadcrumb 同理：事件订阅型组件懒构造=订阅不上。
+  __init__: ['bpmnElementTypes', 'bpmnRenderer', 'bpmnMode', 'planeService', 'drillBadges', 'planeBreadcrumb'],
   'bpmnIds': ['factory', () => new Ids([36, 36, 1])], // 7 位后缀（自有取值：36bit base36 ≈ 7 位，与示例模板统一，可读性）
   'bpmnElementTypes': ['type', BpmnElementTypes],
   'bpmnFactory': ['type', BpmnFactory],
   'bpmnMode': ['type', BpmnMode],
   'elementFactory': ['type', BpmnElementFactory],
+  'planeService': ['type', PlaneService],
+  'drillBadges': ['type', DrillBadges],
+  'planeBreadcrumb': ['type', PlaneBreadcrumb],
   'textRenderer': ['factory', () => new TextUtil({
     style: { fontFamily: 'system-ui, "PingFang SC", sans-serif', fontSize: 12 },
     size: { width: 100, height: 40 }

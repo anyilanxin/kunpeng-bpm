@@ -30,7 +30,6 @@
  */
 import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
 import type EventBus from 'diagram-js/lib/core/EventBus';
-import type Canvas from 'diagram-js/lib/core/Canvas';
 import type { BpmnDocumentState } from '../xml/DocumentState';
 import type { BpmnFactory } from '../factory/BpmnFactory';
 import type { OrientationService } from '../meta/Orientation';
@@ -39,11 +38,10 @@ import { isSubProcessFamily } from '../meta/ElementTypes';
 import { isArtifactType } from '../util/ModelUtil';
 
 export class BpmnUpdater extends CommandInterceptor {
-  static $inject = ['eventBus', 'canvas', 'bpmnDocumentState', 'bpmnFactory', 'orientationService'];
+  static $inject = ['eventBus', 'bpmnDocumentState', 'bpmnFactory', 'orientationService'];
 
   constructor(
     eventBus: EventBus,
-    private readonly canvas: Canvas,
     private readonly state: BpmnDocumentState,
     private readonly bpmnFactory: BpmnFactory,
     private readonly orientationService: OrientationService
@@ -207,7 +205,7 @@ export class BpmnUpdater extends CommandInterceptor {
     if (!bo) {
       return;
     }
-    removeFrom(this.state.plane?.planeElement, lane.di);
+    this.detachDi(lane);
     for (const process of this.state.processes()) {
       for (const laneSet of process.laneSets ?? []) {
         removeFrom(laneSet.lanes, bo);
@@ -334,7 +332,7 @@ export class BpmnUpdater extends CommandInterceptor {
 
   // ---------- DI 图同步 ----------
 
-  /** 新建形状：创建 BPMNShape DI 节点（字段初始化复用 syncShapeDi：几何/池朝向/展开态）挂主图 plane 并回挂 element.di */
+  /** 新建形状：创建 BPMNShape DI 节点（字段初始化复用 syncShapeDi：几何/池朝向/展开态）挂所属平面并回挂 element.di */
   private ensureShapeDi(shape: any): void {
     // 标签元素无自有 DI 节点（几何存宿主 di.label.bounds）
     const bo = shape.businessObject;
@@ -343,14 +341,14 @@ export class BpmnUpdater extends CommandInterceptor {
     }
     const di = this.bpmnFactory.create<any>({ $type: 'bpmndi:BPMNShape', bpmnElement: bo });
     syncShapeDi(di, shape, this.bpmnFactory, this.orientationService.isHorizontal());
-    const plane = this.state.plane;
+    const plane = this.planeFor(shape);
     if (plane) {
       (plane.planeElement ??= []).push(di);
     }
     shape.di = di;
   }
 
-  /** 新建连线：创建 BPMNEdge DI 节点（航点复用 syncEdgeDi 逐点重建）挂主图 plane 并回挂 element.di */
+  /** 新建连线：创建 BPMNEdge DI 节点（航点复用 syncEdgeDi 逐点重建）挂所属平面并回挂 element.di */
   private ensureEdgeDi(connection: any): void {
     const bo = connection.businessObject;
     if (!bo || connection.di?.$type) {
@@ -358,11 +356,35 @@ export class BpmnUpdater extends CommandInterceptor {
     }
     const di = this.bpmnFactory.create<any>({ $type: 'bpmndi:BPMNEdge', bpmnElement: bo, waypoint: [] });
     syncEdgeDi(di, connection, this.bpmnFactory);
-    const plane = this.state.plane;
+    const plane = this.planeFor(connection);
     if (plane) {
       (plane.planeElement ??= []).push(di);
     }
     connection.di = di;
+  }
+
+  /**
+   * 元素所属平面的 DI 挂接点：按画布父链爬到根判定——根 di 即该根平面的
+   * BPMNPlane 节点（主图根挂主图平面；子流程下钻平面根挂其平面）。子流程
+   * 平面根尚无平面（纯浏览未落元素）时在此懒建：首个元素落平面才产生
+   * BPMNDiagram，纯导航不改变 XML（字节级往返稳定）。
+   */
+  private planeFor(element: any): any | null {
+    let current = element;
+    while (current?.parent) {
+      current = current.parent;
+    }
+    const root = current;
+    if (root?.di?.$type === 'bpmndi:BPMNPlane') {
+      return root.di;
+    }
+    if (root?.businessObject && isSubProcessFamily(root.businessObject.$type)) {
+      const diagram = this.bpmnFactory.createDiagram(root.businessObject);
+      (this.state.definitions.diagrams ??= []).push(diagram);
+      root.di = diagram.plane;
+      return diagram.plane;
+    }
+    return this.state.plane;
   }
 
   /** 画布元素 → DI 节点几何/颜色回写（无 DI 节点的元素跳过；根的 di 是主图平面——无几何/颜色语义，勿写） */
@@ -400,9 +422,14 @@ export class BpmnUpdater extends CommandInterceptor {
    * DI 摘除单出口：从平面摘 DI 节点并清 element.di 引用（revert 后重执行由
    * ensure*Di 重建；不清引用会让 ensure*Di 的 di?.$type 守卫跳过重建，DI
    * 永久滞留 plane 外、序列化丢形）。
+   * 全平面扫描而非按父链定位：shape.create/lane.add 的 revert 先 removeShape
+   * 置 parent=null，父链断后 planeFor 会把元素自身当根误入子流程懒建分支
+   * （平白新建空图、真平面上的 DI 摘不到）；bo 单父挂靠下全扫等价精确摘除。
    */
   private detachDi(element: any): void {
-    removeFrom(this.state.plane?.planeElement, element.di);
+    for (const diagram of this.state.definitions.diagrams ?? []) {
+      removeFrom(diagram.plane?.planeElement, element.di);
+    }
     element.di = undefined;
   }
 
@@ -443,9 +470,11 @@ export class BpmnUpdater extends CommandInterceptor {
     }
     // 制品（注记/分组/关联）：XSD 挂承载容器的 artifacts（协作根→
     // collaboration.artifacts；池内/子流程内→process/subProcess.artifacts），
-    // 不进 flowElements（Artifact 与 FlowElement 是并列基类）
+    // 不进 flowElements（Artifact 与 FlowElement 是并列基类）。
+    // "挂协作根"按父 bo 类型判定而非与当前根身份比较——子流程下钻平面内
+    // 当前根就是平面根，身份比较会把平面内注记误挂到协作上
     if (isArtifactType(type)) {
-      if (this.state.collaboration && this.canvas.getRootElement() === shape.parent) {
+      if (shape.parent?.businessObject?.$type === 'bpmn:Collaboration' && this.state.collaboration) {
         if (!this.state.collaboration.artifacts.includes(bo)) {
           this.state.collaboration.artifacts.push(bo);
         }
@@ -477,9 +506,14 @@ export class BpmnUpdater extends CommandInterceptor {
       removeFromDataAssoc(process, bo);
     }
 
-    const parentBo = this.semanticParentBo(shape);
-    removeFrom(parentBo?.flowElements, bo);
-    removeFrom(parentBo?.artifacts, bo);
+    // 语义摘除走全容器扫描而非 semanticParentBo：shape.create 的 revert 先
+    // removeShape 置 parent=null，父链断后回退 processes[0] 会到主流程上摘
+    // （子流程平面内创建的元素摘不到→redo 重放 adopt 再挂一次=语义双胞胎）；
+    // bo 单父挂靠下全扫等价精确摘除（与 syncAfterMove 旧容器清理同款手法）
+    for (const container of this.allContainers()) {
+      removeFrom(container.flowElements, bo);
+      removeFrom(container.artifacts, bo);
+    }
 
     // 边界事件清理宿主引用
     if (bo.attachedToRef) {

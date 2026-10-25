@@ -36,31 +36,28 @@ import { absoluteLabelBox } from '../label/LabelGeometry';
 import { isAnnotationArtifact } from '../util/ModelUtil';
 import { isFlowNodeType, isDataFamily, isArtifactFamily, isPoolFamily, isSubProcessFamily } from '../meta/ElementTypes';
 import { readDiView, type DiView } from './DiMapper';
-import { mainPlaneTargetId, type BpmnParseResult } from './BpmnReader';
+import { mainPlaneTargetId, planeOfElement, type BpmnParseResult } from './BpmnReader';
 
 export class DiagramBuilder {
-  static $inject = ['canvas', 'elementFactory', 'bpmnElementTypes', 'textRenderer'];
+  static $inject = ['canvas', 'elementFactory', 'bpmnElementTypes', 'textRenderer', 'bpmnDocumentState'];
 
   constructor(
     private readonly canvas: Canvas,
     private readonly elementFactory: BpmnElementFactory,
     private readonly elementTypes: BpmnElementTypes,
-    private readonly textUtil: TextUtil
+    private readonly textUtil: TextUtil,
+    private readonly state: { definitions: any }
   ) {}
 
   build(parseResult: BpmnParseResult): void {
     // 容器索引按文档重建（实例复用跨多次导入，残留旧文档容器会污染几何父级推导）
     this.containerIndex.length = 0;
     const { definitions, semanticById, planeTargetId } = parseResult;
-    const diById = new Map<string, DiView>();
-    for (const diagram of definitions.diagrams ?? []) {
-      for (const node of diagram.plane?.planeElement ?? []) {
-        const view = readDiView(node);
-        if (view) {
-          diById.set(view.bpmnElement, view);
-        }
-      }
-    }
+    // 主图建图只消费主平面 DI：折叠子流程的内容元素 DI 在其独立平面
+    // （下钻平面，planeOfElement），混入会把另一坐标空间的形状错建到主图
+    const main = mainPlaneTargetId(definitions);
+    const diById = collectDiViews(main?.plane);
+    const created = new Map<string, any>();
 
     // 根元素承载平面指向的语义根（Process/Collaboration，真 moddle 实例——
     // 面板等插件对任意元素调 bo.get()/$instanceOf），主图平面（树上的真 DI
@@ -71,15 +68,12 @@ export class DiagramBuilder {
     if (!planeTarget) {
       throw new Error(`无法解析主图平面目标：BPMNPlane bpmnElement="${planeTargetId}" 未命中任何元素`);
     }
-    const plane = mainPlaneTargetId(definitions)?.plane ?? null;
     const root = this.elementFactory.createRoot({
       type: planeTarget.$type,
       businessObject: planeTarget,
-      di: plane ?? undefined
+      di: main?.plane ?? undefined
     });
     this.canvas.setRootElement(root);
-
-    const created = new Map<string, any>();
 
     // 1. 容器与节点
     for (const rootElement of definitions.rootElements) {
@@ -99,6 +93,66 @@ export class DiagramBuilder {
 
     // 3. 连线（端点就位后）
     this.buildAllConnections(definitions, semanticById, diById, created);
+  }
+
+  /**
+   * 子流程下钻平面建图：为折叠子流程建独立画布根（隐藏图层，切换由
+   * PlaneService 驱动）并按该子流程平面的 DI 建内容。平面可不存在（首次
+   * 下钻空平面）——根不挂 di，首个元素落平面时由 BpmnUpdater 懒建平面。
+   * 根 id 用 `{bo.id}_plane`：主平面上该子流程形状已占 bo.id，注册表同 id 冲突。
+   */
+  buildSubProcessPlane(subProcessBo: any): any {
+    this.containerIndex.length = 0;
+    const plane = planeOfElement(this.state.definitions, subProcessBo);
+    const diById = collectDiViews(plane);
+    const root = this.elementFactory.createRoot({
+      type: subProcessBo.$type,
+      businessObject: subProcessBo,
+      id: `${subProcessBo.id}_plane`,
+      di: plane ?? undefined
+    });
+    // 先注册隐藏图层再建内容（addShape 需父根在画布注册表中），显隐切换由调用方
+    this.canvas.addRootElement(root);
+    const created = new Map<string, any>();
+    this.buildProcessContents(subProcessBo, root, diById, created);
+    // 边界事件（本平面子树内）
+    walkSemanticTree(subProcessBo, (bo) => {
+      if (bo.$type === 'bpmn:BoundaryEvent') {
+        this.buildBoundaryEvent(bo, diById, created);
+      }
+    });
+    // 连线（本平面子树内：顺序流/关联 + 挂活动的数据关联）
+    const addConnection = (bo: any): void => {
+      if (created.has(bo.id)) {
+        return;
+      }
+      const di = diById.get(bo.id);
+      const source = created.get(bo.sourceRef?.id);
+      const target = created.get(bo.targetRef?.id);
+      if (!di || di.kind !== 'edge' || !source || !target) {
+        return;
+      }
+      const connection = this.elementFactory.createConnection({
+        id: bo.id,
+        businessObject: bo,
+        type: bo.$type,
+        source,
+        target,
+        waypoints: di.waypoints ?? [],
+        ...(di.colors ? { colors: di.colors } : {}),
+        di: di.node
+      });
+      this.canvas.addConnection(connection, findCommonParent(source, target) ?? root);
+      created.set(bo.id, connection);
+      this.addLabel(connection, bo, di);
+    };
+    walkSemanticTree(subProcessBo, (bo) => {
+      if (bo.sourceRef && bo.$type !== 'bpmn:Group' && bo.$type !== 'bpmn:TextAnnotation'
+        && bo.$type !== 'bpmn:DataObjectReference' && bo.$type !== 'bpmn:DataStoreReference') {
+        addConnection(bo);
+      }
+    });
+    return root;
   }
 
   private buildCollaboration(collab: any, diById: Map<string, DiView>, created: Map<string, any>): void {
@@ -157,7 +211,9 @@ export class DiagramBuilder {
         const di = diById.get(bo.id);
         if (!di || di.kind !== 'shape') continue;
         const shape = this.addShape(bo, di, containerElement, created);
-        if (shape) {
+        // 折叠态内容不建在本平面：其子元素 DI 属独立下钻平面（BPMN 多图语义），
+        // 经 PlaneService 下钻时按该平面另建；展开态（本平面 DI）照旧递归
+        if (shape && shape.isExpanded !== false) {
           this.buildLanes(bo, shape, diById, created);
           this.buildProcessContents(bo, shape, diById, created);
         }
@@ -341,6 +397,34 @@ export class DiagramBuilder {
 
 function contains(shape: any, x: number, y: number): boolean {
   return x >= shape.x && x <= shape.x + shape.width && y >= shape.y && y <= shape.y + shape.height;
+}
+
+/** 平面 DI 节点 → 视图映射（按平面收集；空平面/无平面返回空表） */
+function collectDiViews(plane: any | null): Map<string, DiView> {
+  const diById = new Map<string, DiView>();
+  for (const node of plane?.planeElement ?? []) {
+    const view = readDiView(node);
+    if (view) {
+      diById.set(view.bpmnElement, view);
+    }
+  }
+  return diById;
+}
+
+/** 语义子树遍历（flowElements + artifacts + 挂活动的数据关联，递归子流程；根自身不回调） */
+function walkSemanticTree(containerBo: any, fn: (bo: any) => void): void {
+  for (const bo of containerBo.flowElements ?? []) {
+    fn(bo);
+    if (isSubProcessFamily(bo.$type)) {
+      walkSemanticTree(bo, fn);
+    }
+    for (const assoc of [...(bo.dataInputAssociations ?? []), ...(bo.dataOutputAssociations ?? [])]) {
+      fn(assoc);
+    }
+  }
+  for (const bo of containerBo.artifacts ?? []) {
+    fn(bo);
+  }
 }
 
 function isNode(bo: any): boolean {

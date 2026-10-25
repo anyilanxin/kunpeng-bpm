@@ -55,15 +55,33 @@ export function referenceId(ref: unknown): string {
 }
 
 /**
- * 主图定位规则（导入/建图共享）：第一个有平面目标的 BPMNDiagram——返回其
- * plane 目标 id 与 plane 节点（树上的真 DI 节点）；无平面目标（退化文档）
- * 返回 null。
+ * 主图定位规则（导入/建图共享）：优先取平面目标为 Process/Collaboration 的
+ * 首图（外部工具可能把子流程图排在前面）；无此目标时退回首张有平面目标的图；
+ * 无平面目标（退化文档）返回 null。
  */
 export function mainPlaneTargetId(definitions: any): { planeTargetId: string; plane: any } | null {
+  let fallback: { planeTargetId: string; plane: any } | null = null;
   for (const diagram of definitions.diagrams ?? []) {
     const target = diagram.plane?.bpmnElement;
-    if (target) {
-      return { planeTargetId: referenceId(target), plane: diagram.plane };
+    if (!target) {
+      continue;
+    }
+    const hit = { planeTargetId: referenceId(target), plane: diagram.plane };
+    const targetType = typeof target === 'string' ? undefined : target.$type;
+    if (targetType === 'bpmn:Process' || targetType === 'bpmn:Collaboration') {
+      return hit;
+    }
+    fallback ??= hit;
+  }
+  return fallback;
+}
+
+/** 语义元素 → 其专属下钻平面（BPMNPlane 节点；无则 null）。引用已由引擎解析为元素对象，悬空 id 串兜底比对 */
+export function planeOfElement(definitions: any, bo: any): any | null {
+  for (const diagram of definitions?.diagrams ?? []) {
+    const target = diagram.plane?.bpmnElement;
+    if (target === bo || (target && referenceId(target) === bo.id)) {
+      return diagram.plane;
     }
   }
   return null;

@@ -84,6 +84,14 @@ export class BpmnAutoResize extends AutoResize {
     if (!resolved) {
       return;
     }
+    // 画布根（主平面 Process/Collaboration、子流程下钻平面根）无自有几何：
+    // 子流程平面根按容器类型（bpmn:SubProcess）会被规则放行扩框，但 root
+    // 无 x/y/width/height，resizeShape 收到缺字段 bounds 抛错并毒死命令栈
+    // action 帧（此后 commandStack.changed/elements.changed 永久静默）——
+    // root 一律不扩
+    if (!resolved.parent || resolved.x === undefined) {
+      return;
+    }
     let container: any = resolved;
     if (is(container, 'bpmn:Lane')) {
       const pool = container.parent;

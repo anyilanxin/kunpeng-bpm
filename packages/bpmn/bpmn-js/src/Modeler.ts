@@ -159,6 +159,8 @@ export class Modeler {
       di: state.plane
     });
     canvas.setRootElement(root);
+    // 文档更替：下钻平面栈归零（PlaneService 也负责导入路径）
+    this.get<any>('planeService').reset();
     this.fitViewport();
   }
 
@@ -192,6 +194,8 @@ export class Modeler {
       // 朝向解析（标记优先，其次首池 DI 信号；垂直推断写回标记）
       this.get<any>('orientationService').applyImport(state.definitions, result.firstPoolHorizontal);
       builder.build(result);
+      // 文档更替：下钻平面栈归零、平面根缓存清空（旧根随 diagram.clear 销毁）
+      this.get<any>('planeService').reset();
 
       eventBus.fire('canvas.resized');
       this.fitViewport();

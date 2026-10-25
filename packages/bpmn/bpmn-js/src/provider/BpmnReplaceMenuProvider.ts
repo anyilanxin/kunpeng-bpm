@@ -27,11 +27,12 @@
  *   标准循环 ↻，再点当前态即清除；动作走 modeling.updateProperties（可撤销）。
  */
 import type { BpmnElementTypes } from '../meta/ElementTypes';
-import { metaId, subProcessExpandedOf } from '../meta/ElementTypes';
+import { isSubProcessFamily, metaId, subProcessExpandedOf } from '../meta/ElementTypes';
 import type { BpmnFactory } from '../factory/BpmnFactory';
 import { bpmnIconHtml, loopMarkerIconHtml } from '../icons/BpmnIcons';
 import { loopKindOf, type LoopKind } from '../meta/LoopCharacteristics';
 import { replaceTarget } from '../command/ReplaceElementHandler';
+import { planeHasContent } from '../plane/PlaneService';
 import { PopupMenuEntriesCache } from './BpmnElementMenuProvider';
 import { BpmnPopup } from './BpmnPopup';
 
@@ -63,12 +64,19 @@ export class BpmnReplaceMenuProvider {
     }
     // 族 id 在闭包外定格（闭包会丢失 optional narrowing）
     const familyId = meta.replaceFamily;
+    // 带内容的子流程（下钻平面有元素/内联子元素）仅允许折叠形态间 morph：
+    // 展开形态=子元素 DI 须迁回主平面（独立需求，见 design-docs 缓执行项），
+    // 跨族=替换处理器不迁移容器子元素、平面内容会被孤儿化
+    const contentLocked = isSubProcessFamily(bo.$type) && planeHasContent(bo);
 
     // 自身排除走注册表统一身份比较（matchesElement 四轴：类型/事件符号/非中断/折叠态）
     return this.cache.get(target, () => {
       const entries: Record<string, any> = {};
       for (const candidate of this.elementTypes.replaceTargets(familyId)) {
         if (this.elementTypes.matchesElement(candidate, target)) {
+          continue;
+        }
+        if (contentLocked && !(isSubProcessFamily(candidate.type) && subProcessExpandedOf(candidate) === false)) {
           continue;
         }
         entries[`replace-${metaId(candidate)}`] = {
