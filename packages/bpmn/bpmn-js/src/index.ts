@@ -37,10 +37,13 @@ export {
   NavigatedViewerModules,
   BpmnModules,
   BpmnCoreModule,
+  BpmnPlaneModule,
   BpmnRulesModule,
   BpmnModelingModule,
   BpmnBehaviorModule,
-  BpmnInteractionModule,
+  BpmnPaletteModule,
+  BpmnContextPadModule,
+  BpmnPopupMenuModule,
   BpmnIOModule
 } from './modules';
 export { BpmnElementTypes, SIZES } from './meta/ElementTypes';

@@ -173,21 +173,17 @@ export const PlatformModules: ModuleDeclaration[] = [
   ...EditorPlatformModules
 ];
 
-/** BPMN 核心：类型表 / 工厂 / 渲染 / 词典 / 平面导航 */
+/** BPMN 核心：类型表 / 工厂 / 渲染 / 词典（三形态恒装——BPMN 层插件的公共依赖基座） */
 export const BpmnCoreModule: ModuleDeclaration = {
   // bpmnRenderer 必须急切构造：BaseRenderer 仅在构造时向 eventBus 注册，
   // 懒构造会导致画布落到 diagram-js 的 fuchsia 兜底渲染（seata 同款 __init__ 模式）。
   // bpmnMode 同理急切：初始 preview 模式的容器标记类须在首帧前挂上。
-  // planeService/drillBadges/planeBreadcrumb 同理：事件订阅型组件懒构造=订阅不上。
-  __init__: ['bpmnElementTypes', 'bpmnRenderer', 'bpmnMode', 'planeService', 'drillBadges', 'planeBreadcrumb'],
+  __init__: ['bpmnElementTypes', 'bpmnRenderer', 'bpmnMode'],
   'bpmnIds': ['factory', () => new Ids([36, 36, 1])], // 7 位后缀（自有取值：36bit base36 ≈ 7 位，与示例模板统一，可读性）
   'bpmnElementTypes': ['type', BpmnElementTypes],
   'bpmnFactory': ['type', BpmnFactory],
   'bpmnMode': ['type', BpmnMode],
   'elementFactory': ['type', BpmnElementFactory],
-  'planeService': ['type', PlaneService],
-  'drillBadges': ['type', DrillBadges],
-  'planeBreadcrumb': ['type', PlaneBreadcrumb],
   'textRenderer': ['factory', () => new TextUtil({
     style: { fontFamily: 'system-ui, "PingFang SC", sans-serif', fontSize: 12 },
     size: { width: 100, height: 40 }
@@ -206,8 +202,25 @@ export const BpmnCoreModule: ModuleDeclaration = {
   'orientationService': ['type', OrientationService]
 };
 
-/** 规则与布线 */
+/**
+ * 折叠子流程下钻平面（内部插件，三形态通用）：平面栈导航 + 右下角徽标 + 面包屑。
+ * 依赖闭包全平台级（overlays/canvas/eventBus/文档状态），Viewer/NavigatedViewer
+ * 恒装（预览只读下钻）；宿主自拼裁剪时可不装（画布单平面，Modeler.reset 对缺失
+ * 服务非严格跳过）。徽标三服务均事件订阅型，急切构造。
+ */
+export const BpmnPlaneModule: ModuleDeclaration = {
+  __depends__: [
+    OverlaysModule
+  ],
+  __init__: ['planeService', 'drillBadges', 'planeBreadcrumb'],
+  'planeService': ['type', PlaneService],
+  'drillBadges': ['type', DrillBadges],
+  'planeBreadcrumb': ['type', PlaneBreadcrumb]
+};
+
+/** 规则与布线（__depends__ 自包含：rules 基座服务） */
 export const BpmnRulesModule: ModuleDeclaration = {
+  __depends__: [RulesModule],
   __init__: ['bpmnRules'],
   'bpmnRules': ['type', BpmnRules],
   'layouter': ['type', BpmnLayouter],
@@ -217,8 +230,9 @@ export const BpmnRulesModule: ModuleDeclaration = {
   'connectionDocking': ['type', CroppingConnectionDocking]
 };
 
-/** 建模命令与语义同步 */
+/** 建模命令与语义同步（__depends__ 自包含：commandStack/changeSupport 基座链） */
 export const BpmnModelingModule: ModuleDeclaration = {
+  __depends__: [ModelingModule],
   __init__: ['bpmnUpdater', 'collaborationBehavior', 'laneBandBehavior'],
   'modeling': ['type', BpmnModeling],
   'bpmnUpdater': ['type', BpmnUpdater],
@@ -229,8 +243,9 @@ export const BpmnModelingModule: ModuleDeclaration = {
   'autoResize': ['type', BpmnAutoResize]
 };
 
-/** 交互行为：直编 / 自动摆放 / 注记自适应 / 外部标签元素生命周期 */
+/** 交互行为：直编 / 自动摆放 / 注记自适应 / 外部标签元素生命周期（自包含：直编/编辑动作/选择基座） */
 export const BpmnBehaviorModule: ModuleDeclaration = {
+  __depends__: [DirectEditingModule, EditorActionsModule, SelectionModule],
   __init__: ['bpmnLabelEditingProvider', 'labelBehavior', 'externalLabelBehavior', 'labelSupport', 'autoPlacementBehavior', 'textAnnotationBehavior', 'dropTargetBehavior', 'linkCatchBehavior', 'bpmnEditorActions'],
   'bpmnLabelEditingProvider': ['type', BpmnLabelEditingProvider],
   'labelBehavior': ['type', LabelBehavior],
@@ -244,19 +259,70 @@ export const BpmnBehaviorModule: ModuleDeclaration = {
   'labelSupport': ['type', LabelSupport]
 };
 
-/** 面板与菜单 Provider */
-export const BpmnInteractionModule: ModuleDeclaration = {
-  __init__: ['paletteProvider', 'contextPadProvider', 'popupMenuProvider', 'bpmnAlignMenuProvider', 'bpmnAppendMenuProvider', 'bpmnCreateMenuProvider', 'bpmnOutlineProvider', 'bpmnPaletteLayout'],
+/**
+ * 弹框与菜单（内部插件）：BpmnPopup 弹框底座 + 替换/对齐/追加/创建四菜单
+ * Provider。BpmnPopup 注入 contextPad（弹框打开收起 pad），故 __depends__
+ * ContextPadModule。palette/contextPad 插件经 __depends__ 本模块获得弹框能力。
+ * 服务注册名（popupMenuProvider 等）保持拆分前不变——宿主同名覆盖契约延续。
+ */
+export const BpmnPopupMenuModule: ModuleDeclaration = {
+  __depends__: [
+    PopupMenuModule,
+    AutoPlaceModule,
+    AlignElementsModule,
+    DistributeElementsModule,
+    ContextPadModule,
+    BpmnModelingModule,
+    BpmnRulesModule
+  ],
+  __init__: ['popupMenuProvider', 'bpmnAlignMenuProvider', 'bpmnAppendMenuProvider', 'bpmnCreateMenuProvider'],
   'bpmnPopup': ['type', BpmnPopup],
-  // 追加预览（context pad 悬停幽灵；懒构造——首个消费者注入时成型）
-  'bpmnAppendPreview': ['type', AppendPreview],
-  'bpmnPaletteLayout': ['type', BpmnPaletteLayout],
-  'paletteProvider': ['type', BpmnPaletteProvider],
-  'contextPadProvider': ['type', BpmnContextPadProvider],
   'popupMenuProvider': ['type', BpmnReplaceMenuProvider],
   'bpmnAlignMenuProvider': ['type', BpmnAlignMenuProvider],
   'bpmnAppendMenuProvider': ['type', BpmnAppendMenuProvider],
-  'bpmnCreateMenuProvider': ['type', BpmnCreateMenuProvider],
+  'bpmnCreateMenuProvider': ['type', BpmnCreateMenuProvider]
+};
+
+/**
+ * 元素面板（内部插件）：palette 条目 Provider + 面板布局服务。自带创建/工具
+ * 底座（create/抓手/套索/空间/全局连线，diagram-js 模块自身依赖链拉齐拖放与
+ * 规则），可独立装配到自拼实例。
+ */
+export const BpmnPaletteModule: ModuleDeclaration = {
+  __depends__: [
+    PaletteModule,
+    CreateModule,
+    HandToolModule,
+    LassoToolModule,
+    SpaceToolModule,
+    GlobalConnectModule,
+    BpmnPopupMenuModule
+  ],
+  __init__: ['paletteProvider', 'bpmnPaletteLayout'],
+  'paletteProvider': ['type', BpmnPaletteProvider],
+  'bpmnPaletteLayout': ['type', BpmnPaletteLayout]
+};
+
+/**
+ * 上下文面板（内部插件）：context pad 条目 Provider + 追加悬停预览 + 选中
+ * outline 反馈。自带 autoPlace/connect/complexPreview/outline 底座与建模/规则
+ * 依赖，可独立装配。
+ */
+export const BpmnContextPadModule: ModuleDeclaration = {
+  __depends__: [
+    ContextPadModule,
+    AutoPlaceModule,
+    ConnectModule,
+    ComplexPreviewModule,
+    OutlineModule,
+    BpmnModelingModule,
+    BpmnRulesModule,
+    BpmnPopupMenuModule
+  ],
+  __init__: ['contextPadProvider', 'bpmnOutlineProvider'],
+  'contextPadProvider': ['type', BpmnContextPadProvider],
+  // 追加预览（context pad 悬停幽灵；懒构造——首个消费者注入时成型）
+  'bpmnAppendPreview': ['type', AppendPreview],
   'bpmnOutlineProvider': ['type', BpmnOutlineProvider]
 };
 
@@ -280,14 +346,18 @@ export const BpmnModules: ModuleDeclaration[] = [
   BpmnRulesModule,
   BpmnModelingModule,
   BpmnBehaviorModule,
-  BpmnInteractionModule,
+  BpmnPlaneModule,
+  BpmnPaletteModule,
+  BpmnContextPadModule,
+  BpmnPopupMenuModule,
   BpmnIOModule
 ];
 
-/** 只读查看器模块集（Viewer：渲染 + 导入导出 + 元素事件，无任何编辑模块） */
+/** 只读查看器模块集（Viewer：渲染 + 导入导出 + 元素事件 + 下钻浏览，无任何编辑模块） */
 export const ViewerModules: ModuleDeclaration[] = [
   ...ViewerPlatformModules,
   BpmnCoreModule,
+  BpmnPlaneModule,
   BpmnIOModule
 ];
 

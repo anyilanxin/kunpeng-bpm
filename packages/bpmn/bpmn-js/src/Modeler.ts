@@ -108,8 +108,10 @@ export class Modeler {
 
   // ---------- 服务访问 / 事件 ----------
 
-  get<T = any>(name: string): T {
-    return this.diagram.get<T>(name);
+  /** 服务访问；strict=false 非严格（缺失得 null 而非抛错）——自拼/裁剪装配下宿主与插件探测可选服务用 */
+  get<T = any>(name: string, strict: boolean = true): T {
+    // strict=false 时 diagram 类型标注 T|null，语义上调用方自担缺失（与 didi 惯用法一致）
+    return this.diagram.get<T>(name, strict) as T;
   }
 
   on(event: string, priority: number | ((...args: any[]) => any), callback?: (...args: any[]) => any): void {
@@ -159,8 +161,9 @@ export class Modeler {
       di: state.plane
     });
     canvas.setRootElement(root);
-    // 文档更替：下钻平面栈归零（PlaneService 也负责导入路径）
-    this.get<any>('planeService').reset();
+    // 文档更替：下钻平面栈归零（PlaneService 也负责导入路径）；自拼装配不含
+    // BpmnPlaneModule 时服务缺席，非严格跳过
+    this.diagram.get<any>('planeService', false)?.reset();
     this.fitViewport();
   }
 
@@ -194,8 +197,9 @@ export class Modeler {
       // 朝向解析（标记优先，其次首池 DI 信号；垂直推断写回标记）
       this.get<any>('orientationService').applyImport(state.definitions, result.firstPoolHorizontal);
       builder.build(result);
-      // 文档更替：下钻平面栈归零、平面根缓存清空（旧根随 diagram.clear 销毁）
-      this.get<any>('planeService').reset();
+      // 文档更替：下钻平面栈归零、平面根缓存清空（旧根随 diagram.clear 销毁）；
+      // 自拼装配不含 BpmnPlaneModule 时非严格跳过
+      this.diagram.get<any>('planeService', false)?.reset();
 
       eventBus.fire('canvas.resized');
       this.fitViewport();
