@@ -1,11 +1,15 @@
 <script setup lang="ts">
 /**
  * 组件接入示例（Vue 3）：
- * - 顶部卡片标题栏（左右两区）+ BPMN 画布专属悬浮工具栏（插件化）+ 导入/导出 BPMN 文件
+ * - 顶部卡片标题栏（左：实例形态菜单，右：流程图/XML 切换）+ BPMN 画布专属
+ *   悬浮工具栏（插件化）+ 导入/导出 BPMN 文件
  * - Modeler 挂载到 div ref，示例插件按 URL 参数加载（?plugin=0 关闭）
+ * - 实例形态（编辑/预览/导航）在标题栏左侧菜单切换——编辑器工具栏专注画布
+ *   动作，不承载实例形态（导航需求由导航形态单独提供，编辑态自带导航工具）
  * - 工具栏插件（@kunpeng-io/bpmn-js-toolbar）：撤销/重做/缩放/转置为插件内置，
- *   应用级动作（导入导出/实例形态/取色器/暗色/面板）经 bpmnToolbar.actions 注册，
- *   相对画布水平居中；仅编辑态实例装配（Viewer 底座无命令栈/建模服务）
+ *   应用级动作（导入导出/取色器/暗色/面板）经 bpmnToolbar.actions 注册，
+ *   相对画布水平居中，宽度上限内装不下收「更多」；三形态实例通用装配
+ *   （只读底座缺的编辑服务由插件自行非严格解析，相应组不建）
  * - 属性面板（@kunpeng-io/bpmn-js-properties-panel）：编辑态经 additionalModules
  *   装配，容器经 propertiesPanel.parent 透传（插件 config 键，组件不逐键白名单）
  * - 颜色插件：工具栏取色器 + 清除，走 modeling.setColor（bioc:fill/stroke 往返）；
@@ -16,7 +20,7 @@
  * - 流程图/XML 视图切换是示例自有的卡片组件（components/XmlViewCard.vue），
  *   只消费组件包公开 API（saveXML/importXML），组件包本身不含视图切换功能
  */
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import { Modeler, Viewer, NavigatedViewer, iconOfElement } from '@kunpeng-io/bpmn-js';
 import { BpmnToolbarModule } from '@kunpeng-io/bpmn-js-toolbar';
 import type { ToolbarActionSpec } from '@kunpeng-io/bpmn-js-toolbar';
@@ -212,12 +216,13 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown);
+  document.removeEventListener('mousedown', onModeMenuDocDown);
   modeler?.destroy?.();
 });
 
-// ---------- 工具栏动作（bpmnToolbar.actions 注册进插件；撤销/转置/缩放为插件内置） ----------
+// ---------- 实例形态（标题栏菜单切换） ----------
 
-// 实例形态（框架三种实例化模式：Modeler=编辑 / NavigatedViewer=可缩放平移的只读 / Viewer=纯查看）。
+// 实例形态（框架三种实例化模式：Modeler=编辑 / Viewer=纯预览 / NavigatedViewer=导航预览）。
 // 切换 = 保留当前图内容重建实例（编辑类服务不进注入器，程序化路径亦不可用）
 const form = ref<'edit' | 'navigated' | 'view'>('edit');
 async function switchForm(next: 'edit' | 'navigated' | 'view'): Promise<void> {
@@ -233,7 +238,8 @@ async function switchForm(next: 'edit' | 'navigated' | 'view'): Promise<void> {
   await modeler.importXML(xml);
 }
 
-/** 应用动作图标（自绘 48×48 viewBox/描边宽 4，与插件内置图标同语言） */
+/** 应用动作图标（自绘 48×48 viewBox/描边宽 4，与插件内置图标同语言；
+ *  工具栏动作与形态菜单共用） */
 const actionSvg = (paths: string): string =>
   `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter">${paths}</svg>`;
 
@@ -254,6 +260,33 @@ const ICON_PANEL = actionSvg(
   '<path d="M30 6v36" /><path d="M14 16h8m-8 8h8m-8 8h8" />'
 );
 const ICON_CLEAR_COLOR = actionSvg('<path d="M24 6c6 8 12 13.5 12 21a12 12 0 1 1-24 0c0-7.5 6-13 12-21Z" /><path d="M10 38 38 10" />');
+
+/** 形态菜单（编辑 / 预览 / 导航；工具栏不承载形态切换） */
+const MODES = [
+  { value: 'edit', label: '编辑模式', hint: 'Modeler：完整建模', svg: ICON_EDIT },
+  { value: 'view', label: '预览模式', hint: 'Viewer：只读渲染', svg: ICON_VIEW },
+  { value: 'navigated', label: '导航模式', hint: '只读，可缩放平移', svg: ICON_NAVIGATE }
+] as const;
+const currentModeLabel = computed(() => MODES.find((m) => m.value === form.value)!.label);
+const modeMenuOpen = ref(false);
+
+function chooseMode(next: 'edit' | 'navigated' | 'view'): void {
+  modeMenuOpen.value = false;
+  void switchForm(next);
+}
+
+function onModeMenuDocDown(event: MouseEvent): void {
+  if (!(event.target as HTMLElement).closest('.mode-menu')) {
+    modeMenuOpen.value = false;
+  }
+}
+watch(modeMenuOpen, (open) => {
+  if (open) {
+    document.addEventListener('mousedown', onModeMenuDocDown);
+  } else {
+    document.removeEventListener('mousedown', onModeMenuDocDown);
+  }
+});
 
 /** 取色器控件（render 一次性建 DOM；示例持 input 引用，选择变化时自回显） */
 function colorControl(kind: 'fill' | 'stroke'): ToolbarActionSpec {
@@ -289,38 +322,12 @@ function colorControl(kind: 'fill' | 'stroke'): ToolbarActionSpec {
   };
 }
 
-/** 应用级动作集：文件 / 实例形态 / 取色 / 显示（激活与可用态读 ref，refresh() 时机重估） */
+/** 应用级动作集：文件 / 取色 / 显示（激活与可用态读 ref，refresh() 时机重估；
+ *  实例形态在标题栏菜单，不入工具栏） */
 function buildToolbarActions(): ToolbarActionSpec[] {
   return [
     { id: 'import', title: '导入 BPMN 文件', group: 'file', svg: ICON_IMPORT, onClick: pickFile, showInPreview: true },
     { id: 'export', title: '导出 BPMN 文件', group: 'file', svg: ICON_EXPORT, onClick: () => void exportBpmnFile(), showInPreview: true },
-    {
-      id: 'form-edit',
-      title: '编辑模式（Modeler：完整建模）',
-      group: 'form',
-      svg: ICON_EDIT,
-      onClick: () => void switchForm('edit'),
-      isActive: () => form.value === 'edit',
-      showInPreview: true
-    },
-    {
-      id: 'form-navigated',
-      title: '导航查看模式（NavigatedViewer：只读，可缩放平移）',
-      group: 'form',
-      svg: ICON_NAVIGATE,
-      onClick: () => void switchForm('navigated'),
-      isActive: () => form.value === 'navigated',
-      showInPreview: true
-    },
-    {
-      id: 'form-view',
-      title: '纯查看模式（Viewer：只读渲染）',
-      group: 'form',
-      svg: ICON_VIEW,
-      onClick: () => void switchForm('view'),
-      isActive: () => form.value === 'view',
-      showInPreview: true
-    },
     colorControl('fill'),
     colorControl('stroke'),
     { id: 'clear-colors', title: '清除选中元素颜色', group: 'colors', svg: ICON_CLEAR_COLOR, onClick: clearColors, isEnabled: () => !!colorTarget.value },
@@ -445,6 +452,33 @@ console.info(
 
 <template>
   <div class="example-app">
+    <!-- 实例形态菜单（标题栏左区）：编辑 / 预览 / 导航；工具栏专注画布动作 -->
+    <div class="mode-menu">
+      <button
+        class="mode-menu-btn"
+        aria-haspopup="menu"
+        :aria-expanded="modeMenuOpen"
+        @click="modeMenuOpen = !modeMenuOpen"
+      >{{ currentModeLabel }}<span class="mode-caret">▾</span></button>
+      <div v-if="modeMenuOpen" class="mode-menu-panel" role="menu">
+        <button
+          v-for="mode in MODES"
+          :key="mode.value"
+          class="mode-menu-item"
+          :class="{ active: form === mode.value }"
+          role="menuitem"
+          @click="chooseMode(mode.value)"
+        >
+          <span class="mode-menu-icon" v-html="mode.svg"></span>
+          <span class="mode-menu-text">
+            <span class="mode-menu-label">{{ mode.label }}</span>
+            <span class="mode-menu-hint">{{ mode.hint }}</span>
+          </span>
+          <span class="mode-menu-check">{{ form === mode.value ? '✓' : '' }}</span>
+        </button>
+      </div>
+    </div>
+
     <!-- 建模器画布宿主（卡片内容区·流程图侧）：常驻渲染，XML 视图由 XmlViewCard 的
          不透明内容区整体覆盖——display:none 会让导入时视口计算得 0 尺寸（SVGMatrix NaN）；
          属性面板可见时画布右缘让出面板列宽；XML 视图下藏画布内悬浮件（工具栏 z-90
@@ -484,6 +518,106 @@ console.info(
 
 .canvas-host--with-panel {
   right: 340px;
+}
+
+/* 实例形态菜单（标题栏左区，与 XmlViewCard 标题栏同层叠放；皮肤随标题栏浅色铬件） */
+.mode-menu {
+  position: absolute;
+  top: 0;
+  left: 12px;
+  z-index: 30;
+  height: 36px;
+}
+
+.mode-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  margin-top: 5px;
+  padding: 0 10px;
+  font-size: 12px;
+  color: #2c3345;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.mode-menu-btn:hover {
+  background: #eef0f4;
+}
+
+.mode-caret {
+  font-size: 10px;
+  color: #8a93a5;
+}
+
+.mode-menu-panel {
+  position: absolute;
+  top: 34px;
+  left: 0;
+  min-width: 232px;
+  padding: 4px;
+  background: #fff;
+  border: 1px solid #e2e5ea;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(15, 19, 30, 0.12);
+}
+
+.mode-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mode-menu-item:hover {
+  background: #f0f2f6;
+}
+
+.mode-menu-icon {
+  display: flex;
+  color: #57607a;
+}
+
+.mode-menu-icon :deep(svg) {
+  width: 16px;
+  height: 16px;
+}
+
+.mode-menu-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mode-menu-label {
+  font-size: 12px;
+  color: #2c3345;
+}
+
+.mode-menu-item.active .mode-menu-label {
+  font-weight: 600;
+}
+
+.mode-menu-hint {
+  font-size: 11px;
+  color: #8a93a5;
+}
+
+.mode-menu-check {
+  width: 16px;
+  font-size: 12px;
+  color: #2d71eb;
+  text-align: center;
 }
 
 /* XML 视图：藏画布内高图层悬浮件（工具栏，插件 DOM 无 scoped 属性须 :deep），

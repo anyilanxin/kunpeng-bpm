@@ -155,7 +155,8 @@ defineExpose({ loadText, getText });
   display: flex;
   align-items: center;
   height: 36px;
-  padding: 0 12px;
+  /* 左区让位 App 级实例形态菜单（编辑/预览/导航），出错提示排其右侧 */
+  padding: 0 12px 0 124px;
   background: #fff;
   border-bottom: 1px solid #e2e5ea;
   box-shadow: 0 2px 8px rgba(15, 19, 30, 0.05);
