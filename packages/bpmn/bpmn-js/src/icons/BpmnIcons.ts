@@ -44,6 +44,7 @@ import {
   drawDataStoreShape,
   drawCollapsedMarker,
   drawAdHocMarker,
+  drawActivityMarkerRow,
   drawLoopMarker,
   circle,
   eventRingWeight,
@@ -303,6 +304,11 @@ export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20, fill = '#
     if (meta.loop) {
       parts.push(plainGroup((g) => drawLoopMarker(g, { width: 36, height: 32 }, meta.loop!, theme)));
     }
+  } else if (t === 'bpmn:AdHocSubProcess' && meta.symbol !== 'adHocSubProcessCollapsed') {
+    // 展开临时子流程：同展开子流程比例盒 + 底部正中小波浪（画布 drawAdHocMarker
+    // 同源字形；参照款波浪仅为盒宽 8%，scale 0.16，底缘贴下边框内侧）
+    R(3, 8, 30, 20, 1.2, 1.5);
+    parts.push(plainGroup((g) => drawAdHocMarker(g, 18, 27, theme, 0.16)));
   } else {
     // 任务族 / 调用活动 / 折叠子流程：画布 116×78 几何等比缩影
     parts.push(canvasGroup(TASK_K, 116, 78, (g) => {
@@ -320,8 +326,8 @@ export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20, fill = '#
         // 折叠 [+]：画布 drawCollapsedMarker 同形（底边跨骑、底部中央）
         drawCollapsedMarker(g, TASK_BOX, theme);
       } else if (t === 'bpmn:AdHocSubProcess') {
-        // Ad-hoc 波浪号（图标集无资产，画布同源自绘记法）
-        drawAdHocMarker(g, TASK_BOX.width / 2, TASK_BOX.height, theme);
+        // 折叠临时子流程：[+] 左、波浪号右（画布标记行同源同布局，规范 §12.3.2）
+        drawActivityMarkerRow(g, TASK_BOX, { collapsed: true, adHoc: true }, theme);
       } else if (t !== 'bpmn:CallActivity') {
         // 任务字标：画布 drawTaskMarker 同位（中心 14,14，半尺寸 8）
         taskGlyph(g, meta.symbol ?? '', 14, 14, 8, theme);

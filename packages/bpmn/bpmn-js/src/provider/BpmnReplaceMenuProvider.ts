@@ -27,7 +27,7 @@
  *   标准循环 ↻，再点当前态即清除；动作走 modeling.updateProperties（可撤销）。
  */
 import type { BpmnElementTypes } from '../meta/ElementTypes';
-import { metaId } from '../meta/ElementTypes';
+import { metaId, subProcessExpandedOf } from '../meta/ElementTypes';
 import type { BpmnFactory } from '../factory/BpmnFactory';
 import { bpmnIconHtml, loopMarkerIconHtml } from '../icons/BpmnIcons';
 import { loopKindOf, type LoopKind } from '../meta/LoopCharacteristics';
@@ -78,9 +78,10 @@ export class BpmnReplaceMenuProvider {
           action: () => {
             this.modeling.replaceElement(target, {
               // replaceTarget 打包 type/eventSymbol/nonInterrupting/symbol——
-              // symbol 必传：替换处理器按 subProcessEvent 落 triggeredByEvent
+              // symbol 必传：替换处理器按 subProcessEvent 落 triggeredByEvent；
+              // 折叠位由注册表形态单一来源推导（SubProcess/AdHocSubProcess 折叠变体）
               ...replaceTarget(candidate),
-              collapsed: candidate.symbol === 'subProcessCollapsed'
+              collapsed: subProcessExpandedOf(candidate) === false
             });
           }
         };

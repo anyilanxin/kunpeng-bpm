@@ -48,7 +48,7 @@ export class ReplaceElementHandler implements CommandHandler {
 
   execute(context: any): any[] {
     const { element, target } = context;
-    if (target.collapsed === undefined && target.type === 'bpmn:SubProcess') {
+    if (target.collapsed === undefined && (target.type === 'bpmn:SubProcess' || target.type === 'bpmn:AdHocSubProcess')) {
       target.collapsed = false;
     }
     // meta/事件符号已在 modeling.replaceElement 前置校验（execute 内抛错毒 action 帧）
@@ -119,8 +119,12 @@ export class ReplaceElementHandler implements CommandHandler {
     element.x = cx - width / 2;
     element.y = cy - height / 2;
     element.type = target.type;
-    if (target.type === 'bpmn:SubProcess') {
+    if (target.type === 'bpmn:SubProcess' || target.type === 'bpmn:AdHocSubProcess') {
       element.isExpanded = !target.collapsed;
+    } else {
+      // 离开子流程族清残留：否则折叠态 morph 回任务后，matchesElement 折叠轴
+      // 误判（element.isExpanded 恒 false），任务自身反不被替换菜单排除
+      element.isExpanded = undefined;
     }
 
     context.oldBo = oldBo;
@@ -144,8 +148,11 @@ export class ReplaceElementHandler implements CommandHandler {
     element.x = size.x;
     element.y = size.y;
     element.type = oldBo.$type;
-    if (oldBo.$type === 'bpmn:SubProcess') {
+    if (oldBo.$type === 'bpmn:SubProcess' || oldBo.$type === 'bpmn:AdHocSubProcess') {
       element.isExpanded = size.isExpanded;
+    } else {
+      // 非子流程族不留展开位（execute 侧同款收口，防 matchesElement 折叠轴误判）
+      element.isExpanded = undefined;
     }
     for (const entry of context.oldWaypoints ?? []) {
       entry.connection.waypoints = entry.waypoints;

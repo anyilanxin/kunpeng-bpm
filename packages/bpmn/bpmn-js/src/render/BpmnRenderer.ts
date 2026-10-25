@@ -253,11 +253,15 @@ export class BpmnRenderer extends BaseRenderer {
     this.drawInternalLabel(visuals, shape, 'top');
   }
 
-  /** Ad-hoc 子流程（规范 §10.5.5）：普通圆角盒 + 底部波浪号标记 */
+  /** Ad-hoc 子流程（规范 §10.5.5）：普通圆角盒 + 底部波浪号标记；
+   *  折叠态再叠 [+]（标记行成组：[+] 左、波浪号右，§12.3.2），标签中位（同折叠子流程） */
   private paintAdHoc(visuals: SVGElement, shape: any, theme: StyleTheme): void {
     this.drawRoundedBox(visuals, shape, theme, 2);
-    this.paintActivityMarkers(visuals, shape, theme, { adHoc: true });
-    this.drawInternalLabel(visuals, shape, 'top');
+    this.paintActivityMarkers(visuals, shape, theme, {
+      adHoc: true,
+      collapsed: shape.isExpanded === false
+    });
+    this.drawInternalLabel(visuals, shape, shape.isExpanded === false ? 'middle' : 'top');
   }
 
   /** 调用活动（规范 §10.2.3）：加粗边框（取 4：与结束事件粗环同重，边框即"调用"语义） */

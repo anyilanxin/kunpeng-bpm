@@ -233,8 +233,8 @@ export class BpmnContextPadProvider {
       }
     }
 
-    // ---- 折叠/展开子流程 ----
-    if (type === 'bpmn:SubProcess') {
+    // ---- 折叠/展开子流程（普通与 Ad-hoc 同权：两形态都在注册表） ----
+    if (type === 'bpmn:SubProcess' || type === 'bpmn:AdHocSubProcess') {
       const collapsed = element.isExpanded === false;
       entries[collapsed ? 'sp-expand' : 'sp-collapse'] = {
         group: 'edit',
@@ -242,7 +242,7 @@ export class BpmnContextPadProvider {
         title: collapsed ? this.i18n.t('展开子流程') : this.i18n.t('折叠子流程'),
         action: {
           click: () =>
-            this.modeling.replaceElement(element, { type: 'bpmn:SubProcess', collapsed: !collapsed })
+            this.modeling.replaceElement(element, { type, collapsed: !collapsed })
         }
       };
     }

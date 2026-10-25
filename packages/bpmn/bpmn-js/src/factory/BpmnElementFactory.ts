@@ -88,8 +88,8 @@ export class BpmnElementFactory extends ElementFactoryBase {
     if (!semanticType) {
       return undefined;
     }
-    // 折叠子流程按任务盒尺寸（注册表以展开态登记 SubProcess）
-    if (semanticType === 'bpmn:SubProcess' && attrs.isExpanded === false) {
+    // 折叠子流程族（SubProcess/AdHocSubProcess）按任务盒尺寸（注册表以展开态登记）
+    if (attrs.isExpanded === false && (semanticType === 'bpmn:SubProcess' || semanticType === 'bpmn:AdHocSubProcess')) {
       const task = this.elementTypes.shapeMeta('bpmn:Task')!;
       return { width: task.width, height: task.height };
     }

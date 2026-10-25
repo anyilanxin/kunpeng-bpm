@@ -114,11 +114,18 @@ export function metaId(meta: { type: string; eventSymbol?: string; symbol?: stri
       meta.symbol === 'subProcessCollapsed' ? 'collapsed' : meta.symbol === 'subProcessEvent' ? 'event' : 'expanded'
     );
   }
+  if (meta.type === 'bpmn:AdHocSubProcess') {
+    variants.push(meta.symbol === 'adHocSubProcessCollapsed' ? 'collapsed' : 'expanded');
+  }
   return variants.length ? `${local}-${variants.join('-')}` : local;
 }
 
-/** 子流程展开态推导：SubProcess 的 expanded/event 变体=true、collapsed=false、其余类型 undefined */
+/** 子流程展开态推导：SubProcess 的 expanded/event 变体=true、collapsed=false；
+ *  AdHocSubProcess 同理（collapsed 变体=false）；其余类型 undefined */
 export function subProcessExpandedOf(meta: ShapeTypeMeta): boolean | undefined {
+  if (meta.type === 'bpmn:AdHocSubProcess') {
+    return meta.symbol !== 'adHocSubProcessCollapsed';
+  }
   if (meta.type !== 'bpmn:SubProcess') {
     return undefined;
   }
@@ -483,6 +490,8 @@ export const SHAPE_TYPES: ShapeTypeMeta[] = [
   { type: 'bpmn:Transaction', label: '事务子流程', width: SIZES.SUBPROCESS_W, height: SIZES.SUBPROCESS_H, symbol: 'transaction', paletteGroup: 'subProcesses', order: 40, replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
   // Ad-hoc 子流程（规范 §10.5.5：底部波浪号标记）
   { type: 'bpmn:AdHocSubProcess', label: 'Ad-hoc 子流程', width: SIZES.SUBPROCESS_W, height: SIZES.SUBPROCESS_H, symbol: 'adHocSubProcess', paletteGroup: 'subProcesses', order: 50, replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
+  // 折叠形态排在展开之后：shapeByType 取数组首条，展开态（容器/大尺寸）须胜出
+  { type: 'bpmn:AdHocSubProcess', label: 'Ad-hoc 子流程（折叠）', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'adHocSubProcessCollapsed', paletteGroup: 'subProcesses', order: 55, replaceFamily: 'subProcess', resizable: true, family: 'activity', labelMode: 'internal' },
   // ---- 网关 ----
   { type: 'bpmn:ExclusiveGateway', label: '排他网关', width: SIZES.GATEWAY, height: SIZES.GATEWAY, symbol: 'gatewayExclusive', paletteGroup: 'gateways', order: 10, replaceFamily: 'gateway', family: 'gateway', labelMode: 'external' },
   { type: 'bpmn:ParallelGateway', label: '并行网关', width: SIZES.GATEWAY, height: SIZES.GATEWAY, symbol: 'gatewayParallel', paletteGroup: 'gateways', order: 20, replaceFamily: 'gateway', family: 'gateway', labelMode: 'external' },
@@ -693,8 +702,18 @@ export class BpmnElementTypes {
     return attrs;
   }
 
-  /** 替换族成员（全量；"与当前元素同形"的排除经 matchesElement 判定） */
+  /** 替换族成员（全量；"与当前元素同形"的排除经 matchesElement 判定）。
+   *  任务族（activity）额外收录四个子流程 morph 形态（用户定规 2026-10-25：
+   *  折叠/展开 + Ad-hoc 折叠/展开——任务可改成的目标；事件/事务子流程不在列。
+   *  反向不开放：子流程元素的替换菜单仍只列子流程族） */
   replaceTargets(familyId: string): ShapeTypeMeta[] {
+    if (familyId === 'activity') {
+      const morphSymbols = new Set(['subProcessExpanded', 'subProcessCollapsed', 'adHocSubProcess', 'adHocSubProcessCollapsed']);
+      return SHAPE_TYPES.filter((meta) =>
+        meta.replaceFamily === 'activity'
+        || (meta.replaceFamily === 'subProcess' && morphSymbols.has(meta.symbol ?? ''))
+      );
+    }
     return SHAPE_TYPES.filter((meta) => meta.replaceFamily === familyId);
   }
 
@@ -723,7 +742,9 @@ export class BpmnElementTypes {
     if ((meta.symbol === 'subProcessEvent') !== (bo.triggeredByEvent === true)) {
       return false;
     }
-    return (meta.symbol === 'subProcessCollapsed') === (element.isExpanded === false);
+    // 折叠轴（SubProcess/AdHocSubProcess 同判）：meta 折叠变体 ⇄ element.isExpanded=false
+    const collapsedVariant = meta.symbol === 'subProcessCollapsed' || meta.symbol === 'adHocSubProcessCollapsed';
+    return collapsedVariant === (element.isExpanded === false);
   }
 
   /** 面板分组定义（顺序即展示顺序） */

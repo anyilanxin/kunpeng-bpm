@@ -318,14 +318,14 @@ export function drawTaskMarker(g: Element, symbol: string, shape: { x: number; y
   }
 }
 
-/** 折叠子流程标记：底部中央 [+] 方块（规范：折叠 SP 显示加号框）；cx 可选——与循环标记并存时错开成标记行 */
+/** 折叠子流程标记（布局取自用户方参考渲染完整 SVG）：14×14 方块浮于框内底缘上方 6（不跨骑下边框）、水平居中；十字臂缩进 2、描边 2，方块描边 1。cx 可选——与循环标记并存时错开 */
 export function drawCollapsedMarker(g: Element, shape: { width: number; height: number }, theme: StyleTheme, cx?: number): void {
-  const size = 16;
+  const size = 14;
   const x = (cx ?? shape.width / 2) - size / 2;
-  const y = shape.height - size / 2 - 2;
-  path(g, `M${N(x)},${N(y)} h${N(size)} v${N(size)} h${N(-size)} Z`, theme.stroke, theme.fill, 1.4);
-  line(g, x + size / 2, y + 4, x + size / 2, y + size - 4, theme.stroke, 1.7);
-  line(g, x + 4, y + size / 2, x + size - 4, y + size / 2, theme.stroke, 1.7);
+  const y = shape.height - size - 6;
+  path(g, `M${N(x)},${N(y)} h${N(size)} v${N(size)} h${N(-size)} Z`, theme.stroke, theme.fill, 1);
+  line(g, x + size / 2, y + 2, x + size / 2, y + size - 2, theme.stroke, 2);
+  line(g, x + 2, y + size / 2, x + size - 2, y + size / 2, theme.stroke, 2);
 }
 
 /** 数据对象：纸盒 + 右上折角（规范 §10.3.1 Artifacts） */
@@ -404,23 +404,38 @@ export function drawCompensationMarker(g: Element, cx: number, bottom: number, t
 }
 
 /**
- * Ad-hoc 子流程标记（规范 §10.5.5：底部波浪号 ~）。图标集无此资产——
- * 按规范记法文字自绘描边几何（与外框同属规范描边层，非图标集字形；
- * 待图标库补充资产后可替换为 iconSetGlyph 同源字形）。
- * 几何为自有取值：两段半圆弧拼成波浪，宽 16、高 6，圆帽描边与标记行同重。
+ * 波浪号字形资产（用户方参考渲染 data-marker="adhoc" 的原始 path，用户明确
+ * 提供本仓使用）：填充式波浪，包络约 15×3.7（宽高比 ≈ 4:1），fill 与描边
+ * 同色、1px 圆帽连接。曲线锚于自身原点（首段 m 0.84461,2.64411），整体经
+ * translate/scale 定位，不改写控制点数值。
  */
-export function drawAdHocMarker(g: Element, cx: number, bottom: number, theme: StyleTheme): void {
-  const w = 16;
-  const h = 6;
-  const x = cx - w / 2;
-  const y = bottom - h - 2;
-  path(
-    g,
-    `M${N(x)},${N(y + h)} A${N(w / 4)},${N(h)} 0 0 1 ${N(x + w / 2)},${N(y)} A${N(w / 4)},${N(h)} 0 0 1 ${N(x + w)},${N(y + h)}`,
-    theme.stroke,
-    'none',
-    1.6
-  );
+const ADHOC_WAVE_D =
+  'm 0.84461,2.64411 c 1.05533,-1.23780996 2.64337,-2.07882 4.29653,-1.97997996 ' +
+  '2.05163,0.0805 3.85579,1.15803 5.76082,1.79107 1.06385,0.34139996 2.24454,0.1438 ' +
+  '3.18759,-0.43767 0.61743,-0.33642 1.2775,-0.64078 1.7542,-1.17511 0,0.56023 0,1.12046 ' +
+  '0,1.6807 -0.98706,0.96237996 -2.29792,1.62393996 -3.6918,1.66181996 -1.24459,0.0927 ' +
+  '-2.46671,-0.2491 -3.59505,-0.74812 -1.35789,-0.55965 -2.75133,-1.33436996 ' +
+  '-4.27027,-1.18121996 -1.37741,0.14601 -2.41842,1.13685996 -3.44288,1.96782996 z';
+
+/**
+ * Ad-hoc 子流程标记（规范 §10.5.5：底部波浪号 ~）。图标集无此资产——
+ * 使用上方用户提供的波浪字形资产绘制。包络 15×3.7，波浪底缘落在 `bottom`
+ * 参数处（画布标记行取 height-11，与折叠 [+] 方块中心对齐）；图标缩样传
+ * scale 缩小（如展开临时子流程图标参照款取 0.16）。
+ */
+export function drawAdHocMarker(g: Element, cx: number, bottom: number, theme: StyleTheme, scale = 1): void {
+  const el = create('path');
+  // 包络中心 x 偏移 8.34、底缘 y 偏移 4.22（字形资产包络实测），缩放随 scale
+  attr(el, {
+    d: ADHOC_WAVE_D,
+    transform: `translate(${N(cx - 8.34 * scale)},${N(bottom - 4.22 * scale)}) scale(${N(scale)})`,
+    fill: theme.stroke,
+    stroke: theme.stroke,
+    'stroke-width': 1,
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round'
+  });
+  append(g, el);
 }
 
 /** 活动底部标记行内容（规范 §12.3.2：标记成组居中；折叠 [+] 为主锚） */
@@ -435,8 +450,10 @@ export interface ActivityMarkerRow {
 }
 
 /**
- * 活动底部标记行（规范 §12.3.2：全部标记成组、整组居中于底边中央；
- * 补偿在 [+] 左、波浪号在 [+] 右）。间距 22（[+] 方块 16 + 6 间隙，自有取值）。
+ * 活动底部标记行（规范 §12.3.2；布局取自用户方参考渲染完整 SVG）：折叠 [+]
+ * 方块锚定底边中央、浮于框内底缘上方（不跨骑），其余标记以边缝 4.5 挂靠两侧
+ * ——波浪号在 [+] 右（垂直与方块中心对齐）、补偿/循环在 [+] 左；无 [+] 时
+ * 维持成组居中。
  */
 export function drawActivityMarkerRow(
   g: Element,
@@ -444,19 +461,35 @@ export function drawActivityMarkerRow(
   row: ActivityMarkerRow,
   theme: StyleTheme
 ): void {
-  const items: Array<(cx: number) => void> = [];
   const bottom = shape.height - 4;
+  if (row.collapsed) {
+    const plusCx = shape.width / 2;
+    drawCollapsedMarker(g, shape, theme, plusCx);
+    // 波浪号挂 [+] 右：边缝 4.5 + 半宽 7.5；底缘 ≈ height-11 恰与方块中心对齐
+    if (row.adHoc) {
+      drawAdHocMarker(g, plusCx + 7 + 4.5 + 7.5, shape.height - 11, theme);
+    }
+    // 补偿/循环挂 [+] 左，右缘依次向左排开（少见组合）
+    let left = plusCx - 7 - 4.5;
+    if (row.compensation) {
+      drawCompensationMarker(g, left - 7, bottom, theme);
+      left -= 14 + 4.5;
+    }
+    if (row.loop) {
+      drawLoopMarker(g, shape, row.loop!, theme, left - 7);
+    }
+    return;
+  }
+  const items: Array<(cx: number) => void> = [];
   if (row.compensation) {
     items.push((cx) => drawCompensationMarker(g, cx, bottom, theme));
   }
   if (row.loop) {
     items.push((cx) => drawLoopMarker(g, shape, row.loop!, theme, cx));
   }
-  if (row.collapsed) {
-    items.push((cx) => drawCollapsedMarker(g, shape, theme, cx));
-  }
   if (row.adHoc) {
-    items.push((cx) => drawAdHocMarker(g, cx, bottom, theme));
+    // 单独波浪号（展开临时子流程）：底缘浮于 height-11（参考渲染 210 高盒上底缘 199）
+    items.push((cx) => drawAdHocMarker(g, cx, shape.height - 11, theme));
   }
   if (items.length === 0) {
     return;
