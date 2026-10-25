@@ -22,9 +22,9 @@
 /**
  * 空白拖拽即框选（建模器惯例）：基座空白 mousedown 无任何拖拽动作——框选必须
  * 先点面板「套索工具」或按住 Shift 在元素上按下，多选门槛过高。本行为在
- * 编辑态、无激活工具时把画布容器空白处的左键按下转成套索框选
- * （lassoTool.activateSelection autoActivate——按下即进入拖拽，移动圈选、
- * 抬起完成选择）。
+ * 编辑态、无激活工具时把画布容器空白处的左键按下转成套索工具拖拽
+ * （lassoTool.activateLasso + autoActivate=false——阈值启动：位移超过基座
+ * 阈值才出现框选视觉，抬起即选区生效）。
  *
  * 让路规则：按下目标在元素图形（.djs-element）上→元素交互（移动/选中/边界
  * 挂靠）；在悬浮件（palette/context pad/弹框/工具栏/overlays/直编框）上→
@@ -66,6 +66,23 @@ export class BlankLassoBehavior {
       return;
     }
 
+    // 框选圈人只按元素坐标比对，隐藏态外部标签（element.hidden，gfx 被
+    // GraphicsFactory 置 display:none）会被无声圈进选区——其 DOM 矩形退化为
+    // (0,0,0,0)，基座 ContextPad 多选定位的联合包围盒随之落到画布外（混合
+    // 选区 pad "消失"的根因）。不可见元素本就无从单独交互，在基座 lasso.end
+    // （优先级 0，读取 marked 生效选区）之前把隐藏元素从 marked 剔除。
+    eventBus.on('lasso.end', 100, (event: any) => {
+      const marked = event.context?.marked;
+      if (!(marked instanceof Set)) {
+        return;
+      }
+      for (const element of marked) {
+        if (element.hidden) {
+          marked.delete(element);
+        }
+      }
+    });
+
     (canvas.getContainer() as HTMLElement).addEventListener('mousedown', (event: MouseEvent) => {
       if (event.button !== 0 || !this.bpmnMode.isEditable()) {
         return;
@@ -78,8 +95,12 @@ export class BlankLassoBehavior {
         return;
       }
       // autoActivate=false：按下不动（纯点击）不进框选态——无 crosshair 光标/
-      // 无框选视觉，位移超过基座阈值后才真正启动框选（点击空白=清选不变）
-      lassoTool.activateSelection(event, false);
+      // 无框选视觉，位移超过基座阈值后才真正启动框选（点击空白=清选不变）。
+      // 必须用 activateLasso（工具前缀拖拽）而非 activateSelection：后者是
+      // palette 套索钮的两段式武装流——其前缀事件无圈选处理者，释放时还会
+      // activateLasso(originalEvent, autoActivate=true) 再武装出鼠标已抬起的
+      // 幽灵套索，随后的移动/点击会以任意圈选结果覆盖刚完成的选区。
+      lassoTool.activateLasso(event, false);
     });
   }
 }
