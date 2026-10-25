@@ -43,8 +43,6 @@ import {
   drawDataObjectShape,
   drawDataStoreShape,
   drawCollapsedMarker,
-  drawAdHocMarker,
-  drawActivityMarkerRow,
   drawLoopMarker,
   circle,
   eventRingWeight,
@@ -176,6 +174,12 @@ export function iconSetKeyOf(meta: BpmnIconMeta): IconSetKey | undefined {
     if (meta.symbol === 'subProcessEvent') return 'subProcessEvent';
     return 'subProcessExpanded';
   }
+  // 临时子流程两形态走图标集（2026-10-25 用户指定 adhoc-subprocess-* 资产，
+  // 此前为画布记法自绘缩样）
+  if (t === 'bpmn:AdHocSubProcess') {
+    if (meta.symbol === 'adHocSubProcessCollapsed') return 'adHocSubProcessCollapsed';
+    return 'adHocSubProcessExpanded';
+  }
   if (t === 'bpmn:Transaction') return 'transaction';
   if (t === 'bpmn:Participant') return 'participant';
   // 流程根（无池图选中根时面板头部图标；此前无映射落任务族矩形回退）
@@ -304,12 +308,6 @@ export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20, fill = '#
     if (meta.loop) {
       parts.push(plainGroup((g) => drawLoopMarker(g, { width: 36, height: 32 }, meta.loop!, theme)));
     }
-  } else if (t === 'bpmn:AdHocSubProcess' && meta.symbol !== 'adHocSubProcessCollapsed') {
-    // 展开临时子流程：同展开子流程比例盒 + 底部正中小波浪（画布 drawAdHocMarker
-    // 同源字形）。scale 0.32（36 视框内宽 4.8，与任务字标/折叠 [+] 同级可读；
-    // 弹框/palette 18-20px 渲染下 0.16 的参照原比例不可见），底缘贴下边框内侧
-    R(3, 8, 30, 20, 1.2, 1.5);
-    parts.push(plainGroup((g) => drawAdHocMarker(g, 18, 27, theme, 0.32)));
   } else {
     // 任务族 / 调用活动 / 折叠子流程：画布 116×78 几何等比缩影
     parts.push(canvasGroup(TASK_K, 116, 78, (g) => {
@@ -327,9 +325,6 @@ export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20, fill = '#
         // 折叠 [+]：画布 drawCollapsedMarker 同形（浮于框内底缘上方、底部中央）；
         // 调用活动与折叠子流程同款记法（画布 2026-10-25 对齐参照），边框 4 加粗为唯一区别
         drawCollapsedMarker(g, TASK_BOX, theme);
-      } else if (t === 'bpmn:AdHocSubProcess') {
-        // 折叠临时子流程：[+] 左、波浪号右（画布标记行同源同布局，规范 §12.3.2）
-        drawActivityMarkerRow(g, TASK_BOX, { collapsed: true, adHoc: true }, theme);
       } else {
         // 任务字标：画布 drawTaskMarker 同位（中心 14,14，半尺寸 8）
         taskGlyph(g, meta.symbol ?? '', 14, 14, 8, theme);
