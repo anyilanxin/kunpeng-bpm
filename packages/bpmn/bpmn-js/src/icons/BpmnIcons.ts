@@ -306,9 +306,10 @@ export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20, fill = '#
     }
   } else if (t === 'bpmn:AdHocSubProcess' && meta.symbol !== 'adHocSubProcessCollapsed') {
     // 展开临时子流程：同展开子流程比例盒 + 底部正中小波浪（画布 drawAdHocMarker
-    // 同源字形；参照款波浪仅为盒宽 8%，scale 0.16，底缘贴下边框内侧）
+    // 同源字形）。scale 0.32（36 视框内宽 4.8，与任务字标/折叠 [+] 同级可读；
+    // 弹框/palette 18-20px 渲染下 0.16 的参照原比例不可见），底缘贴下边框内侧
     R(3, 8, 30, 20, 1.2, 1.5);
-    parts.push(plainGroup((g) => drawAdHocMarker(g, 18, 27, theme, 0.16)));
+    parts.push(plainGroup((g) => drawAdHocMarker(g, 18, 27, theme, 0.32)));
   } else {
     // 任务族 / 调用活动 / 折叠子流程：画布 116×78 几何等比缩影
     parts.push(canvasGroup(TASK_K, 116, 78, (g) => {
