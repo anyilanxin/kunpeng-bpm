@@ -4,8 +4,8 @@
  * - 卡片内容区整体切换：流程图视图 = 宿主画布（常驻渲染），XML 视图 = 本组件的不透明
  *   编辑区占满标题栏以下整个区域（非弹框、也非 display:none 隐藏画布——隐藏会让导入时
  *   视口计算得到 0 尺寸，SVGMatrix 出 NaN）
- * - 顶部常驻标题栏：右侧 = 流程图 | XML 分段切换（唯一常驻项）；左侧仅出错时显示
- *   导入失败提示。编辑没有独立按钮：切回流程图时自动应用，失败留在 XML 视图
+ * - 顶部常驻标题栏：右侧 = 流程图 | XML 分段切换 + 宿主注入区（bar 槽位，
+ *   排切换器左侧——宿主应用级动作钮挂这里）；左侧仅出错时显示导入失败提示
  * - 只消费 Modeler 公开 API（saveXML / importXML），编辑状态机（进入快照 / 脏检查 /
  *   应用失败回滚快照）全部在组件内
  * - 受控视图：v-model:view；暴露 loadText（XML 视图下导入文件载入编辑器）与
@@ -101,10 +101,11 @@ defineExpose({ loadText, getText });
 
 <template>
   <div class="xml-dock">
-    <!-- 卡片标题栏（顶部）：右区视图切换（最右），左侧仅出错时显示导入失败提示 -->
+    <!-- 卡片标题栏（顶部）：右区 = 宿主动作槽位 + 视图切换（最右），左侧仅出错时显示导入失败提示 -->
     <header class="xml-dock-bar">
       <span v-if="xmlError && view === 'xml'" class="dock-status is-error" :title="xmlError">✕ {{ xmlError }}</span>
       <div class="bar-right">
+        <slot name="bar"></slot>
         <div class="ct-group ct-view" role="tablist" aria-label="视图切换">
           <button
             class="ct-view-btn"
