@@ -44,10 +44,11 @@ import type {
   FormSchema,
   GroupField,
   ScalarValue,
+  TableField,
   ValidationRule
 } from './schema';
 
-/** 校验规则名（含引擎自动的选项隶属检查 option） */
+/** 校验规则名（含引擎自动的选项隶属检查 option 与 table 行数约束） */
 export type FieldIssueRule =
   | 'required'
   | 'min'
@@ -55,19 +56,30 @@ export type FieldIssueRule =
   | 'minLength'
   | 'maxLength'
   | 'pattern'
-  | 'option';
+  | 'option'
+  | 'minRows'
+  | 'maxRows';
 
 export interface FieldIssue {
-  /** 字段 id */
+  /** 字段 id（单元格级 issue 为所属表 id，配合 row/column 定位） */
   field: string;
   rule: FieldIssueRule;
   message: string;
+  /** 仅 table 单元格级 issue：行索引（0 起） */
+  row?: number;
+  /** 仅 table 单元格级 issue：列 id */
+  column?: string;
+}
+
+/** issue 的 byField 定位键：表级 `tableId`；单元格级 `tableId[行].列id`（渲染器错误外显同款键） */
+export function issueKey(issue: FieldIssue): string {
+  return issue.row === undefined ? issue.field : `${issue.field}[${issue.row}].${issue.column}`;
 }
 
 export interface FormValidationResult {
   valid: boolean;
   issues: FieldIssue[];
-  /** 未通过字段 id → 问题清单（稀疏映射，仅含出错字段） */
+  /** 未通过定位键 → 问题清单（稀疏映射，仅含出错键；table 单元格键为 `tableId[行].列id`） */
   byField: Record<string, FieldIssue[]>;
 }
 
@@ -128,7 +140,13 @@ interface OptionRule {
   kind: 'option';
 }
 
-function ruleMessage(rule: ValidationRule | OptionRule, fieldType: string): string {
+/** table 行数约束由 props 驱动，非宿主 ValidationRule——消息同样走默认文案 */
+interface TableRowsRule {
+  kind: 'minRows' | 'maxRows';
+  value: number;
+}
+
+function ruleMessage(rule: ValidationRule | OptionRule | TableRowsRule, fieldType: string): string {
   const message = (rule as ValidationRule).message;
   if (message !== undefined) {
     return message;
@@ -148,6 +166,10 @@ function ruleMessage(rule: ValidationRule | OptionRule, fieldType: string): stri
       return '格式不正确';
     case 'option':
       return '取值不在可选项内';
+    case 'minRows':
+      return `行数不能少于 ${rule.value} 行`;
+    case 'maxRows':
+      return `行数不能多于 ${rule.value} 行`;
   }
 }
 
@@ -226,7 +248,7 @@ export class FormEngine {
     return data;
   }
 
-  /** 整单校验；onlyVisible=true（默认）跳过隐藏字段 */
+  /** 整单校验；onlyVisible=true（默认）跳过隐藏字段（table 隐藏则整表含行列全部跳过） */
   validate(data: FormData, options: ValidateOptions = {}): FormValidationResult {
     const onlyVisible = options.onlyVisible !== false;
     const issues: FieldIssue[] = [];
@@ -234,47 +256,94 @@ export class FormEngine {
       if (onlyVisible && !this.isVisible(field.id, data)) {
         continue;
       }
-      issues.push(...this.validateOne(field, data[field.id] ?? null));
+      if (field.type === 'table') {
+        issues.push(...validateTable(field, data[field.id] ?? null));
+      } else {
+        issues.push(...validateScalar(field, data[field.id] ?? null));
+      }
     }
     const byField: Record<string, FieldIssue[]> = {};
     for (const issue of issues) {
-      (byField[issue.field] ??= []).push(issue);
+      (byField[issueKey(issue)] ??= []).push(issue);
     }
     return { valid: issues.length === 0, issues, byField };
   }
+}
 
-  private validateOne(field: FieldDefinition, value: FieldValue): FieldIssue[] {
-    const issues: FieldIssue[] = [];
-    const empty = isEmptyValue(value);
-    const rules: ValidationRule[] = [
-      ...(field.required === true ? [{ kind: 'required' } as ValidationRule] : []),
-      ...(field.rules ?? [])
-    ];
-    for (const rule of rules) {
-      const pass = empty
-        ? rule.kind === 'required'
-          ? false
-          : true // 非必填空值：除 required 外一律放行
-        : rulePasses(rule, field, value);
-      if (!pass) {
-        issues.push({ field: field.id, rule: rule.kind, message: ruleMessage(rule, field.type) });
-      }
+/** 标量字段校验（table 列校验同样复用）：required/规则表 + 选项隶属 */
+function validateScalar(field: FieldDefinition, value: FieldValue): FieldIssue[] {
+  const issues: FieldIssue[] = [];
+  const empty = isEmptyValue(value);
+  const rules: ValidationRule[] = [
+    ...(field.required === true ? [{ kind: 'required' } as ValidationRule] : []),
+    ...(field.rules ?? [])
+  ];
+  for (const rule of rules) {
+    const pass = empty
+      ? rule.kind === 'required'
+        ? false
+        : true // 非必填空值：除 required 外一律放行
+      : rulePasses(rule, field, value);
+    if (!pass) {
+      issues.push({ field: field.id, rule: rule.kind, message: ruleMessage(rule, field.type) });
     }
-    // 选项隶属：select / radio / checkbox 组的取值必须落在选项集内（空值放行）
-    if (!empty) {
-      const options = optionSetOf(field);
-      if (options) {
-        const values = Array.isArray(value) ? value : [value as ScalarValue];
-        for (const v of values) {
-          if (!options.has(v)) {
-            issues.push({ field: field.id, rule: 'option', message: ruleMessage({ kind: 'option' }, field.type) });
-            break;
-          }
+  }
+  // 选项隶属：select / radio / checkbox 组的取值必须落在选项集内（空值放行）；
+  // table 值不进本函数（走 validateTable），数组形态必为标量数组——类型侧收敛断言
+  if (!empty) {
+    const options = optionSetOf(field);
+    if (options) {
+      const values = (Array.isArray(value) ? value : [value]) as ScalarValue[];
+      for (const v of values) {
+        if (!options.has(v)) {
+          issues.push({ field: field.id, rule: 'option', message: ruleMessage({ kind: 'option' }, field.type) });
+          break;
         }
       }
     }
-    return issues;
   }
+  return issues;
+}
+
+/**
+ * 表格字段校验：表级（required=0 行报空、minRows/maxRows 行数界）+ 单元格级
+ * （行 × 列复用标量校验，issue 带 row/column 定位）。行对象缺键按空值处理
+ * （值归一归宿主，引擎只读不补键）。
+ */
+function validateTable(field: TableField, value: FieldValue): FieldIssue[] {
+  const issues: FieldIssue[] = [];
+  // 值形态由宿主保证为行数组（或空态 null）
+  const rows = value === null ? [] : (value as FormData[]);
+  if (field.required === true && rows.length === 0) {
+    issues.push({ field: field.id, rule: 'required', message: ruleMessage({ kind: 'required' }, 'table') });
+  }
+  const { minRows, maxRows } = field.props ?? {};
+  if (minRows !== undefined && rows.length < minRows) {
+    issues.push({ field: field.id, rule: 'minRows', message: ruleMessage({ kind: 'minRows', value: minRows }, 'table') });
+  }
+  if (maxRows !== undefined && rows.length > maxRows) {
+    issues.push({ field: field.id, rule: 'maxRows', message: ruleMessage({ kind: 'maxRows', value: maxRows }, 'table') });
+  }
+  rows.forEach((row, rowIndex) => {
+    for (const column of field.columns) {
+      for (const issue of validateScalar(column, row[column.id] ?? null)) {
+        issues.push({ field: field.id, rule: issue.rule, message: issue.message, row: rowIndex, column: column.id });
+      }
+    }
+  });
+  return issues;
+}
+
+/**
+ * 新增行初始值：各列 defaultValue（table 语境下即单元格初始值），未声明走类型空值。
+ * 渲染层「添加一行」时经此组装，保证新行键集与列定义对齐、值归一单点。
+ */
+export function emptyRow(field: TableField): FormData {
+  const row: FormData = {};
+  for (const column of field.columns) {
+    row[column.id] = column.defaultValue !== undefined ? column.defaultValue : emptyValueOf(column);
+  }
+  return row;
 }
 
 function emptyValueOf(field: FieldDefinition): FieldValue {
@@ -293,6 +362,8 @@ function emptyValueOf(field: FieldDefinition): FieldValue {
       return field.props?.options ? [] : false;
     case 'switch':
       return false;
+    case 'table':
+      return [];
     case 'group':
       throw new Error('FormEngine: group 不是数据字段');
   }

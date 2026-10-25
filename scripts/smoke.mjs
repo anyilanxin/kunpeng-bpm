@@ -179,6 +179,99 @@ if (!threw) {
   process.exit(1);
 }
 
+// ---------- 表格字段（table）冒烟 ----------
+const tableSchema = {
+  schemaVersion: 1,
+  id: 'smoke-table',
+  fields: [
+    {
+      id: 'trips',
+      type: 'table',
+      label: '行程明细',
+      required: true,
+      props: { minRows: 1, maxRows: 3 },
+      columns: [
+        { id: 'place', type: 'text', label: '地点', required: true, rules: [{ kind: 'minLength', value: 2 }] },
+        { id: 'days', type: 'number', label: '天数', defaultValue: 1, rules: [{ kind: 'min', value: 0.5 }] },
+        {
+          id: 'transport',
+          type: 'select',
+          label: '交通',
+          props: { options: [{ label: '高铁', value: 'rail' }, { label: '飞机', value: 'flight' }] }
+        }
+      ]
+    },
+    { id: 'note', type: 'text', label: '备注', visibleWhen: { field: 'trips', op: 'notEmpty' } }
+  ]
+};
+const tableCheck = formEsm.validateSchema(tableSchema);
+if (!tableCheck.valid) {
+  console.error('表格样例 Schema 结构校验失败:', tableCheck.errors.join(' | '));
+  process.exit(1);
+}
+const tableJson = formEsm.serializeSchema(tableSchema);
+if (formEsm.serializeSchema(formEsm.parseSchema(tableJson)) !== tableJson) {
+  console.error('table 字段字节级往返不稳定');
+  process.exit(1);
+}
+// 结构校验反例：列类型越界（group）/ 列携带 visibleWhen / eq 引用 table / minRows>maxRows / defaultValue 行键越界
+const tableBad = JSON.parse(JSON.stringify(tableSchema));
+tableBad.fields[0].columns[0].type = 'group';
+tableBad.fields[0].columns[1].visibleWhen = { field: 'place', op: 'notEmpty' };
+tableBad.fields[0].props = { minRows: 3, maxRows: 1 };
+tableBad.fields[0].defaultValue = [{ unknown: 1 }];
+tableBad.fields.push({ id: 'bad', type: 'text', label: 'x', visibleWhen: { field: 'trips', op: 'eq', value: 1 } });
+const tableBadCheck = formEsm.validateSchema(tableBad);
+if (tableBadCheck.valid) {
+  console.error('table 结构校验反例未被拦截');
+  process.exit(1);
+}
+// 引擎行为：emptyRow / defaults / 空表校验 / 单元格三段定位 / 修复转 valid / 行数上界 / 表引用联动
+const tableEngine = new formEsm.FormEngine(tableSchema);
+const row = formEsm.emptyRow(tableSchema.fields[0]);
+if (JSON.stringify(row) !== JSON.stringify({ place: '', days: 1, transport: null })) {
+  console.error('emptyRow 与列初始值不符:', JSON.stringify(row));
+  process.exit(1);
+}
+const tableDefaults = tableEngine.defaults();
+if (JSON.stringify(tableDefaults) !== JSON.stringify({ trips: [], note: '' })) {
+  console.error('table defaults() 不符:', JSON.stringify(tableDefaults));
+  process.exit(1);
+}
+const emptyTable = tableEngine.validate(tableDefaults);
+if (emptyTable.valid || Object.keys(emptyTable.byField).join(',') !== 'trips') {
+  console.error('空表校验不符预期（应只剩表级 required+minRows）:', JSON.stringify(Object.keys(emptyTable.byField)));
+  process.exit(1);
+}
+if (!emptyTable.issues.every((issue) => ['required', 'minRows'].includes(issue.rule) && issue.row === undefined)) {
+  console.error('表级 issue 不应带行定位:', JSON.stringify(emptyTable.issues));
+  process.exit(1);
+}
+const badCell = tableEngine.validate({ trips: [{ place: '京', days: 0, transport: 'walk' }], note: '' });
+const badKeys = Object.keys(badCell.byField).join(',');
+if (badKeys !== 'trips[0].place,trips[0].days,trips[0].transport') {
+  console.error('单元格三段定位键不符:', badKeys);
+  process.exit(1);
+}
+const placeIssue = badCell.issues.find((issue) => issue.column === 'place');
+if (!placeIssue || placeIssue.row !== 0 || placeIssue.rule !== 'minLength') {
+  console.error('单元格 issue 定位不符:', JSON.stringify(placeIssue));
+  process.exit(1);
+}
+if (!tableEngine.validate({ trips: [{ place: '北京', days: 1, transport: 'rail' }], note: '' }).valid) {
+  console.error('合法行数据校验未通过:', JSON.stringify(badCell.issues));
+  process.exit(1);
+}
+const overRows = tableEngine.validate({ trips: [{ place: '北京', days: 1 }, { place: '上海', days: 1 }, { place: '广州', days: 1 }, { place: '深圳', days: 1 }], note: '' });
+if (!overRows.issues.some((issue) => issue.rule === 'maxRows' && issue.field === 'trips')) {
+  console.error('行数上界未拦截');
+  process.exit(1);
+}
+if (!tableEngine.isVisible('note', { trips: [{ place: '北京' }], note: '' }) || tableEngine.isVisible('note', { trips: [], note: '' })) {
+  console.error('notEmpty 引用 table 的联动判定不符预期');
+  process.exit(1);
+}
+
 for (const rel of ['form-js.es.js', 'form-js.cjs']) {
   const js = readFileSync(new URL(`../packages/form/form-js/dist/${rel}`, import.meta.url), 'utf8');
   if (!js.includes('Copyright (c) 2026 anyilanxin zxh') || !js.includes('"Classpath" exception as provided')) {
@@ -187,4 +280,4 @@ for (const rel of ['form-js.es.js', 'form-js.cjs']) {
   }
 }
 
-console.log('form-js smoke ok：ESM/CJS 导出、字节级往返、引擎行为（默认值/隐藏跳过/必填/越界/非法抛错）、版权横幅');
+console.log('form-js smoke ok：ESM/CJS 导出、字节级往返、引擎行为（默认值/隐藏跳过/必填/越界/非法抛错）、table（结构校验正反例/emptyRow/三段定位/行数界/表引用联动）、版权横幅');

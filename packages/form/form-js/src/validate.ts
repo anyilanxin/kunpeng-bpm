@@ -52,8 +52,24 @@ const FIELD_TYPES: ReadonlySet<string> = new Set([
   'checkbox',
   'date',
   'switch',
-  'group'
+  'group',
+  'table'
 ]);
+
+/** 表格列允许的字段类型（8 类标量；禁 group/table——一期不嵌子表、列无条件联动） */
+const TABLE_COLUMN_TYPES: ReadonlySet<string> = new Set([
+  'text',
+  'textarea',
+  'number',
+  'select',
+  'radio',
+  'checkbox',
+  'date',
+  'switch'
+]);
+
+/** table 字段可被条件引用的操作符（数组无序等值语义，eq/ne/in/notIn 一律非法） */
+const TABLE_REFERRABLE_OPS: ReadonlySet<string> = new Set(['empty', 'notEmpty']);
 
 const CONDITION_OPS: ReadonlySet<string> = new Set(['eq', 'ne', 'in', 'notIn', 'empty', 'notEmpty']);
 
@@ -90,12 +106,14 @@ function isNonEmptyString(v: unknown): v is string {
 
 interface WalkContext {
   errors: string[];
-  /** 全文档已见 id（含 group），用于唯一性判定 */
+  /** 全文档已见 id（含 group 与 table 列），用于唯一性判定 */
   seenIds: Set<string>;
-  /** 全文档数据字段 id，条件引用的存在性判定（group 不可被引用） */
+  /** 全文档数据字段 id（不含 group 与 table 列），条件引用的存在性判定 */
   dataFieldIds: Set<string>;
-  /** 条件引用先行收集，收完字段后回查（允许前向引用） */
-  conditionRefs: Array<{ path: string; fieldId: string }>;
+  /** 数据字段 id → 类型（回查 table 引用的操作符限制用） */
+  dataFieldTypes: Map<string, string>;
+  /** 条件引用先行收集（含 op），收完字段后回查（允许前向引用） */
+  conditionRefs: Array<{ path: string; fieldId: string; op: string }>;
 }
 
 function checkOptionalString(ctx: WalkContext, parent: Record<string, unknown>, key: string, path: string): void {
@@ -119,8 +137,11 @@ function checkCondition(raw: unknown, path: string, ctx: WalkContext): void {
   }
   if (!isNonEmptyString(raw.field)) {
     ctx.errors.push(`${path}.field: 须为非空字符串`);
+  } else if (typeof raw.op !== 'string' || !CONDITION_OPS.has(raw.op)) {
+    ctx.errors.push(`${path}.op: 须为 ${[...CONDITION_OPS].join(' / ')} 之一`);
+    return;
   } else {
-    ctx.conditionRefs.push({ path: `${path}.field`, fieldId: raw.field });
+    ctx.conditionRefs.push({ path: `${path}.field`, fieldId: raw.field, op: raw.op });
   }
   if (typeof raw.op !== 'string' || !CONDITION_OPS.has(raw.op)) {
     ctx.errors.push(`${path}.op: 须为 ${[...CONDITION_OPS].join(' / ')} 之一`);
@@ -215,14 +236,16 @@ function checkOptions(raw: unknown, path: string, ctx: WalkContext): void {
   });
 }
 
-function checkDefaultValue(field: Record<string, unknown>, path: string, ctx: WalkContext): void {
-  const value = field.defaultValue;
-  if (value === undefined) {
-    return;
-  }
+/** 单值形状检查（defaultValue 与 table 行单元格共用的核心） */
+function checkValueShape(
+  field: Record<string, unknown>,
+  value: unknown,
+  path: string,
+  ctx: WalkContext
+): void {
   const type = field.type as string;
   const fail = (): void => {
-    ctx.errors.push(`${path}.defaultValue: 与 ${type} 字段的值形状不符`);
+    ctx.errors.push(`${path}: 与 ${type} 字段的值形状不符`);
   };
   if (type === 'text' || type === 'textarea' || type === 'date') {
     if (value !== null && typeof value !== 'string') fail();
@@ -245,6 +268,39 @@ function checkDefaultValue(field: Record<string, unknown>, path: string, ctx: Wa
   } else if (type === 'switch') {
     if (typeof value !== 'boolean') fail();
   }
+}
+
+function checkDefaultValue(field: Record<string, unknown>, path: string, ctx: WalkContext): void {
+  const value = field.defaultValue;
+  if (value === undefined) {
+    return;
+  }
+  if (field.type === 'table') {
+    // table 的 defaultValue 是初始行数组：行须为对象、键 ∈ 列 id、单元格值按列类型检查
+    const columns = Array.isArray(field.columns) ? field.columns : [];
+    const columnIds = new Set(columns.map((c: unknown) => (isObject(c) ? c.id : undefined)));
+    if (!Array.isArray(value)) {
+      ctx.errors.push(`${path}.defaultValue: 须为行数组`);
+      return;
+    }
+    value.forEach((row: unknown, i: number) => {
+      const rowPath = `${path}.defaultValue[${i}]`;
+      if (!isObject(row)) {
+        ctx.errors.push(`${rowPath}: 须为行对象`);
+        return;
+      }
+      for (const [key, cell] of Object.entries(row)) {
+        const column = columns.find((c: unknown) => isObject(c) && c.id === key);
+        if (!columnIds.has(key) || !column) {
+          ctx.errors.push(`${rowPath}.${key}: 不在表列定义内`);
+          continue;
+        }
+        checkValueShape(column, cell, `${rowPath}.${key}`, ctx);
+      }
+    });
+    return;
+  }
+  checkValueShape(field, value, `${path}.defaultValue`, ctx);
 }
 
 function checkProps(field: Record<string, unknown>, path: string, ctx: WalkContext): void {
@@ -294,9 +350,23 @@ function checkProps(field: Record<string, unknown>, path: string, ctx: WalkConte
   if (type === 'checkbox' && props.options !== undefined) {
     checkOptions(props.options, `${path}.props.options`, ctx);
   }
+  if (type === 'table') {
+    const { minRows, maxRows } = props;
+    for (const [key, v] of [['minRows', minRows], ['maxRows', maxRows]] as const) {
+      if (v !== undefined && (typeof v !== 'number' || !Number.isInteger(v) || v < 0)) {
+        ctx.errors.push(`${path}.props.${key}: 须为非负整数`);
+      }
+    }
+    if (
+      typeof minRows === 'number' && typeof maxRows === 'number' &&
+      Number.isInteger(minRows) && Number.isInteger(maxRows) && minRows > maxRows
+    ) {
+      ctx.errors.push(`${path}.props: minRows 不能大于 maxRows`);
+    }
+  }
 }
 
-function checkField(raw: unknown, path: string, ctx: WalkContext, depth: number): void {
+function checkField(raw: unknown, path: string, ctx: WalkContext, depth: number, isColumn = false): void {
   if (!isObject(raw)) {
     ctx.errors.push(`${path}: 须为字段对象`);
     return;
@@ -308,19 +378,26 @@ function checkField(raw: unknown, path: string, ctx: WalkContext, depth: number)
   } else {
     ctx.seenIds.add(raw.id);
   }
+  const allowedTypes = isColumn ? TABLE_COLUMN_TYPES : FIELD_TYPES;
   const type = raw.type;
-  if (typeof type !== 'string' || !FIELD_TYPES.has(type)) {
-    ctx.errors.push(`${path}.type: 须为 ${[...FIELD_TYPES].join(' / ')} 之一`);
+  if (typeof type !== 'string' || !allowedTypes.has(type)) {
+    ctx.errors.push(
+      `${path}.type: 须为 ${[...allowedTypes].join(' / ')} 之一${isColumn ? '（表格列不支持 group / table）' : ''}`
+    );
     return;
   }
   checkOptionalString(ctx, raw, 'label', path);
   checkOptionalString(ctx, raw, 'description', path);
   checkOptionalBoolean(ctx, raw, 'required', path);
   checkOptionalBoolean(ctx, raw, 'disabled', path);
-  if (raw.visibleWhen !== undefined) {
+  // 列结构静态（一期不做列级联动），条件字段出现在列上直接判非法
+  if (isColumn && (raw.visibleWhen !== undefined || raw.disabledWhen !== undefined)) {
+    ctx.errors.push(`${path}: 表格列不支持 visibleWhen / disabledWhen`);
+  }
+  if (!isColumn && raw.visibleWhen !== undefined) {
     checkCondition(raw.visibleWhen, `${path}.visibleWhen`, ctx);
   }
-  if (raw.disabledWhen !== undefined) {
+  if (!isColumn && raw.disabledWhen !== undefined) {
     checkCondition(raw.disabledWhen, `${path}.disabledWhen`, ctx);
   }
   if (raw.rules !== undefined) {
@@ -340,8 +417,20 @@ function checkField(raw: unknown, path: string, ctx: WalkContext, depth: number)
     raw.children.forEach((child: unknown, i: number) => {
       checkField(child, `${path}.children[${i}]`, ctx, depth + 1);
     });
-  } else {
+  } else if (type === 'table') {
+    if (!Array.isArray(raw.columns) || raw.columns.length === 0) {
+      ctx.errors.push(`${path}.columns: 须为非空列定义数组`);
+    } else {
+      raw.columns.forEach((column: unknown, i: number) => {
+        checkField(column, `${path}.columns[${i}]`, ctx, depth + 1, true);
+      });
+    }
     ctx.dataFieldIds.add(raw.id as string);
+    ctx.dataFieldTypes.set(raw.id as string, 'table');
+  } else if (!isColumn) {
+    // 列不进数据字段集——列值不可被条件引用（表外仅可对表本身做 empty/notEmpty）
+    ctx.dataFieldIds.add(raw.id as string);
+    ctx.dataFieldTypes.set(raw.id as string, type);
   }
 }
 
@@ -351,6 +440,7 @@ export function validateSchema(input: unknown): SchemaValidationResult {
     errors: [],
     seenIds: new Set(),
     dataFieldIds: new Set(),
+    dataFieldTypes: new Map(),
     conditionRefs: []
   };
   if (!isObject(input)) {
@@ -375,6 +465,8 @@ export function validateSchema(input: unknown): SchemaValidationResult {
   for (const ref of ctx.conditionRefs) {
     if (!ctx.dataFieldIds.has(ref.fieldId)) {
       ctx.errors.push(`${ref.path}: 引用的字段（${ref.fieldId}）不存在或不是数据字段`);
+    } else if (ctx.dataFieldTypes.get(ref.fieldId) === 'table' && !TABLE_REFERRABLE_OPS.has(ref.op)) {
+      ctx.errors.push(`${ref.path}: 引用 table 字段仅允许 empty / notEmpty（数组无序等值语义）`);
     }
   }
   return { valid: ctx.errors.length === 0, errors: ctx.errors };

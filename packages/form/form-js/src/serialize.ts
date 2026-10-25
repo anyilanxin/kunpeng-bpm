@@ -56,7 +56,8 @@ const PROPS_KEY_ORDER: Record<string, readonly string[]> = {
   select: ['options', 'multiple', 'placeholder', 'clearable'],
   radio: ['options'],
   checkbox: ['options'],
-  date: ['placeholder']
+  date: ['placeholder'],
+  table: ['minRows', 'maxRows']
 };
 
 function canonicalCondition(condition: Condition): Record<string, unknown> {
@@ -133,6 +134,9 @@ function canonicalField(field: FieldDefinition): Record<string, unknown> {
   }
   if (field.type === 'group') {
     out.children = field.children.map(canonicalField);
+  }
+  if (field.type === 'table') {
+    out.columns = field.columns.map(canonicalField);
   }
   return out;
 }

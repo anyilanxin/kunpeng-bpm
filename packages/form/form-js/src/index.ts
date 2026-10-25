@@ -47,6 +47,9 @@ export {
   type SelectField,
   type SelectFieldProps,
   type SwitchField,
+  type TableColumnDefinition,
+  type TableField,
+  type TableFieldProps,
   type TextField,
   type TextFieldProps,
   type TextareaField,
@@ -54,6 +57,16 @@ export {
   type ValidationRule,
   type ValidationRuleKind
 } from './schema';
-export { FormEngine, evaluateCondition, isEmptyValue, type FieldIssue, type FormValidationResult, type ValidateOptions } from './engine';
+export {
+  FormEngine,
+  emptyRow,
+  evaluateCondition,
+  isEmptyValue,
+  issueKey,
+  type FieldIssue,
+  type FieldIssueRule,
+  type FormValidationResult,
+  type ValidateOptions
+} from './engine';
 export { FormSchemaError, parseSchema, serializeSchema } from './serialize';
 export { isValidSchema, validateSchema, type SchemaValidationResult } from './validate';

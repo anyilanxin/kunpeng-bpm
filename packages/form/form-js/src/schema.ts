@@ -37,8 +37,13 @@ export const SCHEMA_VERSION = 1;
 
 export type ScalarValue = string | number | boolean;
 
-/** 字段值：标量 / 标量数组 / null（数组用于多选 select 与 checkbox 组） */
-export type FieldValue = ScalarValue | ScalarValue[] | null;
+/**
+ * 字段值：标量 / 标量数组 / 行数组 / null。
+ * - 标量数组用于多选 select 与 checkbox 组；
+ * - 行数组（FormData[]）用于 table 字段——一行 = 一个列 id → 值的对象（一期列值
+ *   均为标量形态，行数组的嵌套仅此一层，列不可为 table/group）。
+ */
+export type FieldValue = ScalarValue | ScalarValue[] | FormData[] | null;
 
 /** 表单数据：数据字段 id → 值；group 不占键 */
 export type FormData = Record<string, FieldValue>;
@@ -186,6 +191,35 @@ export interface GroupField extends FieldCommon {
   children: FieldDefinition[];
 }
 
+/** 明细表行数约束（超出/不足在整单校验报行数级 issue） */
+export interface TableFieldProps {
+  minRows?: number;
+  maxRows?: number;
+}
+
+/** 表格列定义：复用 8 类标量字段（禁 group/table，结构校验强制）；列不支持 visibleWhen/disabledWhen */
+export type TableColumnDefinition =
+  | TextField
+  | TextareaField
+  | NumberField
+  | SelectField
+  | RadioField
+  | CheckboxField
+  | DateField
+  | SwitchField;
+
+/**
+ * 明细表字段：一行 = 一组列值（值为 FormData[]）。
+ * - 列 defaultValue 在 table 语境下 = 新增行的单元格初始值（emptyRow 组装）；
+ * - 表级 defaultValue 为显式初始行数组（缺省 []）；
+ * - 列 id 与全文档字段 id 同池唯一；列值不可被条件引用（表外仅可对表本身做 empty/notEmpty）。
+ */
+export interface TableField extends FieldCommon {
+  type: 'table';
+  props?: TableFieldProps;
+  columns: TableColumnDefinition[];
+}
+
 export type FieldDefinition = FieldCommon & (
   | TextField
   | TextareaField
@@ -196,6 +230,7 @@ export type FieldDefinition = FieldCommon & (
   | DateField
   | SwitchField
   | GroupField
+  | TableField
 );
 
 /** 数据字段类型集合（不含 group） */
