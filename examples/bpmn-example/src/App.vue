@@ -16,8 +16,9 @@
  *   标题栏开关收起（additionalModules 装配，容器经 propertiesPanel.parent
  *   透传，插件 config 键，组件不逐键白名单；面板头部记法图标注入内核
  *   透出的 iconOfElement，画布/palette/面板三处同源）
- * - 颜色插件：工具栏「设置颜色」弹框（填充/描边/清除，确定提交且只提交被改
- *   字段——回显缺省不写显式色），走 modeling.setColor（bioc:fill/stroke 往返）；
+ * - 颜色插件：工具栏「设置颜色」+ 同组「清除颜色」钮；设置颜色弹框只含
+ *   填充/描边两行 + 确定（确定只提交被改字段——回显缺省不写显式色），
+ *   走 modeling.setColor（bioc:fill/stroke 往返）；
  *   另接上游 bpmn-js-color-picker（contextPad 调色板弹窗，同一 setColor 通道），
  *   色板经 colorPicker config 键透传
  * - 上游 diagram-js-grid：画布背景网格层，随 gridSnapping 开关显隐，编辑态装配
@@ -267,6 +268,7 @@ const ICON_NAVIGATE = actionSvg(
 );
 const ICON_VIEW = actionSvg('<path d="M8 12v24M8 24h18m0-12v24" /><path d="M38 26v10a6 6 0 0 1-6 6h-6" />');
 const ICON_SET_COLOR = actionSvg('<path d="M24 6c6 8 12 13.5 12 21a12 12 0 1 1-24 0c0-7.5 6-13 12-21Z" />');
+const ICON_CLEAR_COLOR = actionSvg('<path d="M24 6c6 8 12 13.5 12 21a12 12 0 1 1-24 0c0-7.5 6-13 12-21Z" /><path d="M10 38 38 10" />');
 const ICON_DARK = actionSvg(
   '<path d="M24 8a16 16 0 1 0 0 32 16 16 0 0 0 0-32Z" />' +
   '<path d="M24 8a16 16 0 0 1 0 32Z" fill="currentColor" stroke="none" />'
@@ -303,9 +305,9 @@ watch(modeMenuOpen, (open) => {
   }
 });
 
-/** 「设置颜色」控件（render 一次性建 DOM）：按钮点开弹框，框内填充/描边两行
- *  + 清除/确定；确定走 commitColors 整合提交，清除走 clearColors，外点关闭
- *  不提交（下次打开按元素现状回显，未确定的选择自然作废） */
+/** 「设置颜色」控件（render 一次性建 DOM）：按钮点开弹框，框内填充/描边两行 +
+ *  确定；确定走 commitColors 整合提交，外点关闭不提交（下次打开按元素现状
+ *  回显，未确定的选择自然作废）；清除颜色是工具栏同组独立钮，不入弹框 */
 function colorControl(): ToolbarActionSpec {
   return {
     id: 'set-colors',
@@ -375,14 +377,6 @@ function colorControl(): ToolbarActionSpec {
 
       const foot = document.createElement('div');
       foot.className = 'bpmn-color-foot';
-      const clear = document.createElement('button');
-      clear.type = 'button';
-      clear.className = 'bpmn-color-ghost';
-      clear.textContent = '清除颜色';
-      clear.addEventListener('click', () => {
-        clearColors();
-        closePopup();
-      });
       const ok = document.createElement('button');
       ok.type = 'button';
       ok.className = 'bpmn-color-ok';
@@ -391,7 +385,7 @@ function colorControl(): ToolbarActionSpec {
         commitColors();
         closePopup();
       });
-      foot.append(clear, ok);
+      foot.append(ok);
 
       popup.append(makeRow('fill'), makeRow('stroke'), foot);
       wrap.append(button, popup);
@@ -401,13 +395,15 @@ function colorControl(): ToolbarActionSpec {
   };
 }
 
-/** 应用级动作集：文件 / 设置颜色（可用态读 ref，refresh() 时机重估）；实例形态在
- *  标题栏菜单、暗色/面板属宿主应用能力（标题栏右区），均不入工具栏 */
+/** 应用级动作集：文件 / 颜色（设置颜色 + 同组清除颜色钮；可用态读 ref，
+ *  refresh() 时机重估）；实例形态在标题栏菜单、暗色/面板属宿主应用能力
+ *  （标题栏右区），均不入工具栏 */
 function buildToolbarActions(): ToolbarActionSpec[] {
   return [
     { id: 'import', title: '导入 BPMN 文件', group: 'file', svg: ICON_IMPORT, onClick: pickFile, showInPreview: true },
     { id: 'export', title: '导出 BPMN 文件', group: 'file', svg: ICON_EXPORT, onClick: () => void exportBpmnFile(), showInPreview: true },
-    colorControl()
+    colorControl(),
+    { id: 'clear-colors', title: '清除选中元素颜色', group: 'colors', svg: ICON_CLEAR_COLOR, onClick: clearColors, isEnabled: () => !!colorTarget.value }
   ];
 }
 
@@ -843,34 +839,18 @@ console.info(
 
 .canvas-host :deep(.bpmn-color-foot) {
   display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: flex-end;
 }
 
-.canvas-host :deep(.bpmn-color-ghost),
 .canvas-host :deep(.bpmn-color-ok) {
   height: 24px;
   padding: 0 12px;
   font-size: 12px;
   border-radius: 6px;
-  cursor: pointer;
-}
-
-.canvas-host :deep(.bpmn-color-ghost) {
-  color: var(--bio-text-subtle);
-  background: none;
-  border: 1px solid var(--bio-border);
-}
-
-.canvas-host :deep(.bpmn-color-ghost:hover) {
-  color: var(--bio-text);
-  background: var(--bio-surface-medium);
-}
-
-.canvas-host :deep(.bpmn-color-ok) {
   color: #fff;
   background: var(--bio-primary, #2d71eb);
   border: none;
+  cursor: pointer;
 }
 
 .canvas-host :deep(.bpmn-color-ok:hover) {
