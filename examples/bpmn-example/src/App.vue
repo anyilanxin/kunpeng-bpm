@@ -738,9 +738,13 @@ console.info(
   height: 15px;
 }
 
-/* XML 视图：藏画布内高图层悬浮件（工具栏，插件 DOM 无 scoped 属性须 :deep），
-   画布本体保持渲染（视口计算需要尺寸） */
-.canvas-host--xml :deep(.bpmn-toolbar) {
+/* XML 视图：藏画布内高图层悬浮件——工具栏 z-150 / 小地图 z-175 / 下钻面包屑
+   z-60 都会戳出 XML 卡片覆盖层（z-25；标题栏 z-30 须恒在其上，只能逐件藏
+   不能抬卡）；小地图属于画布层，随画布一起让位（2026-10-25 用户定规）。
+   画布本体保持渲染（视口计算需要尺寸），插件 DOM 无 scoped 属性须 :deep */
+.canvas-host--xml :deep(.bpmn-toolbar),
+.canvas-host--xml :deep(.djs-minimap),
+.canvas-host--xml :deep(.bpmn-plane-breadcrumb) {
   display: none;
 }
 
