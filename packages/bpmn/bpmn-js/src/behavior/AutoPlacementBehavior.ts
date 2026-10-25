@@ -30,7 +30,7 @@ import type { OrientationService } from '../meta/Orientation';
 /**
  * 追加自动摆放（主流向轴朝向感知）：水平模型源右侧开新列、垂直模型源
  * 正下方开新位；位置被占则沿交叉轴错开。
- * 常量：净空 36（APPEND_GAP）、步进 46（APPEND_STEP）、防碰垫 8 —— 自有取值。
+ * 常量：净空 72（APPEND_GAP，2026-10-25 定规翻倍）、步进 46（APPEND_STEP）、防碰垫 8 —— 自有取值。
  */
 export class AutoPlacementBehavior {
   static $inject = ['eventBus', 'elementRegistry', 'orientationService'];
