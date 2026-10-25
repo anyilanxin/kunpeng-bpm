@@ -442,6 +442,13 @@ export class BpmnRules extends RuleProvider {
     const rootPools = this.rootHasPools();
     const containmentOk = !target
       || shapes.every((shape) => this.canMoveShape(shape, target, root, rootPools, shapes, context.position));
+    // 激活探测（Move.js shape.move.start 不带 delta）只问"可否启动拖拽"，不裁
+    // 当前位：morph 中心锚定增大可使元素陷入既成重叠（如追加任务→展开临时子
+    // 流程吃掉追加净空），卡在非法位的元素必须仍能拖出险境；真实拖拽与落点
+    // 恒带 delta 全量校验，非法落点照旧被拒
+    if (context.delta === undefined) {
+      return containmentOk;
+    }
     // 重叠校验对原地平移（target 为空）同样生效——同容器内元素互叠就是这条路径
     return containmentOk && !this.moveOverlaps(shapes, context.delta, target);
   }
