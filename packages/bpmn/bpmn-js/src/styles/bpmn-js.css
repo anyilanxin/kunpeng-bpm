@@ -233,7 +233,9 @@
 
 /* ── 平面面包屑（plane/PlaneBreadcrumb）：画布左上角层级路径 ──
    主平面隐藏（[hidden] 显式声明——display:flex 会盖掉 UA 的 [hidden] 隐藏，
-   同悬浮卡弹层陷阱）；祖先段主题蓝可点、当前段加重不可点。 */
+   同悬浮卡弹层陷阱）；祖先段主题蓝可点、当前段加重不可点。
+   无卡片底（用户定规：不悬浮——白底/投影/圆角/内距全无，裸排画布上，
+   参照宿主截图的纯文字路径样式）。 */
 .bpmn-plane-breadcrumb {
   position: absolute;
   top: 10px;
@@ -243,10 +245,6 @@
   align-items: center;
   gap: 6px;
   max-width: calc(100% - 24px);
-  padding: 4px 10px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.05);
   font-size: 12px;
   color: #1a1a1a;
   user-select: none;
