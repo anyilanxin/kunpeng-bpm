@@ -21,9 +21,10 @@
  */
 /**
  * 悬浮工具栏服务：渲染进画布容器、相对画布水平居中（容器随宿主布局伸缩，
- * 面板让位/窗口缩放下恒居中）。三组内置动作（撤销重做 / 横纵布局 / 缩放）走
- * 内核服务；宿主经 `bpmnToolbar.actions` 注册应用级动作（导入导出、模式
- * 切换、取色器等——render() 可放任意控件），按 group 连续成组、换组分隔。
+ * 面板让位/窗口缩放下恒居中）。内置动作（撤销重做组 / 缩放组，横纵布局钮嵌
+ * 在缩放组内放大与适应画布之间）走内核服务；宿主经 `bpmnToolbar.actions`
+ * 注册应用级动作（导入导出、模式切换、取色器等——render() 可放任意控件），
+ * 按 group 连续成组、换组分隔。
  * 宽度上限 min(画布容器宽 × ½, 视口宽 × ⅓)（常态最多占画布一半、小屏收敛
  * 到屏幕三分之一），装不下的尾段自动收进「更多」弹层（容器尺寸/模式变化
  * 即时重排）。
@@ -142,7 +143,8 @@ export class BpmnToolbar {
       this.root.appendChild(this.buildCustomControl(spec));
     }
 
-    // 内置组（在后）：撤销重做 → 转置 → 缩放（编辑服务缺失的组不建）
+    // 内置组（在后）：撤销重做 → 缩放；横纵布局钮嵌在缩放组内（放大与适应画布
+    // 之间）。编辑服务缺失的组/钮不建（只读实例仅剩缩放组）
     if (lastGroup !== null) {
       this.root.appendChild(separator());
     }
@@ -152,12 +154,14 @@ export class BpmnToolbar {
       this.redoBtn = iconButton('redo', t('重做 (Ctrl+Shift+Z)'), ICONS.redo, () => this.commandStack!.redo());
       history.append(this.undoBtn, this.redoBtn);
       this.root.appendChild(history);
+      // 撤销重做独立成组，与缩放组以分隔线划界
+      this.root.appendChild(separator());
     }
 
+    // 布局单钮：图标标识当前朝向（横/纵各一款，随朝向换显），提示写明具体
+    // 目标朝向，点击翻转（构造先用横款占位，init 序列里 syncOrientation 归位）。
+    // 位于缩放组内放大与适应画布之间；只读态随钮级 data-edit-only 隐藏
     if (this.modeling) {
-      // 布局单钮：图标标识当前朝向（横/纵各一款，随朝向换显），提示写明具体
-      // 目标朝向，点击翻转（构造先用横款占位，init 序列里 syncOrientation 归位）
-      const orientation = group('orientation', true);
       this.orientationBtn = iconButton(
         'orientation',
         t('切换为纵向布局'),
@@ -167,8 +171,7 @@ export class BpmnToolbar {
             this.orientationService.getOrientation() === 'vertical' ? 'horizontal' : 'vertical'
           )
       );
-      orientation.appendChild(this.orientationBtn);
-      this.root.appendChild(orientation);
+      this.orientationBtn.setAttribute('data-edit-only', 'true');
     }
 
     // 缩放组对只读实例也有意义（NavigatedViewer 导航/Viewer 程序化缩放），不设编辑专属
@@ -184,6 +187,7 @@ export class BpmnToolbar {
       iconButton('zoom-out', t('缩小 (Ctrl+-)'), ICONS.zoomOut, () => this.canvas.zoom(this.canvas.zoom() / ZOOM_STEP)),
       this.zoomLabel,
       iconButton('zoom-in', t('放大 (Ctrl++)'), ICONS.zoomIn, () => this.canvas.zoom(this.canvas.zoom() * ZOOM_STEP)),
+      ...(this.orientationBtn ? [this.orientationBtn] : []),
       iconButton('zoom-fit', t('适应画布'), ICONS.zoomFit, () => this.canvas.zoom('fit-viewport', { x: 0, y: 0 }))
     );
     this.root.appendChild(zoom);
