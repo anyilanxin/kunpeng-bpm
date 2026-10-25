@@ -16,12 +16,12 @@ html, body {
 /* 顶部悬浮工具栏已插件化（@kunpeng-io/bpmn-js-toolbar，皮肤随包
    assets/bpmn-js-toolbar.css，相对画布容器居中），示例不再自绘 */
 
-/* 画布缩略图（diagram-js-minimap）：上游缺省钉在顶部会压 palette/工具栏，
-   落位右下角（kunpeng-modeler 同款） */
+/* 画布缩略图（diagram-js-minimap）：用户定规右上角（折叠态小方块不与
+   工具栏居中带/面包屑[工具栏下方起]交叠） */
 .djs-minimap {
-  top: auto !important;
+  bottom: auto !important;
+  top: 16px !important;
   right: 16px !important;
-  bottom: 16px !important;
 }
 
 /* 视图切换分段选择器（流程图 | XML）样式已随组件移入 src/components/XmlViewCard.vue */
