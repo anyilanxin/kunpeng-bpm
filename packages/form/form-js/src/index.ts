@@ -69,4 +69,4 @@ export {
   type ValidateOptions
 } from './engine';
 export { FormSchemaError, parseSchema, serializeSchema } from './serialize';
-export { isValidSchema, validateSchema, type SchemaValidationResult } from './validate';
+export { isValidSchema, validateSchema, RULE_TYPE_FIT, type SchemaValidationResult } from './validate';

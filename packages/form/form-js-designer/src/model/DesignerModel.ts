@@ -145,7 +145,8 @@ export class DesignerModel {
 
   /**
    * 属性面板编辑提交（浅合并）：props/rules/conditions/defaultValue/columns 按
-   * 「整块提交」语义整体替换；id 改名查全池唯一。
+   * 「整块提交」语义整体替换；**patch 值为 undefined 的键从字段上删除**（条件/选项
+   * 等可选键的移除通道）；id 改名查全池唯一。
    */
   updateField(id: string, patch: Record<string, unknown>): void {
     const entry = this.findEntry(id);
@@ -155,8 +156,15 @@ export class DesignerModel {
     if (typeof patch.id === 'string' && patch.id !== id) {
       this.assertIdFree(patch.id, id);
     }
-    const next = { ...entry.field, ...patch } as FieldDefinition;
-    entry.list[entry.list.indexOf(entry.field)] = next;
+    const next = { ...entry.field } as Record<string, unknown>;
+    for (const [key, value] of Object.entries(patch)) {
+      if (value === undefined) {
+        delete next[key];
+      } else {
+        next[key] = value;
+      }
+    }
+    entry.list[entry.list.indexOf(entry.field)] = next as unknown as FieldDefinition;
   }
 
   // ---------- table 列命令（画布不接拖入，列经属性面板列清单管理） ----------

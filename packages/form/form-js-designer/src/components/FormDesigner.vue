@@ -68,14 +68,14 @@ watch(
   { immediate: true }
 );
 
-/** 命令统一入口：成功 bump 视图，失败提示且模型不动 */
+/** 命令统一入口：成功 bump 视图；失败提示且 bump 一次拉回受控控件的错误残留输入 */
 function run(command: () => void): void {
   try {
     command();
-    revision.value += 1;
   } catch (error) {
     ElMessage.warning(error instanceof Error ? error.message : String(error));
   }
+  revision.value += 1;
 }
 
 function onSelect(id: string): void {
@@ -105,7 +105,17 @@ function select(id: string | null): void {
   selectedId.value = id;
 }
 
-provide(DESIGNER_CONTEXT, { model, run, select, selectedId });
+/** 属性面板编辑提交：id 改名后选中随迁（selectedId 指向新 id，面板不跳空态） */
+function updateField(id: string, patch: Record<string, unknown>): void {
+  run(() => {
+    model.updateField(id, patch);
+    if (typeof patch.id === 'string' && patch.id !== id) {
+      selectedId.value = patch.id;
+    }
+  });
+}
+
+provide(DESIGNER_CONTEXT, { model, run, select, selectedId, updateField });
 </script>
 
 <template>

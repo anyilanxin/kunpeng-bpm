@@ -234,6 +234,9 @@ importers:
       '@kunpeng-io/form-js':
         specifier: workspace:*
         version: link:../../packages/form/form-js
+      '@kunpeng-io/form-js-designer':
+        specifier: workspace:*
+        version: link:../../packages/form/form-js-designer
       '@kunpeng-io/form-js-react':
         specifier: workspace:*
         version: link:../../packages/form/form-js-react

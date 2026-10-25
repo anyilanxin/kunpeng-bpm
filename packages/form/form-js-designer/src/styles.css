@@ -175,3 +175,79 @@
   width: 40px;
   flex-shrink: 0;
 }
+
+/* 属性面板表单区（D3） */
+.fjd-props-body {
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.fjd-props-section {
+  font-size: 12px;
+  font-weight: 600;
+  color: #909399;
+  margin: 12px 0 8px;
+}
+
+.fjd-props-section:first-child {
+  margin-top: 0;
+}
+
+.fjd-props-form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.fjd-props-label {
+  font-size: 12px;
+  color: #606266;
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.fjd-props-cond {
+  margin-bottom: 8px;
+}
+
+/* 行编辑器（options/rules/columns 共用） */
+.fjd-editor-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fjd-editor-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fjd-editor-row .el-input,
+.fjd-editor-row .el-input-number {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.fjd-editor-row .el-input:first-child {
+  flex: 1;
+}
+
+.fjd-editor-note {
+  font-size: 11px;
+  color: #c0c4cc;
+}
+
+.fjd-editor-col-id {
+  flex: 1;
+  text-align: right;
+}
+
+.fjd-cond {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}

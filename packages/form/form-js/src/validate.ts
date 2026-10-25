@@ -82,8 +82,8 @@ const RULE_KINDS: ReadonlySet<string> = new Set([
   'pattern'
 ]);
 
-/** 规则 kind 允许出现的字段类型（required 全类型适用） */
-const RULE_TYPE_FIT: Record<Exclude<ValidationRuleKind, 'required'>, ReadonlySet<string>> = {
+/** 规则 kind 允许出现的字段类型（required 全类型适用）——设计器规则编辑器的适用性过滤同源 */
+export const RULE_TYPE_FIT: Record<Exclude<ValidationRuleKind, 'required'>, ReadonlySet<string>> = {
   min: new Set(['number', 'date']),
   max: new Set(['number', 'date']),
   minLength: new Set(['text', 'textarea']),

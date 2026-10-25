@@ -29,6 +29,8 @@ export interface DesignerContext {
   run(command: () => void): void;
   select(id: string | null): void;
   selectedId: Ref<string | null>;
+  /** 属性面板编辑提交：模型 updateField + id 改名时选中随迁（否则面板跳空态） */
+  updateField(id: string, patch: Record<string, unknown>): void;
 }
 
 export const DESIGNER_CONTEXT: InjectionKey<DesignerContext> = Symbol('form-js-designer');
