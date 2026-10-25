@@ -25,21 +25,47 @@ html, body {
 }
 
 /* 折叠钮 "MAP" 文字 → 自绘折页地图图标（用户定规用图标；剪影自有设计：
-   三折页轮廓+两道折缝，stroke 经 mask 通道随 currentColor，hover 变色随上游） */
+   三折页轮廓+两道折缝，stroke 经 mask 通道随 currentColor，hover 变色随上游）。
+   按钮定尺对齐原文字态（"MAP"+内距 ≈52×34）不因文字隐藏而缩小，图标 24px。 */
 .djs-minimap:not(.open) .toggle {
   font-size: 0;
   letter-spacing: 0;
+  width: 52px;
+  height: 34px;
+  box-sizing: border-box;
 }
 
 .djs-minimap:not(.open) .toggle::before {
   content: '';
   display: inline-block;
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   vertical-align: middle;
   background-color: currentColor;
   -webkit-mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M2.5,5 L6.8,3.3 L11.2,5 L15.5,3.3 V13 L11.2,14.7 L6.8,13 L2.5,14.7 Z M6.8,3.3 V13 M11.2,5 V14.7' fill='none' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center / contain;
   mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M2.5,5 L6.8,3.3 L11.2,5 L15.5,3.3 V13 L11.2,14.7 L6.8,13 L2.5,14.7 Z M6.8,3.3 V13 M11.2,5 V14.7' fill='none' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+
+/* 展开态关闭钮同样文字→图标（上游 .toggle:before content=attr(title) 无状态
+   限定，关闭钮会显示 title 文字）：× 自绘，12px 随 currentColor */
+.djs-minimap.open .toggle {
+  font-size: 0;
+  width: 24px;
+  height: 24px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.djs-minimap.open .toggle::before {
+  content: '';
+  display: block;
+  width: 12px;
+  height: 12px;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2,2 L10,10 M10,2 L2,10' stroke='%23000' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat center / contain;
+  mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2,2 L10,10 M10,2 L2,10' stroke='%23000' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat center / contain;
 }
 
 /* 视图切换分段选择器（流程图 | XML）样式已随组件移入 src/components/XmlViewCard.vue */
