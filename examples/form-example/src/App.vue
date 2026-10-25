@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { ElRadioButton, ElRadioGroup } from 'element-plus';
 import { FormEngine, FormRenderer } from '@kunpeng-io/form-js-vue';
 import type { FormValidationResult } from '@kunpeng-io/form-js-vue';
 import { mountReactPanel } from './react/mount';
+import DesignerView from './DesignerView.vue';
 import { demoSchema } from './schema';
+
+const view = ref<'render' | 'designer'>('render');
 
 const schema = demoSchema;
 const data = ref(new FormEngine(schema).defaults());
@@ -34,9 +38,14 @@ onMounted(() => {
   <main class="page">
     <header class="page-header">
       <h1>form-js 动态表单示例</h1>
-      <p>同一 Schema · 多框架渲染：Vue（element-plus）/ React（antd）</p>
+      <p>同一 Schema · 多框架渲染：Vue（element-plus）/ React（antd）· 可视化设计器</p>
+      <ElRadioGroup v-model="view" size="small" style="margin-bottom: 12px">
+        <ElRadioButton value="render">渲染对照</ElRadioButton>
+        <ElRadioButton value="designer">设计器</ElRadioButton>
+      </ElRadioGroup>
     </header>
-    <div class="columns">
+    <DesignerView v-show="view === 'designer'" />
+    <div v-show="view === 'render'" class="columns">
       <section class="panel">
         <h2>Vue 渲染器</h2>
         <FormRenderer ref="renderer" v-model="data" :schema="schema" @validate="(r) => (result = r)" />

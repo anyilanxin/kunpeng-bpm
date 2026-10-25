@@ -26,4 +26,6 @@ export {
   columnTemplate,
   fieldTemplate
 } from './model/templates';
+export { default as FormDesigner } from './components/FormDesigner.vue';
 export * from '@kunpeng-io/form-js';
+import './styles.css';

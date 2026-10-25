@@ -14,6 +14,9 @@ export default defineConfig({
       ),
       '@kunpeng-io/form-js-react': fileURLToPath(
         new URL('../../packages/form/form-js-react/src/index.ts', import.meta.url)
+      ),
+      '@kunpeng-io/form-js-designer': fileURLToPath(
+        new URL('../../packages/form/form-js-designer/src/index.ts', import.meta.url)
       )
     }
   },

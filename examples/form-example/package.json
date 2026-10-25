@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@kunpeng-io/form-js": "workspace:*",
+    "@kunpeng-io/form-js-designer": "workspace:*",
     "@kunpeng-io/form-js-react": "workspace:*",
     "@kunpeng-io/form-js-vue": "workspace:*",
     "antd": "catalog:",

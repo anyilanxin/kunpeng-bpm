@@ -59,7 +59,10 @@ export class DesignerModel {
       ? { id: initial.id, name: initial.name, description: initial.description }
       : { id: 'form-1' };
     if (initial) {
-      this.fields = structuredClone(initial.fields);
+      // JSON 往返而非 structuredClone：宿主常以 reactive/ref 深代理持有 Schema，
+      // structuredClone 克隆 Proxy 直接抛 DataCloneError；协议数据约定 JSON 安全，
+      // JSON 往返既拷纯净值又免疫代理（模型内部从此与宿主响应式彻底隔离）
+      this.fields = JSON.parse(JSON.stringify(initial.fields));
     }
   }
 
