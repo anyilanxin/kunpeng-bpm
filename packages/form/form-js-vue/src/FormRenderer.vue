@@ -31,10 +31,11 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { ElForm } from 'element-plus';
-import { FormEngine } from '@kunpeng-io/form-js';
-import type { FieldValue, FormData, FormSchema, FormValidationResult } from '@kunpeng-io/form-js';
+import { FormEngine, emptyRow } from '@kunpeng-io/form-js';
+import type { FieldValue, FormData, FormSchema, FormValidationResult, TableField } from '@kunpeng-io/form-js';
 import FieldRow from './FieldRow.vue';
 import GroupSection from './GroupSection.vue';
+import TableFieldVue from './TableField.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -88,6 +89,48 @@ function setValue(id: string, value: FieldValue): void {
   emit('update:modelValue', { ...props.modelValue, [id]: value });
 }
 
+// ---------- 明细表行操作（数据不可变更新；touched 用引擎同款三段定位键） ----------
+
+function tableRowsOf(fieldId: string): FormData[] {
+  const value = props.modelValue[fieldId];
+  return Array.isArray(value) ? (value as FormData[]) : [];
+}
+
+function addRow(fieldId: string): void {
+  const field = engine.value.field(fieldId);
+  if (field.type !== 'table') {
+    throw new Error(`FormRenderer: 字段「${fieldId}」不是 table`);
+  }
+  emit('update:modelValue', { ...props.modelValue, [fieldId]: [...tableRowsOf(fieldId), emptyRow(field)] });
+}
+
+function removeRow(fieldId: string, rowIndex: number): void {
+  const oldRows = tableRowsOf(fieldId);
+  const rows = oldRows.filter((_, i) => i !== rowIndex);
+  const columns = (engine.value.field(fieldId) as TableField).columns;
+  emit('update:modelValue', { ...props.modelValue, [fieldId]: rows });
+  // 单元格 touched 键随行删除位移：被删行清除、其后行号 -1，避免错误提示挂到别的行
+  for (const column of columns) {
+    touched.delete(`${fieldId}[${rowIndex}].${column.id}`);
+  }
+  for (let i = rowIndex + 1; i < oldRows.length; i++) {
+    for (const column of columns) {
+      const from = `${fieldId}[${i}].${column.id}`;
+      if (touched.has(from)) {
+        touched.delete(from);
+        touched.add(`${fieldId}[${i - 1}].${column.id}`);
+      }
+    }
+  }
+}
+
+function setCell(fieldId: string, rowIndex: number, columnId: string, value: FieldValue): void {
+  const rows = [...tableRowsOf(fieldId)];
+  rows[rowIndex] = { ...rows[rowIndex], [columnId]: value };
+  touched.add(`${fieldId}[${rowIndex}].${columnId}`);
+  emit('update:modelValue', { ...props.modelValue, [fieldId]: rows });
+}
+
 /** 整单提交入口：揭示全部错误并返回校验结果 */
 function validate(): FormValidationResult {
   revealAll.value = true;
@@ -113,6 +156,16 @@ defineExpose({ validate, reset });
         :engine="engine"
         :errors="displayed"
         @set-value="setValue"
+      />
+      <TableFieldVue
+        v-else-if="field.type === 'table'"
+        :field="field"
+        :data="modelValue"
+        :engine="engine"
+        :errors="displayed"
+        @add-row="addRow"
+        @remove-row="removeRow"
+        @set-cell="setCell"
       />
       <FieldRow
         v-else

@@ -83,6 +83,37 @@ export const demoSchema: FormSchema = {
       props: { placeholder: '选填', clearable: true }
     },
     {
+      id: 'trips',
+      type: 'table',
+      label: '行程明细',
+      description: '年假需登记行程，最多 3 行',
+      visibleWhen: { field: 'leaveType', op: 'eq', value: 'annual' },
+      props: { maxRows: 3 },
+      columns: [
+        {
+          id: 'place',
+          type: 'text',
+          label: '地点',
+          required: true,
+          rules: [{ kind: 'minLength', value: 2, message: '地点至少 2 个字' }]
+        },
+        { id: 'tripDays', type: 'number', label: '天数', defaultValue: 1, rules: [{ kind: 'min', value: 0.5 }] },
+        {
+          id: 'transport',
+          type: 'select',
+          label: '交通',
+          props: {
+            options: [
+              { label: '高铁', value: 'rail' },
+              { label: '飞机', value: 'flight' },
+              { label: '自驾', value: 'drive' }
+            ],
+            placeholder: '请选择'
+          }
+        }
+      ]
+    },
+    {
       id: 'extra',
       type: 'group',
       label: '补充设置',
@@ -93,6 +124,12 @@ export const demoSchema: FormSchema = {
           type: 'switch',
           label: '抄送自己',
           visibleWhen: { field: 'notify', op: 'eq', value: true }
+        },
+        {
+          id: 'tripRemind',
+          type: 'switch',
+          label: '行程变更短信提醒',
+          visibleWhen: { field: 'trips', op: 'notEmpty' }
         }
       ]
     }
