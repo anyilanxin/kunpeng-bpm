@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import zhCN from 'antd/locale/zh_CN';
 import { FormEngine } from '@kunpeng-io/form-js';
-import type { FormData, FormValidationResult } from '@kunpeng-io/form-js';
+import type { FormData, FormSchema, FormValidationResult } from '@kunpeng-io/form-js';
 import { FormRenderer } from '@kunpeng-io/form-js-react';
 import type { FormRendererHandle } from '@kunpeng-io/form-js-react';
 import { demoSchema } from '../schema';
@@ -24,8 +24,8 @@ const preStyle: CSSProperties = {
 };
 
 /** React 渲染区：与左侧 Vue 面板同 Schema、同交互（提交校验/重置），数据与校验结果就地展示 */
-export default function ReactPanel() {
-  const [data, setData] = useState<FormData>(() => new FormEngine(demoSchema).defaults());
+export default function ReactPanel({ schema = demoSchema }: { schema?: FormSchema }) {
+  const [data, setData] = useState<FormData>(() => new FormEngine(schema).defaults());
   const [result, setResult] = useState<FormValidationResult | null>(null);
   const rendererRef = useRef<FormRendererHandle | null>(null);
 
@@ -36,7 +36,7 @@ export default function ReactPanel() {
   function onReset(): void {
     // result 不在此清空：onValidate 随数据派发（含重置后的默认数据），
     // 结果面板永远反映当前数据对应的校验——清空赋值会被下一次回调立即覆盖。
-    setData(new FormEngine(demoSchema).defaults());
+    setData(new FormEngine(schema).defaults());
     rendererRef.current?.reset();
   }
 
@@ -44,7 +44,7 @@ export default function ReactPanel() {
     <ConfigProvider locale={zhCN}>
       <FormRenderer
         ref={rendererRef}
-        schema={demoSchema}
+        schema={schema}
         modelValue={data}
         onChange={setData}
         onValidate={setResult}

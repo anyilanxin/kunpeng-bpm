@@ -1,18 +1,36 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import { ElRadioButton, ElRadioGroup } from 'element-plus';
 import { FormEngine, FormRenderer } from '@kunpeng-io/form-js-vue';
 import type { FormValidationResult } from '@kunpeng-io/form-js-vue';
+import type { FormSchema } from '@kunpeng-io/form-js';
 import { mountReactPanel } from './react/mount';
 import DesignerView from './DesignerView.vue';
 import { demoSchema } from './schema';
 
 const view = ref<'render' | 'designer'>('render');
 
-const schema = demoSchema;
-const data = ref(new FormEngine(schema).defaults());
+// 渲染对照的 Schema 源：内置演示 / 设计器产出（设计器视图实时上抛）
+const source = ref<'demo' | 'designer'>('demo');
+const designerSchema = shallowRef<FormSchema>();
+const schema = computed(() => (source.value === 'designer' ? designerSchema.value : demoSchema));
+const hasDesignerOutput = computed(() => designerSchema.value !== undefined);
+
+const data = ref(new FormEngine(demoSchema).defaults());
 const result = ref<FormValidationResult | null>(null);
 const renderer = ref<InstanceType<typeof FormRenderer>>();
+
+// Schema 源切换/设计器持续编辑：Vue 区数据重置（字段集合已变，旧数据无意义）
+// + React 区重建挂载（同因，无跨 Schema 保留数据的需求）
+watch(schema, (next) => {
+  if (next) {
+    data.value = new FormEngine(next).defaults();
+  }
+  const el = document.getElementById('react-root');
+  if (el) {
+    mountReactPanel(el, next ?? undefined);
+  }
+});
 
 function onSubmit(): void {
   result.value = renderer.value?.validate() ?? null;
@@ -21,7 +39,7 @@ function onSubmit(): void {
 function onReset(): void {
   // result 不在此清空：FormRenderer 的 validate 事件随数据派发（含重置后的默认数据），
   // 结果面板永远反映当前数据对应的校验——清空赋值会被下一次事件立即覆盖。
-  data.value = new FormEngine(schema).defaults();
+  data.value = new FormEngine(schema.value ?? demoSchema).defaults();
   renderer.value?.reset();
 }
 
@@ -43,10 +61,14 @@ onMounted(() => {
         <ElRadioButton value="render">渲染对照</ElRadioButton>
         <ElRadioButton value="designer">设计器</ElRadioButton>
       </ElRadioGroup>
+      <ElRadioGroup v-if="view === 'render'" v-model="source" size="small" style="margin-bottom: 12px">
+        <ElRadioButton value="demo">演示 Schema</ElRadioButton>
+        <ElRadioButton value="designer" :disabled="!hasDesignerOutput">设计器产出</ElRadioButton>
+      </ElRadioGroup>
     </header>
-    <DesignerView v-show="view === 'designer'" />
+    <DesignerView v-show="view === 'designer'" @produced="(s) => (designerSchema = s)" />
     <div v-show="view === 'render'" class="columns">
-      <section class="panel">
+      <section class="panel" v-if="schema">
         <h2>Vue 渲染器</h2>
         <FormRenderer ref="renderer" v-model="data" :schema="schema" @validate="(r) => (result = r)" />
         <footer class="actions">

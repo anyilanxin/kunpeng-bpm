@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, shallowRef } from 'vue';
+import { ref, shallowRef, watch } from 'vue';
 import { ElButton } from 'element-plus';
 import { FormDesigner } from '@kunpeng-io/form-js-designer';
 import type { FormSchema } from '@kunpeng-io/form-js';
@@ -10,6 +10,17 @@ import { demoSchema } from './schema';
 // structuredClone 输入遇 Proxy 直接炸（协议数据勿入深层响应式，同画布元素契约）
 const schema = shallowRef<FormSchema>();
 const designerKey = ref(0);
+
+const emit = defineEmits<{
+  /** 产出 Schema 上抛宿主（渲染对照区可切「设计器产出」为源） */
+  (e: 'produced', schema: FormSchema): void;
+}>();
+
+watch(schema, (s) => {
+  if (s) {
+    emit('produced', s);
+  }
+});
 
 function importDemo(): void {
   // 以 demoSchema 为初始导入重建设计器（编辑已有表单）
