@@ -35,7 +35,7 @@ import type EventBus from 'diagram-js/lib/core/EventBus';
 import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
 import type TextUtil from 'diagram-js/lib/util/Text';
 import { externalLabelAttrs, needsExternalLabel } from '../label/ExternalLabels';
-import { absoluteLabelBox, clampToMin, measureExternal } from '../label/LabelGeometry';
+import { absoluteLabelBox, clampToMin, connectionLabelBox, measureExternal } from '../label/LabelGeometry';
 import type { BpmnElementTypes } from '../meta/ElementTypes';
 
 export class ExternalLabelBehavior extends CommandInterceptor {
@@ -75,6 +75,33 @@ export class ExternalLabelBehavior extends CommandInterceptor {
         this.modeling.moveShape(label, { x: delta.x, y: delta.y });
       }
     });
+
+    // 连线几何变更（重排/弯点编辑/端点重连/整体移动）后标签重居中：连线
+    // 标签的默认布局=走线中点是随重排保持的不变量（用户定规：随元素移动
+    // 保持相对位置）；嵌套 moveShape 同栈可整体撤销。多选含标签整体移动时
+    // 重居中目标与 delta 随动结果一致（dx=dy=0），不扰动用户拖拽
+    this.postExecute(
+      ['connection.layout', 'connection.updateWaypoints', 'connection.reconnect', 'connection.move'],
+      (event: any) => {
+        const connection = event.context.connection;
+        for (const label of connection?.labels ?? []) {
+          this.recenterLabel(connection, label);
+        }
+      }
+    );
+  }
+
+  private recenterLabel(connection: any, label: any): void {
+    const box = connectionLabelBox(this.textUtil, label.businessObject?.name || ' ', connection.waypoints);
+    if (!box) {
+      return;
+    }
+    const dx = box.x + box.width / 2 - (label.x + label.width / 2);
+    const dy = box.y + box.height / 2 - (label.y + label.height / 2);
+    if (dx === 0 && dy === 0) {
+      return;
+    }
+    this.modeling.moveShape(label, { x: dx, y: dy });
   }
 
   private ensureLabel(host: any): void {

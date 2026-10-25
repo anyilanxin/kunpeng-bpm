@@ -74,15 +74,40 @@ export function externalLabelBox(textUtil: TextUtil, text: string, host: { x: nu
   };
 }
 
-/** 连线标签：取首末航点中点（自有取值：中段视觉均衡） */
+/** 折线走线中点：按累计长度取总程一半处的点（自有取值：连线视觉正中——
+ * 首末航点均值在肘形路由下会悬空偏离走线，改沿路径取半程） */
+export function polylineMid(waypoints: { x: number; y: number }[]): { x: number; y: number } {
+  if (waypoints.length < 2) {
+    return { ...waypoints[0] };
+  }
+  let total = 0;
+  const segments: number[] = [];
+  for (let i = 1; i < waypoints.length; i += 1) {
+    const length = Math.abs(waypoints[i].x - waypoints[i - 1].x) + Math.abs(waypoints[i].y - waypoints[i - 1].y);
+    segments.push(length);
+    total += length;
+  }
+  let remain = total / 2;
+  for (let i = 0; i < segments.length; i += 1) {
+    if (remain > segments[i]) {
+      remain -= segments[i];
+      continue;
+    }
+    const a = waypoints[i];
+    const b = waypoints[i + 1];
+    const ratio = segments[i] === 0 ? 0 : remain / segments[i];
+    return { x: a.x + (b.x - a.x) * ratio, y: a.y + (b.y - a.y) * ratio };
+  }
+  return { ...waypoints[waypoints.length - 1] };
+}
+
+/** 连线标签：折线走线中点（垂直 -6 偏置避让走线，自有取值） */
 export function connectionLabelBox(textUtil: TextUtil, text: string, waypoints: { x: number; y: number }[]): LabelBox | null {
   if (!text || waypoints.length === 0) {
     return null;
   }
-  const first = waypoints[0];
-  const last = waypoints[waypoints.length - 1];
   const dims = measureExternal(textUtil, text);
-  const mid = { x: (first.x + last.x) / 2, y: (first.y + last.y) / 2 };
+  const mid = polylineMid(waypoints);
   return {
     x: mid.x - dims.width / 2,
     y: mid.y - dims.height / 2 - 6,
@@ -105,7 +130,7 @@ export function internalLabelBox(shape: { x: number; y: number; width: number; h
 
 /**
  * 外部标签元素的绝对坐标框（元素创建/导入建标签的默认几何）：
- * 连线=首末航点中点；形状=形心正下方派生；空文本给可命中的占位框
+ * 连线=折线走线中点；形状=形心正下方派生；空文本给可命中的占位框
  * （隐藏态，写入文本时再按文字量收敛）。位置被拖动后以宿主
  * di.label.bounds 为准，不再走此派生。
  */

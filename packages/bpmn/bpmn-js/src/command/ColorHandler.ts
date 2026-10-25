@@ -52,7 +52,7 @@ export class SetColorHandler implements CommandHandler {
       // 全空 = 移除字段（元素回落主题缺省，序列化不写 bioc 属性）
       element.colors = Object.keys(next).length > 0 ? next : undefined;
     });
-    return elements;
+    return this.changed(elements);
   }
 
   revert(context: any): any[] {
@@ -60,6 +60,19 @@ export class SetColorHandler implements CommandHandler {
       const old = context.oldColors[element.id];
       element.colors = old ? { ...old } : undefined;
     });
-    return context.elements;
+    return this.changed(context.elements);
+  }
+
+  /** 脏标记范围 = 元素 + 其外部标签（标签字色派生自宿主有效描边色，
+   * 宿主变色不改标签自身 colors，须一并重绘才能跟色） */
+  private changed(elements: any[]): any[] {
+    const all = new Set<any>();
+    for (const element of elements) {
+      all.add(element);
+      for (const label of element.labels ?? []) {
+        all.add(label);
+      }
+    }
+    return [...all];
   }
 }

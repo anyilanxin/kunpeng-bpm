@@ -561,7 +561,8 @@ export class BpmnRenderer extends BaseRenderer {
     append(visuals, el);
   }
 
-  /** 独立标签元素：只画文字（几何=元素框，宿主移动/删除由 LabelSupport 跟随） */
+  /** 独立标签元素：只画文字（几何=元素框，宿主移动/删除由 LabelSupport 跟随）；
+   * 字色=宿主有效描边色（用户定规：bioc 元素色与主题切换经 themeFor 同源随动） */
   private drawLabel(visuals: SVGElement, label: any): void {
     const text = label.businessObject?.name;
     if (!text) {
@@ -570,7 +571,7 @@ export class BpmnRenderer extends BaseRenderer {
     const el = this.textUtil.createText(text, {
       box: { width: label.width, height: label.height } as any,
       align: 'center-top',
-      style: { ...EXTERNAL_FONT, fill: this.config.labelColor },
+      style: { ...EXTERNAL_FONT, fill: this.themeFor(label.labelTarget).stroke },
       padding: 0
     });
     attr(el, { 'data-label': 'element' });
