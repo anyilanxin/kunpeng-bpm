@@ -177,6 +177,8 @@ export function iconSetKeyOf(meta: BpmnIconMeta): IconSetKey | undefined {
   }
   if (t === 'bpmn:Transaction') return 'transaction';
   if (t === 'bpmn:Participant') return 'participant';
+  // 流程根（无池图选中根时面板头部图标；此前无映射落任务族矩形回退）
+  if (t === 'bpmn:Process') return 'process';
   if (t === 'bpmn:Group') return 'group';
   if (t === 'bpmn:CallActivity') return 'callActivity';
   if (t === 'bpmn:TextAnnotation') return 'textAnnotation';
