@@ -42,3 +42,48 @@
 .dmn-preview-mode .djs-direct-editing-content {
   pointer-events: none;
 }
+
+/* ── 面板/弹框图标基线（与 bpmn 线同款功能覆写） ── */
+.djs-palette .entry svg,
+.djs-popup-header .entry svg {
+  vertical-align: middle;
+}
+
+/* ── 上下文面板布局：条目跨组连续流式三列换行（引擎默认 inline-block 随条目
+   数撑宽、面板右缘不齐；三列等宽阵列与 palette/弹框的规整语言一致。
+   引擎 .djs-context-pad.open{display:block} 特异性高于容器规则，须同名
+   覆盖为 flex。选择器不锚容器类——.djs-context-pad 每画布唯一 ── */
+.djs-context-pad,
+.djs-context-pad.open {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  width: 70px; /* 三列封行 */
+}
+.djs-context-pad .group {
+  display: contents;
+}
+.djs-context-pad .entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  width: 22px;
+  height: 22px;
+}
+
+/* ── 直编输入框外观 ──
+   diagram-js-direct-editing 的 TextBox 默认内联「白底 + 1px #ccc 边」且内联
+   压过普通 CSS——边框/底色由 Provider 按族内联下发（TRANSPARENT_STYLE），
+   本表零皮肤干预；行高 1.4 与 Provider 测量参数同源。编辑期已渲染名字由
+   DmnEditingBehavior 加 label-editing marker 藏去——透明框下双文本重影。 */
+.djs-direct-editing-parent .djs-direct-editing-content {
+  padding: 3px 4px;
+  line-height: 1.4;
+}
+
+/* 编辑期藏已渲染名字（DMN 形内名 = 元素视觉内唯一 text 节点，按 marker 定点隐藏；
+   选择器不锚容器类——marker 类每画布元素唯一） */
+.djs-element.label-editing .djs-visual text {
+  visibility: hidden;
+}

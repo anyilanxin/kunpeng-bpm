@@ -30,6 +30,7 @@
   "dependencies": {
     "@kunpeng-io/kunpeng-dmn-moddle": "workspace:*",
     "diagram-js": "catalog:",
+    "diagram-js-direct-editing": "catalog:",
     "didi": "^11.0.1",
     "dmn-moddle": "catalog:",
     "htm": "^3.1.1",

@@ -36,7 +36,13 @@ export {
   NavigatedViewerModules,
   DmnModules,
   DmnCoreModule,
-  DmnIOModule
+  DmnIOModule,
+  DmnRulesModule,
+  DmnModelingModule,
+  DmnBehaviorModule,
+  DmnPopupMenuModule,
+  DmnPaletteModule,
+  DmnContextPadModule
 } from './modules';
 export { DmnElementTypes, SIZES, requirementBetween, metaId } from './meta/ElementTypes';
 export { DmnI18n } from './i18n/DmnI18n';

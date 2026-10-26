@@ -85,6 +85,19 @@ import { DmnReader } from './xml/DmnReader';
 import { DmnWriter } from './xml/DmnWriter';
 import { DiagramBuilder } from './xml/DiagramBuilder';
 import { DmnI18n } from './i18n/DmnI18n';
+import { DmnRules } from './rules/DmnRules';
+import { DmnLayouter } from './layout/DmnLayouter';
+import CroppingConnectionDocking from 'diagram-js/lib/layout/CroppingConnectionDocking';
+import { DmnModeling } from './command/DmnModeling';
+import { DmnUpdater } from './behavior/DmnUpdater';
+import { DmnLabelEditingProvider } from './label/DmnLabelEditingProvider';
+import { DmnEditingBehavior } from './behavior/DmnEditingBehavior';
+import { DmnPopup } from './provider/DmnPopup';
+import { DmnPaletteProvider } from './provider/DmnPaletteProvider';
+import { DmnContextPadProvider } from './provider/DmnContextPadProvider';
+import { DmnReplaceMenuProvider } from './provider/DmnReplaceMenuProvider';
+import { DmnEditorActions } from './provider/DmnEditorActions';
+import DirectEditingModule from 'diagram-js-direct-editing';
 
 /** 只读查看平台特性（Viewer 底座）：元素事件 / 鼠标 / 调度 / 悬停修正 / overlays——无选择与编辑 */
 export const ViewerPlatformModules: ModuleDeclaration[] = [
@@ -102,7 +115,7 @@ export const NavigationModules: ModuleDeclaration[] = [
   KeyboardMoveModule
 ];
 
-/** 编辑平台特性（P2 交互建模的地基：选择/拖放/建连/面板/菜单/对齐分布/键盘） */
+/** 编辑平台特性（Viewer → Modeler 增量：选择/拖放/建连/面板/菜单/直编/键盘） */
 export const EditorPlatformModules: ModuleDeclaration[] = [
   SelectionModule,
   DraggingModule,
@@ -131,6 +144,8 @@ export const EditorPlatformModules: ModuleDeclaration[] = [
   SnappingModule,
   GridSnappingModule,
   ComplexPreviewModule,
+  DirectEditingModule,
+  // 键盘通道：Ctrl+A 全选 / Escape 取消选择 / Delete 删除 / 方向键移动选区
   KeyboardModule,
   KeyboardMoveSelectionModule,
   EditorActionsModule
@@ -189,9 +204,105 @@ export const NavigatedViewerModules: ModuleDeclaration[] = [
   ...NavigationModules
 ];
 
+/** 规则与布线（__depends__ 自包含：rules 基座服务） */
+export const DmnRulesModule: ModuleDeclaration = {
+  __depends__: [RulesModule],
+  __init__: ['dmnRules'],
+  'dmnRules': ['type', DmnRules],
+  'layouter': ['type', DmnLayouter],
+  // 拖拽连线预览（ConnectionPreview）与航点拖动（BendpointMove）的端点贴边
+  // 裁剪（diagram-js 按可选服务注入 injector.get('connectionDocking', false)，
+  // 须宿主注册）；布线器直线端点同走此裁剪
+  'connectionDocking': ['type', CroppingConnectionDocking]
+};
+
+/** 建模命令与语义同步（__depends__ 自包含：modeling 基座链） */
+export const DmnModelingModule: ModuleDeclaration = {
+  __depends__: [ModelingModule],
+  __init__: ['dmnUpdater'],
+  // didi 后注册者胜：覆盖基座 modeling 门面（connect 类型推断 + 四命令）
+  'modeling': ['type', DmnModeling],
+  'dmnUpdater': ['type', DmnUpdater]
+};
+
+/** 交互行为：直编 Provider / 落地即编 / 编辑动作（自包含：直编/编辑动作/选择基座） */
+export const DmnBehaviorModule: ModuleDeclaration = {
+  __depends__: [DirectEditingModule, EditorActionsModule, SelectionModule],
+  __init__: ['dmnLabelEditingProvider', 'dmnEditingBehavior', 'dmnEditorActions'],
+  'dmnLabelEditingProvider': ['type', DmnLabelEditingProvider],
+  'dmnEditingBehavior': ['type', DmnEditingBehavior],
+  'dmnEditorActions': ['type', DmnEditorActions]
+};
+
 /**
- * P1 全量集（= NavigatedViewer：P1 验证域为导入渲染/导出往返，编辑交互模块
- * 待 P2 DmnRules/DmnModeling/Provider 落位后并入——届时拆 EditorPlatformModules
- * 进 Modeler 默认集）
+ * 弹框与菜单（内部插件）：DmnPopup 弹框底座 + 替换菜单 Provider。DmnPopup
+ * 注入 contextPad（弹框打开收起 pad），故 __depends__ ContextPadModule；
+ * 服务注册名保持插件化（宿主同名覆盖契约）。
  */
-export const DmnModules: ModuleDeclaration[] = [...NavigatedViewerModules];
+export const DmnPopupMenuModule: ModuleDeclaration = {
+  __depends__: [
+    PopupMenuModule,
+    ContextPadModule,
+    DmnModelingModule,
+    DmnRulesModule
+  ],
+  __init__: ['dmnPopup', 'dmnReplaceMenuProvider'],
+  'dmnPopup': ['type', DmnPopup],
+  'dmnReplaceMenuProvider': ['type', DmnReplaceMenuProvider]
+};
+
+/**
+ * 元素面板（内部插件）：palette 条目 Provider。自带创建/工具底座（create/
+ * 抓手/套索/空间/全局连线），可独立装配到自拼实例（Viewer 底座 + 本模块即
+ * 得带创建闭包的面板）。
+ */
+export const DmnPaletteModule: ModuleDeclaration = {
+  __depends__: [
+    PaletteModule,
+    CreateModule,
+    HandToolModule,
+    LassoToolModule,
+    SpaceToolModule,
+    GlobalConnectModule
+  ],
+  __init__: ['dmnPaletteProvider'],
+  'dmnPaletteProvider': ['type', DmnPaletteProvider]
+};
+
+/**
+ * 上下文面板（内部插件）：context pad 条目 Provider。自带 autoPlace/connect/
+ * outline 底座与建模/规则/弹框依赖，可独立装配。
+ */
+export const DmnContextPadModule: ModuleDeclaration = {
+  __depends__: [
+    ContextPadModule,
+    AutoPlaceModule,
+    ConnectModule,
+    OutlineModule,
+    DmnModelingModule,
+    DmnRulesModule,
+    DmnPopupMenuModule
+  ],
+  __init__: ['dmnContextPadProvider'],
+  'dmnContextPadProvider': ['type', DmnContextPadProvider]
+};
+
+/**
+ * Modeler 全量集（= 编辑形态门面默认集）：查看底座 + 滚轮缩放 + 编辑平台
+ * + DMN 规则/建模/行为/面板栈。**不含 MoveCanvas/KeyboardMove**——画布拖拽
+ * 平移与方向键移视口是导航形态（NavigatedViewer）的交互，编辑形态会与
+ * "空白拖拽即框选"及元素移动冲突（bpmn 线同款裁定）。
+ */
+export const DmnModules: ModuleDeclaration[] = [
+  ...ViewerPlatformModules,
+  ZoomScrollModule,
+  ...EditorPlatformModules,
+  DmnRulesModule,
+  DmnModelingModule,
+  DmnBehaviorModule,
+  DmnPopupMenuModule,
+  DmnPaletteModule,
+  DmnContextPadModule,
+  DmnCoreModule,
+  DmnIOModule
+];
