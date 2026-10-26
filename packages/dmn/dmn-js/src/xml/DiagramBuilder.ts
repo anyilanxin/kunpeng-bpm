@@ -34,7 +34,7 @@ import type { DmnElementTypes } from '../meta/ElementTypes';
 import type { DmnDocumentState } from './DocumentState';
 import { readDiView, type DiView } from './DiMapper';
 import type { DmnParseResult } from './DmnReader';
-import { associationEndpointIds, requirementSourceId } from '../util/Requirements';
+import { associationEndpointIds, refIdFromHref, requirementSourceId } from '../util/Requirements';
 
 /** 需求三类在持有方 DRG 元素上的属性名（dmn13 描述符） */
 const REQUIREMENT_PROPERTIES = ['informationRequirement', 'knowledgeRequirement', 'authorityRequirement'] as const;
@@ -67,13 +67,39 @@ export class DiagramBuilder {
     });
     this.canvas.setRootElement(root);
 
-    // 1. DRG 形状
-    for (const bo of definitions.drgElement ?? []) {
+    // 1. DRG 形状：决策服务先建（容器），成员引用（outputDecision/
+    //    encapsulatedDecision）指向的决策挂服务为画布父级（扁平模型、分层视图）
+    const drgElements = definitions.drgElement ?? [];
+    for (const bo of drgElements) {
+      if (bo.$type !== 'dmn:DecisionService') {
+        continue;
+      }
+      const di = diById.get(bo.id);
+      if (di && di.kind === 'shape') {
+        this.addShape(bo, di, root, created);
+      }
+    }
+    const memberParent = new Map<string, any>();
+    for (const shape of created.values()) {
+      const serviceBo = shape.businessObject;
+      for (const property of ['outputDecision', 'encapsulatedDecision']) {
+        for (const ref of serviceBo.get(property) ?? []) {
+          const memberId = refIdFromHref(ref);
+          if (memberId) {
+            memberParent.set(memberId, shape);
+          }
+        }
+      }
+    }
+    for (const bo of drgElements) {
+      if (bo.$type === 'dmn:DecisionService') {
+        continue;
+      }
       const di = diById.get(bo.id);
       if (!di || di.kind !== 'shape') {
         continue;
       }
-      this.addShape(bo, di, root, created);
+      this.addShape(bo, di, memberParent.get(bo.id) ?? root, created);
     }
 
     // 2. 制品形状（文本注记）
@@ -123,6 +149,7 @@ export class DiagramBuilder {
       y: di.bounds!.y,
       width: di.bounds!.width,
       height: di.bounds!.height,
+      ...(di.dividerY !== undefined ? { dividerY: di.dividerY } : {}),
       di: di.node
     });
     this.canvas.addShape(shape, parent);

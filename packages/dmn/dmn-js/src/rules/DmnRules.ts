@@ -40,7 +40,7 @@ import type EventBus from 'diagram-js/lib/core/EventBus';
 import type Canvas from 'diagram-js/lib/core/Canvas';
 import type { DmnMode } from '../mode/DmnMode';
 import type { DmnElementTypes } from '../meta/ElementTypes';
-import { requirementBetween } from '../meta/ElementTypes';
+import { requirementBetween, SIZES } from '../meta/ElementTypes';
 
 interface Rect {
   x: number;
@@ -146,7 +146,15 @@ export class DmnRules extends RuleProvider {
     if (!type?.startsWith('dmn:')) {
       return true; // 非 dmn 元素（插件自定义）放行
     }
-    // DRD 扁平平面：形状只落画布根（DecisionService 容器 P8 开放）
+    // 决策服务容器：仅 Decision 可落入（顶带/主体按落点，跨分割线拒收）
+    if (target.businessObject?.$type === 'dmn:DecisionService') {
+      if (type !== 'dmn:Decision') {
+        return false;
+      }
+      const rect = this.createRect(context.position, shape);
+      return rect ? this.fitsServiceRegion(target, rect) : true;
+    }
+    // DRD 扁平平面：其余形状只落画布根
     if (!this.isRootElement(target)) {
       return false;
     }
@@ -180,7 +188,25 @@ export class DmnRules extends RuleProvider {
     if (!shapes || shapes.length === 0) {
       return true;
     }
-    // 扁平平面：落点必须仍是画布根（无容器树）
+    // 决策服务容器落点：全体须为 Decision，预估矩形须整体落入单一区
+    // （顶带/主体），容器内互斥不查（区域引导摆放）
+    if (context.target?.businessObject?.$type === 'dmn:DecisionService') {
+      if (!shapes.every((s: any) => s.businessObject?.$type === 'dmn:Decision')) {
+        return false;
+      }
+      if (context.delta === undefined) {
+        return true;
+      }
+      return shapes.every((s: any) =>
+        this.fitsServiceRegion(context.target, {
+          x: s.x + context.delta.x,
+          y: s.y + context.delta.y,
+          width: s.width,
+          height: s.height
+        })
+      );
+    }
+    // 扁平平面：其余落点必须是画布根（容器树仅决策服务一层）
     if (context.target && !this.isRootElement(context.target)) {
       return false;
     }
@@ -189,6 +215,20 @@ export class DmnRules extends RuleProvider {
       return true;
     }
     return !this.moveOverlaps(shapes, context.delta);
+  }
+
+  /** 决策服务落区：预估矩形须完整落入顶带或主体（跨分割线/越界拒收） */
+  private fitsServiceRegion(service: any, rect: Rect): boolean {
+    const dividerY = service.dividerY ?? SIZES.SERVICE_DIVIDER_Y;
+    const contains = (box: Rect): boolean =>
+      rect.x >= box.x &&
+      rect.y >= box.y &&
+      rect.x + rect.width <= box.x + box.width &&
+      rect.y + rect.height <= box.y + box.height;
+    return (
+      contains({ x: service.x, y: service.y, width: service.width, height: dividerY }) ||
+      contains({ x: service.x, y: service.y + dividerY, width: service.width, height: service.height - dividerY })
+    );
   }
 
   private canDelete(context: any): boolean {

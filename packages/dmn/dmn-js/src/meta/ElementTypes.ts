@@ -98,6 +98,8 @@ export const SIZES = {
   ANNOTATION_H: 70,
   SERVICE_W: 320,
   SERVICE_H: 200,
+  /** 决策服务顶带（输出决策区）高度：一行决策 70 + 上下各 10 余量（自有设计） */
+  SERVICE_DIVIDER_Y: 90,
   APPEND_GAP: 72,
   APPEND_STEP: 46
 } as const;
@@ -125,9 +127,9 @@ export const SHAPE_TYPES: ShapeTypeMeta[] = [
     paletteGroup: 'artifact', order: 50, family: 'artifact', resizable: true
   },
   {
-    // 容器语义（encapsulated/outputDecision + 分割线 DI）P8 开放：先登记不进面板
+    // 容器（P8）：Decision 拖入装为封装/输出成员（顶带/主体按落点），可缩放
     type: 'dmn:DecisionService', label: '决策服务', width: SIZES.SERVICE_W, height: SIZES.SERVICE_H,
-    replaceFamily: 'drg', family: 'decisionService'
+    paletteGroup: 'drg', order: 45, replaceFamily: 'drg', family: 'decisionService', resizable: true
   }
 ];
 

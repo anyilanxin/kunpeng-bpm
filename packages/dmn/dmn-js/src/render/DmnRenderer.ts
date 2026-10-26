@@ -185,6 +185,20 @@ export class DmnRenderer extends BaseRenderer {
     if (!text) {
       return;
     }
+    // 决策服务名字放分割线下方左上（顶带留给输出决策；规范未定名字位，
+    // 自有设计避开顶带遮挡）
+    if (type === 'dmn:DecisionService') {
+      const dividerY = shape.dividerY ?? 90;
+      const serviceText = this.textUtil.createText(text, {
+        box: { width: shape.width - 16, height: 18 } as any,
+        align: 'left-top' as any,
+        style: { ...INTERNAL_FONT, fill: this.config.labelColor },
+        padding: 0
+      });
+      attr(serviceText, { 'data-label': 'internal', transform: `translate(8 ${dividerY + 4})` });
+      append(visuals, serviceText);
+      return;
+    }
     const isAnnotation = type === 'dmn:TextAnnotation';
     const box = isAnnotation
       ? { x: 18, y: 4, width: shape.width - 24, height: shape.height - 8 }

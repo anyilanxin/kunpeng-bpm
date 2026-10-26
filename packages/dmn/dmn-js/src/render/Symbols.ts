@@ -103,11 +103,23 @@ export function drawAnnotationBracket(visuals: SVGElement, shape: any, theme: St
 
 /**
  * 决策服务：圆角矩形 + 粗实线（规范 §6.2.1.5 "rectangle with rounded
- * corners, drawn with a heavy solid border"；P8 补顶带输出区与分割线）。
+ * corners, drawn with a heavy solid border"）+ 顶带输出区与分割线（规范
+ * §6.2.1.5：顶带放 outputDecision、主体放 encapsulatedDecision）。分割线
+ * y 取 shape.dividerY（DI 持久化，缺省 SERVICE_DIVIDER_Y）；顶带轻着色
+ * 区分两区（自有视觉，规范未规定颜色）。
  */
 export function drawDecisionServiceShape(visuals: SVGElement, shape: any, theme: StyleTheme): void {
   const { width: w, height: h } = shape;
+  const dividerY = shape.dividerY ?? SIZES.SERVICE_DIVIDER_Y;
   const r = 10;
+  // 顶带着色（fill 带圆角顶；描边由外框承担）
+  drawPath(
+    visuals,
+    `M${r},0 H${w - r} A${r},${r} 0 0 1 ${w},${r} V${dividerY} H0 V${r} A${r},${r} 0 0 1 ${r},0 Z`,
+    { ...theme, fill: '#f2f6fc', stroke: 'none' }
+  );
+  // 分割线（细实线，与粗外框形成层级差）
+  drawPath(visuals, `M0,${dividerY} H${w}`, { ...theme, fill: 'none' }, 1);
   drawPath(
     visuals,
     `M${r},0 H${w - r} A${r},${r} 0 0 1 ${w},${r} V${h - r} A${r},${r} 0 0 1 ${w - r},${h} H${r} A${r},${r} 0 0 1 0,${h - r} V${r} A${r},${r} 0 0 1 ${r},0 Z`,

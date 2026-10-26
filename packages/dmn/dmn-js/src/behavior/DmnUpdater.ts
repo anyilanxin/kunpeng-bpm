@@ -36,23 +36,28 @@
  */
 import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
 import type EventBus from 'diagram-js/lib/core/EventBus';
+import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
 import type { DmnDocumentState } from '../xml/DocumentState';
 import type { DmnFactory } from '../factory/DmnFactory';
 import type { DmnElementTypes } from '../meta/ElementTypes';
+import { SIZES } from '../meta/ElementTypes';
 import { syncEdgeDi, syncShapeDi } from '../xml/DiMapper';
 import { requirementFieldFor, requirementHostProperty } from '../util/Requirements';
 
 const ANNOTATION = 'dmn:TextAnnotation';
 const ASSOCIATION = 'dmn:Association';
+const DECISION = 'dmn:Decision';
+const DECISION_SERVICE = 'dmn:DecisionService';
 
 export class DmnUpdater extends CommandInterceptor {
-  static $inject = ['eventBus', 'dmnDocumentState', 'dmnFactory', 'dmnElementTypes'];
+  static $inject = ['eventBus', 'dmnDocumentState', 'dmnFactory', 'dmnElementTypes', 'elementRegistry'];
 
   constructor(
     eventBus: EventBus,
     private readonly state: DmnDocumentState,
     private readonly dmnFactory: DmnFactory,
-    private readonly elementTypes: DmnElementTypes
+    private readonly elementTypes: DmnElementTypes,
+    private readonly elementRegistry: ElementRegistry
   ) {
     super(eventBus);
 
@@ -60,9 +65,11 @@ export class DmnUpdater extends CommandInterceptor {
       const { shape } = event.context;
       this.adoptShape(shape);
       this.ensureShapeDi(shape);
+      this.reconcileServices();
     });
     this.on('shape.create', 'reverted', (event: any) => {
       this.orphanShape(event.context.shape);
+      this.reconcileServices();
     });
 
     this.on('connection.create', 'executed', (event: any) => {
@@ -95,6 +102,7 @@ export class DmnUpdater extends CommandInterceptor {
         this.orphanShape(element);
         this.dmnFactory.destroy(element.businessObject);
       }
+      this.reconcileServices();
     });
     // 撤销删除：DeleteElementsHandler.revert 只恢复画布（不走 create 命令），
     // 语义挂接/DI 节点在此对称重建（形状先就位，连线端点才可解析）
@@ -112,14 +120,64 @@ export class DmnUpdater extends CommandInterceptor {
         this.ensureEdgeDi(element);
         this.dmnFactory.reclaim(element.businessObject);
       }
+      this.reconcileServices();
     });
 
-    // 几何回写：画布元素变更（移动/缩放/重路由）统一同步到 DI 节点
+    // 几何回写：画布元素变更（移动/缩放/重路由）统一同步到 DI 节点；
+    // 涉及决策/服务的变更同时调和成员引用（撤销重放同样走此路收敛）
     eventBus.on('elements.changed', (event: any) => {
       for (const element of event.elements) {
         this.syncDi(element);
       }
+      if (
+        (event.elements ?? []).some(
+          (element: any) =>
+            !element.waypoints &&
+            (element.businessObject?.$type === DECISION ||
+              element.businessObject?.$type === DECISION_SERVICE ||
+              element.parent?.businessObject?.$type === DECISION_SERVICE)
+        )
+      ) {
+        this.reconcileServices();
+      }
     });
+  }
+
+  // ---------- 决策服务成员（不变量调和） ----------
+
+  /**
+   * 成员不变量：服务的 outputDecision/encapsulatedDecision 引用集=其画布
+   * 子级决策集（落区定清单：中心在分割线上=输出、下方=封装）。引用变更不
+   * 单独入命令栈——撤销时画布父级被命令栈还原，elements.changed 再触发本
+   * 调和即收敛（语义随画布真相走）。导入建图按语义引用挂父（DiagramBuilder）
+   * 且导入不发 elements.changed：未编辑文档的字节级往返不受调和扰动。
+   */
+  private reconcileServices(): void {
+    const services = this.elementRegistry.filter((e: any) => e.businessObject?.$type === DECISION_SERVICE);
+    for (const service of services) {
+      const bo = service.businessObject;
+      const dividerAbs = service.y + (service.dividerY ?? SIZES.SERVICE_DIVIDER_Y);
+      const outputs: any[] = [];
+      const encapsulated: any[] = [];
+      for (const child of service.children ?? []) {
+        if (child.waypoints || child.businessObject?.$type !== DECISION) {
+          continue;
+        }
+        const list = child.y + child.height / 2 < dividerAbs ? outputs : encapsulated;
+        // 既有同 href 引用节点复用（保持对象身份），否则新建
+        const existing = this.findRef(
+          [...(bo.get('outputDecision') ?? []), ...(bo.get('encapsulatedDecision') ?? [])],
+          child.businessObject.id
+        );
+        list.push(existing ?? this.dmnFactory.createReference(child.businessObject.id));
+      }
+      bo.set('outputDecision', outputs);
+      bo.set('encapsulatedDecision', encapsulated);
+    }
+  }
+
+  private findRef(refs: any[], id: string): any | null {
+    return refs.find((ref) => ref?.href === `#${id}`) ?? null;
   }
 
   // ---------- 形状挂接 ----------

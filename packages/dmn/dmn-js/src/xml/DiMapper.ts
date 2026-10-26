@@ -35,6 +35,8 @@ export interface DiView {
   bounds?: { x: number; y: number; width: number; height: number };
   waypoints?: { x: number; y: number }[];
   isCollapsed?: boolean;
+  /** 决策服务分割线（DMNDecisionServiceDividerLine 首航点，相对 bounds 的 y） */
+  dividerY?: number;
   /** 原始 moddle DI 节点（画布元素回挂，几何同步与导出的写回目标） */
   node: any;
 }
@@ -53,6 +55,7 @@ export function readDiView(node: any): DiView | null {
   if (!isShape && node.$type !== 'dmndi:DMNEdge') {
     return null;
   }
+  const dividerWaypoint = node.decisionServiceDividerLine?.waypoint?.[0];
   return {
     kind: isShape ? 'shape' : 'edge',
     dmnElement: referenceId(node.dmnElementRef),
@@ -61,11 +64,13 @@ export function readDiView(node: any): DiView | null {
       : undefined,
     waypoints: (node.waypoint ?? []).map((w: any) => ({ x: w.x, y: w.y })),
     isCollapsed: node.isCollapsed,
+    dividerY:
+      dividerWaypoint && node.bounds ? Number(dividerWaypoint.y) - Number(node.bounds.y) : undefined,
     node
   };
 }
 
-/** 画布形状元素 → DMNShape DI 字段回写（bounds） */
+/** 画布形状元素 → DMNShape DI 字段回写（bounds；决策服务另写分割线航点） */
 export function syncShapeDi(di: any, element: any, factory: DmnFactory): void {
   if (element.x !== undefined) {
     di.bounds ??= factory.create<any>({ $type: 'dc:Bounds' });
@@ -73,6 +78,19 @@ export function syncShapeDi(di: any, element: any, factory: DmnFactory): void {
     di.bounds.y = element.y;
     di.bounds.width = element.width;
     di.bounds.height = element.height;
+  }
+  if (element.dividerY !== undefined) {
+    di.decisionServiceDividerLine ??= factory.create<any>({
+      $type: 'dmndi:DMNDecisionServiceDividerLine',
+      waypoint: []
+    });
+    const divider = di.decisionServiceDividerLine;
+    const point = { x: element.x, y: element.y + element.dividerY };
+    divider.waypoint.splice(
+      0,
+      divider.waypoint.length,
+      factory.create<any>({ $type: 'dc:Point', x: point.x, y: point.y })
+    );
   }
 }
 
