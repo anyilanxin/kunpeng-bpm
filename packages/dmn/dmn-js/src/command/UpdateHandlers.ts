@@ -28,19 +28,25 @@
 import type CommandHandler from 'diagram-js/lib/command/CommandHandler';
 
 export class UpdatePropertiesHandler implements CommandHandler {
-  static $inject = ['eventBus', 'dmnIds'];
+  static $inject = ['eventBus', 'dmnIds', 'elementRegistry'];
 
-  constructor(private readonly eventBus: any, private readonly ids: any) {}
+  constructor(
+    private readonly eventBus: any,
+    private readonly ids: any,
+    private readonly elementRegistry: any
+  ) {}
 
   execute(context: any): any[] {
     const element = context.element;
     const bo = element.businessObject;
     const properties = context.properties;
 
+    // 读写一律走 moddle set/get：带命名空间前缀的扩展键（kunpeng:xxx）不落
+    // 描述符属性、存取都在 $attrs——直赋普通字段 get() 与序列化都不可见
     context.oldProperties = {};
     for (const key of Object.keys(properties)) {
-      context.oldProperties[key] = bo[key];
-      bo[key] = properties[key];
+      context.oldProperties[key] = bo.get(key);
+      bo.set(key, properties[key]);
     }
     // id 变更同步注册表（面板查重 assigned(id) 与新建分配 nextPrefixed 都依赖
     // 注册表持有全文档 id）
@@ -50,7 +56,10 @@ export class UpdatePropertiesHandler implements CommandHandler {
         : undefined;
     if (context.renamedFrom !== undefined) {
       this.ids.unclaim(context.renamedFrom);
-      this.ids.claim(bo.id, bo);
+      this.ids.claim(bo.get('id'), bo);
+      // 画布侧同步（注册表键/gfx data-element-id/element.id 一体换轨；
+      // DI dmnElementRef 是对象引用，序列化时自动跟随新 id）
+      this.elementRegistry.updateId(element, bo.get('id'));
     }
     this.eventBus.fire('dmn.properties.updated', { element, properties });
     return [element];
@@ -60,11 +69,13 @@ export class UpdatePropertiesHandler implements CommandHandler {
     const element = context.element;
     const bo = element.businessObject;
     for (const key of Object.keys(context.oldProperties)) {
-      bo[key] = context.oldProperties[key];
+      // set(undefined) 会从 $attrs 删除该键——与 execute 侧空值语义对称
+      bo.set(key, context.oldProperties[key]);
     }
     if (context.renamedFrom !== undefined) {
-      this.ids.unclaim(bo.id);
+      this.ids.unclaim(bo.get('id'));
       this.ids.claim(context.renamedFrom, bo);
+      this.elementRegistry.updateId(element, context.renamedFrom);
     }
     return [element];
   }

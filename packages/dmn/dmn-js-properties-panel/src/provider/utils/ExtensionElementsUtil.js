@@ -1,4 +1,4 @@
-import { is } from '@kunpeng/dmn-js-shared/lib/util/ModelUtil';
+import { is } from '@kunpeng-io/dmn-js';
 
 import { createElement } from './ElementUtil';
 

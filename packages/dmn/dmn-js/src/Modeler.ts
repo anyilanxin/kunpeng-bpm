@@ -61,6 +61,17 @@ export interface ModelerOptions {
 export class Modeler {
   private readonly diagram: Diagram;
 
+  /**
+   * 装配期事件订阅挂起队列：didi 在 Diagram 构造内实例化 `_parent` 消费者
+   * （如属性面板渲染器构造即 `dmnjs.on('detach')`），此刻 `this.diagram` 尚未
+   * 赋值——先记账，Diagram 就绪后统一补订 eventBus。
+   */
+  private readonly pendingEventBindings: Array<{
+    event: string;
+    priority?: number;
+    callback: (...args: any[]) => any;
+  }> = [];
+
   constructor(options: ModelerOptions) {
     const { container, width, height, modules, additionalModules, ...pluginConfig } = options;
 
@@ -76,6 +87,14 @@ export class Modeler {
       canvas: { container, width, height },
       modules: effectiveModules
     });
+
+    for (const { event, priority, callback } of this.pendingEventBindings.splice(0)) {
+      if (priority === undefined) {
+        this.get<any>('eventBus').on(event, callback);
+      } else {
+        this.get<any>('eventBus').on(event, priority, callback);
+      }
+    }
 
     this.initEmpty();
   }
@@ -96,6 +115,15 @@ export class Modeler {
   }
 
   on(event: string, priority: number | ((...args: any[]) => any), callback?: (...args: any[]) => any): void {
+    // 装配期（diagram 未就绪）订阅挂起，构造收尾统一补订（见 pendingEventBindings 注释）
+    if (!this.diagram) {
+      if (typeof priority === 'function') {
+        this.pendingEventBindings.push({ event, callback: priority });
+      } else {
+        this.pendingEventBindings.push({ event, priority, callback: callback! });
+      }
+      return;
+    }
     const eventBus = this.get('eventBus');
     if (typeof priority === 'function') {
       eventBus.on(event, priority);

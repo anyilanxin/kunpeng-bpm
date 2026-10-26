@@ -1,7 +1,7 @@
 import {
   DebounceInputModule,
   ExpressionPopupModule
-} from '@kunpeng/properties-panel';
+} from '@kunpeng-io/properties-panel';
 
 import DmnPropertiesPanelRenderer from './DmnPropertiesPanelRenderer';
 

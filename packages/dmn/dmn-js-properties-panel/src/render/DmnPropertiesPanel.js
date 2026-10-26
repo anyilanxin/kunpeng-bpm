@@ -2,7 +2,7 @@ import {
   useState,
   useMemo,
   useEffect
-} from '@kunpeng/properties-panel/preact/hooks';
+} from '@kunpeng-io/properties-panel/preact/hooks';
 
 import {
   find,
@@ -10,7 +10,7 @@ import {
   reduce
 } from 'min-dash';
 
-import { PropertiesPanel } from '@kunpeng/properties-panel';
+import { PropertiesPanel } from '@kunpeng-io/properties-panel';
 
 import {
   DmnPropertiesPanelContext

@@ -7,7 +7,7 @@ import {
 
 import {
   render
-} from '@kunpeng/properties-panel/preact';
+} from '@kunpeng-io/properties-panel/preact';
 
 import {
   domify,
@@ -20,8 +20,8 @@ import {
 const DEFAULT_PRIORITY = 1000;
 
 /**
- * @typedef { import('@kunpeng/properties-panel').GroupDefinition } GroupDefinition
- * @typedef { import('@kunpeng/properties-panel').ListGroupDefinition } ListGroupDefinition
+ * @typedef { import('@kunpeng-io/properties-panel').GroupDefinition } GroupDefinition
+ * @typedef { import('@kunpeng-io/properties-panel').ListGroupDefinition } ListGroupDefinition
  * @typedef { { getGroups: (ModdleElement) => (Array{GroupDefinition|ListGroupDefinition}) => Array{GroupDefinition|ListGroupDefinition}) } PropertiesProvider
  */
 

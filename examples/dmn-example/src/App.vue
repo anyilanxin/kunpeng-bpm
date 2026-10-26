@@ -7,22 +7,42 @@
       <button @click="runRoundTrip">字节级往返自检</button>
       <span class="example-status" :class="status.kind">{{ status.text }}</span>
     </div>
-    <div ref="host" class="canvas-host"></div>
+    <div class="example-body">
+      <div ref="host" class="canvas-host"></div>
+      <div v-if="withPanel" ref="panelHost" class="properties-host"></div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, shallowRef } from 'vue';
 import { Modeler } from '@kunpeng-io/dmn-js';
+import {
+  DmnPropertiesPanelModule,
+  DmnPropertiesProviderModule,
+  KunpengPropertiesProviderModule
+} from '@kunpeng-io/dmn-js-properties-panel';
 import { sampleDmn } from './dmn-template';
 
+// ?plugin=0：干净页对照（不装属性面板插件，验证插件无关路径）
+const withPanel = new URLSearchParams(location.search).get('plugin') !== '0';
+
 const host = ref<HTMLElement | null>(null);
+const panelHost = ref<HTMLElement | null>(null);
 // 画布元素对象不入 Vue 深层响应式（bpmn 线契约：代理会冻结 children 属性）
 const modeler = shallowRef<Modeler | null>(null);
 const status = ref<{ kind: '' | 'ok' | 'fail'; text: string }>({ kind: '', text: '未运行' });
 
 onMounted(async () => {
-  const instance = new Modeler({ container: host.value! });
+  const instance = new Modeler({
+    container: host.value!,
+    ...(withPanel
+      ? {
+          additionalModules: [DmnPropertiesPanelModule, DmnPropertiesProviderModule, KunpengPropertiesProviderModule],
+          propertiesPanel: { parent: panelHost.value }
+        }
+      : {})
+  });
   modeler.value = instance;
   // 浏览器验收钩子（真实 UI 路径之外的程序化探针入口）
   (window as any).__dmn = instance;
@@ -62,3 +82,56 @@ async function runRoundTrip() {
   }
 }
 </script>
+
+<style scoped>
+.example-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.example-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #d4d4d4;
+}
+
+.example-header h1 {
+  font-size: 14px;
+  margin: 0 16px 0 0;
+}
+
+.example-status {
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.example-status.ok {
+  color: #16a34a;
+}
+
+.example-status.fail {
+  color: #dc2626;
+}
+
+.example-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.canvas-host {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.properties-host {
+  width: 300px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  border-left: 1px solid #d4d4d4;
+}
+</style>
