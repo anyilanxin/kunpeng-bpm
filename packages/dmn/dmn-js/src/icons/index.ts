@@ -22,15 +22,11 @@
 /**
  * 图标统一目录 —— 全库图标的管理与绘制（全自绘 SVG，不依赖字体图标库）。
  *
- * - BpmnIcons：BPMN 元素记法缩样（规范记法 + 画布同源字形），palette /
- *   替换菜单 / context pad 类型条目共用；
  * - ToolIcons：工具与动作图标（currentColor 18 网格）；
  * - AlignIcons：对齐 / 分布图标（context pad 触发钮 + 弹框菜单条目）。
  *
- * 边界：画布图形渲染（BpmnRenderer / render/Symbols 的记法字形）与选中
- * 描边几何（BpmnOutlineProvider）属于画布绘制域，不是图标资产，仍归
- * render / provider；记法字形由本目录复用（BpmnIcons ← Symbols）。
+ * 边界：画布图形渲染（DmnRenderer / render/DmnSymbols 的记法形状）属于
+ * 画布绘制域，不是图标资产，仍归 render。
  */
-export * from './BpmnIcons';
 export * from './ToolIcons';
 export * from './AlignIcons';

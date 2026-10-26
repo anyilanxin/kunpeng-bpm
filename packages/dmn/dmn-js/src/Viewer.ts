@@ -7,7 +7,7 @@
  * under the terms of the GNU General Public License version 2 only, as
  * published by the Free Software Foundation.  The copyright holder designates
  * this particular file as subject to the "Classpath" exception as provided
- * in the LICENSE file and licenses/ directory that accompany this code.
+ * in the LICENSE file that licenses/ directories that accompany this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -20,27 +20,19 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * 只读查看器三件套之二（与 Modeler 相对，bpmn-js/chor-js 生态同款产品形态）：
- * - Viewer：纯查看——渲染 + 导入导出 + 元素事件（element.hover/click 等），
- *   编辑类服务不进注入器（程序化路径亦不可用，不只是 UI 隐藏）；
- * - NavigatedViewer：Viewer + 画布导航（滚轮缩放 / 拖拽平移 / 方向键平移）。
- *
- * 宿主需要选择能力可经 additionalModules 自行补 SelectionModule。
+ * 只读查看器（Viewer/NavigatedViewer）：编辑类服务不进注入器。
  */
 import type { ModuleDeclaration } from 'didi';
 import { Modeler, type ModelerOptions } from './Modeler';
 import { ViewerModules, NavigatedViewerModules } from './modules';
 
-/** Viewer 构造项（与 ModelerOptions 同形；mode 固定 preview，paletteQuickIds 无面板可言） */
 export type ViewerOptions = Omit<ModelerOptions, 'mode'> & {
-  /** 插件 config 透传位（Omit 会丢索引签名，这里补回） */
   [pluginConfig: string]: unknown;
 };
 
 export class Viewer extends Modeler {
   constructor(options: ViewerOptions) {
-    // mode 固定 preview（覆盖宿主入参）：规则层全禁 + 只读容器标记
-    // （as 归位：ViewerOptions 的索引签名会让展开丢失必填键的静态类型）
+    // mode 固定 preview：规则层全禁 + 只读容器标记
     super({ ...options, mode: 'preview' } as ModelerOptions);
   }
 
@@ -48,7 +40,6 @@ export class Viewer extends Modeler {
     return [...ViewerModules];
   }
 
-  /** 只读查看器无模式切换语义（切编辑=换 Modeler 实例） */
   override setMode(): void {
     throw new Error('Viewer 为只读查看器，不支持模式切换——需要编辑请使用 Modeler');
   }

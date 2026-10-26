@@ -7,7 +7,7 @@
  * under the terms of the GNU General Public License version 2 only, as
  * published by the Free Software Foundation.  The copyright holder designates
  * this particular file as subject to the "Classpath" exception as provided
- * in the LICENSE file and licenses/ directory that accompany this code.
+ * in the LICENSE file that licenses/ directories that accompany this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -20,36 +20,37 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * 当前文档语义状态（definitions / 平面目标）——Reader/Builder 建立，Writer/命令层消费。
- * 单一事实来源：语义树 = 业务对象树；画布 = 视图。
+ * 当前文档语义状态（definitions / 主图目标）——Reader/Builder 建立，
+ * Writer/命令层消费。单一事实来源：语义树 = 业务对象树；画布 = 视图。
+ *
+ * DMN 1.3：Definitions.drgElement[]（DRG 形状）/artifact[]（注记/关联）/
+ * dmnDI.diagrams[]（无 Plane 中间层，DMNDiagram.diagramElements[] 直挂）。
  */
-import type { BpmnFactory } from '../factory/BpmnFactory';
-import type { BpmnDocument, DefinitionsSemantic } from '../Types';
+import type { DmnFactory } from '../factory/DmnFactory';
+import type { DmnDocument } from '../Types';
 
-export class BpmnDocumentState {
-  static $inject = ['bpmnFactory', 'bpmnIds'];
+export class DmnDocumentState {
+  static $inject = ['dmnFactory', 'dmnIds'];
 
-  definitions!: DefinitionsSemantic;
-  /** BPMNPlane 指向的根元素 id（collaboration 或 process） */
+  definitions!: any;
+  /** 主图（DRD）DMNDiagram 的平面目标 id（空串=主图无 dmnElementRef 的常态） */
   planeTargetId = '';
 
-  constructor(private readonly bpmnFactory: BpmnFactory, private readonly ids: any) {}
+  constructor(private readonly dmnFactory: DmnFactory, private readonly ids: any) {}
 
-  /** 新建空文档：单 Process（无协作）+ 主图 DI 骨架（新元素的 DI 节点挂接点） */
+  /** 新建空文档：主图 DI 骨架（新元素的 DI 节点挂接点），DRG 空集 */
   createEmpty(): void {
     this.resetIds();
-    const definitions = this.bpmnFactory.createDefinitions('http://bpmn.io/schema/bpmn');
-    const process = this.bpmnFactory.createProcess({ name: '主流程' });
-    definitions.rootElements.push(process);
-    definitions.diagrams?.push(this.bpmnFactory.createDiagram(process));
+    const definitions = this.dmnFactory.createDefinitions('http://anyilanxin.com/schema/dmn');
+    definitions.dmnDI?.diagrams.push(this.dmnFactory.createDiagram());
     this.definitions = definitions;
-    this.planeTargetId = process.id;
+    this.planeTargetId = '';
   }
 
-  adopt(document: BpmnDocument): void {
+  adopt(document: DmnDocument): void {
     this.resetIds();
     this.definitions = document.definitions;
-    this.planeTargetId = document.plane.bpmnElement;
+    this.planeTargetId = document.planeTargetId;
     this.claimTreeIds(this.definitions, new Set());
   }
 
@@ -82,17 +83,8 @@ export class BpmnDocumentState {
     this.ids.clear();
   }
 
-  /** 主图平面（DI 节点挂接点；空文档/导入文档均保证存在） */
-  get plane(): any | null {
-    return this.definitions?.diagrams?.[0]?.plane ?? null;
-  }
-
-  /** 当前语义树上的协作（可能不存在） */
-  get collaboration(): any | null {
-    return this.definitions.rootElements.find((r) => r.$type === 'bpmn:Collaboration') ?? null;
-  }
-
-  processes(): any[] {
-    return this.definitions.rootElements.filter((r) => r.$type === 'bpmn:Process');
+  /** 主图 DMNDiagram（DI 节点挂接点；空文档/导入文档均保证存在） */
+  get diagram(): any | null {
+    return this.definitions?.dmnDI?.diagrams?.[0] ?? null;
   }
 }

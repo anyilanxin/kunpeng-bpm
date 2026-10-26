@@ -7,7 +7,7 @@
  * under the terms of the GNU General Public License version 2 only, as
  * published by the Free Software Foundation.  The copyright holder designates
  * this particular file as subject to the "Classpath" exception as provided
- * in the LICENSE file and licenses/ directory that accompany this code.
+ * in the LICENSE file that licenses/ directories that accompany this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -19,46 +19,14 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-/**
- * BPMN 2.0 Web 建模器 · 公共导出
- */
+/** @kunpeng-io/dmn-js 出口（U2：fork bpmn-js 内核 + DMN 域层） */
 export { Modeler } from './Modeler';
-export type { ModelerOptions } from './Modeler';
+export type { ModelerOptions } from './Types';
 export { Viewer, NavigatedViewer } from './Viewer';
 export type { ViewerOptions } from './Viewer';
-export type { ModdleExtension } from './xml/BpmnNamespaces';
-export type { ModelerMode } from './mode/BpmnMode';
-export {
-  PlatformModules,
-  ViewerPlatformModules,
-  NavigationModules,
-  EditorPlatformModules,
-  ViewerModules,
-  NavigatedViewerModules,
-  BpmnModules,
-  BpmnCoreModule,
-  BpmnPlaneModule,
-  BpmnRulesModule,
-  BpmnModelingModule,
-  BpmnBehaviorModule,
-  BpmnPaletteModule,
-  BpmnContextPadModule,
-  BpmnPopupMenuModule,
-  BpmnIOModule
-} from './modules';
-export { BpmnElementTypes, SIZES } from './meta/ElementTypes';
-export { BpmnI18n } from './i18n/BpmnI18n';
-export * from './icons';
-export * from './Types';
-export {
-  is,
-  isAny,
-  isEventSubProcess,
-  isExpanded,
-  isInterrupting,
-  getBusinessObject,
-  getLabel,
-  setLabel,
-  isPlane,
-  getShapeIdFromPlane
-} from './util/ModelUtil';
+export type { ModelerMode } from './Types';
+export type { ModdleExtension } from './xml/DmnNamespaces';
+export { DmnElementTypes, SIZES, SHAPE_TYPES, CONNECTION_TYPES } from './meta/ElementTypes';
+export { DmnRules, connectionTypeFor } from './rules/DmnRules';
+export { mainDiagram, diagramOfElement } from './xml/DmnReader';
+export type { DiView } from './xml/DiMapper';

@@ -32,6 +32,7 @@
 import { nextTick, onMounted, ref, shallowRef } from 'vue';
 import { Modeler } from '@kunpeng-io/dmn-js';
 import type { ModelerMode } from '@kunpeng-io/dmn-js';
+import { sampleDmn } from './dmn-template';
 
 const MODES: { id: ModelerMode; label: string }[] = [
   { id: 'edit', label: '编辑' },
@@ -49,11 +50,17 @@ const xmlText = ref('');
 const dark = ref(false);
 const panelOpen = ref(false);
 
-onMounted(() => {
+onMounted(async () => {
   const instance = new Modeler({ container: host.value! });
   modeler.value = instance;
   // 浏览器验收钩子（真实 UI 路径之外的程序化探针入口）
   (window as any).__dmn = instance;
+  try {
+    const { warnings } = await instance.importXML(sampleDmn);
+    status.value = { kind: warnings.length ? 'fail' : 'ok', text: warnings.length ? `导入告警 ${warnings.length} 条` : '样例导入成功（U2 域层）' };
+  } catch (error) {
+    status.value = { kind: 'fail', text: `导入失败：${(error as Error).message}` };
+  }
 });
 
 function switchMode(next: ModelerMode) {

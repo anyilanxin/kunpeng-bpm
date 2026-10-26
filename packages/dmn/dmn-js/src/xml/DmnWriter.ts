@@ -7,7 +7,7 @@
  * under the terms of the GNU General Public License version 2 only, as
  * published by the Free Software Foundation.  The copyright holder designates
  * this particular file as subject to the "Classpath" exception as provided
- * in the LICENSE file and licenses/ directory that accompany this code.
+ * in the LICENSE file that licenses/ directories that accompany this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -20,26 +20,23 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * 活动 loopCharacteristics（规范 BPMN 2.0 §10.2.2 / §13.3）：
- * 仅活动类（任务族 / 子流程 / 调用活动）可持有——标准循环（StandardLoop，
- * 循环标记 ↻）或多实例（MultiInstanceLoop，isSequential 区分并行 ‖‖‖ 与顺序 ≡）。
- * 渲染标记、替换弹框切换钮、记法图标三方共用此判定。
+ * XML 导出器：moddle-xml Writer（描述驱动，MIT）为内核。
+ *
+ * 语义树（含 DI 图）由引擎按元模型描述序列化——元素顺序/属性形态/命名空间
+ * 声明/引用 id 化全部描述驱动，新元素接入无需改本文件。画布几何与 DI 的
+ * 一致性由 DmnUpdater 的 elements.changed 同步钩子维护（画布=编辑视图，
+ * 树=序列化事实源），导出侧无文档级前处理（DMN 无朝向语义）。
  */
+/// <reference path="../types/moddle-xml.d.ts" />
+import { Writer as ModdleXmlWriter } from 'moddle-xml';
+import type { DmnDocumentState } from './DocumentState';
 
-export type LoopKind = 'loop' | 'parallel' | 'sequential';
+export class DmnWriter {
+  static $inject = ['dmnDocumentState'];
 
-/** 语义对象 → 循环特性种类；无循环特性返回 undefined */
-export function loopKindOf(bo: any): LoopKind | undefined {
-  const lc = bo?.loopCharacteristics;
-  if (!lc) {
-    return undefined;
+  constructor(private readonly state: DmnDocumentState) {}
+
+  serialize(): string {
+    return new ModdleXmlWriter({ format: true }).toXML(this.state.definitions);
   }
-  if (lc.$type === 'bpmn:StandardLoopCharacteristics') {
-    return 'loop';
-  }
-  if (lc.$type === 'bpmn:MultiInstanceLoopCharacteristics') {
-    // XSD 缺省 isSequential=false（并行），只有显式 true 才是顺序
-    return lc.isSequential === true ? 'sequential' : 'parallel';
-  }
-  return undefined;
 }
