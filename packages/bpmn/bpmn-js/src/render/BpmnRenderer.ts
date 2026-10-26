@@ -516,8 +516,8 @@ export class BpmnRenderer extends BaseRenderer {
     if (horizontal) {
       this.drawRotatedLabel(visuals, shape, SIZES.POOL_HEADER);
     } else {
-      // 垂直池：顶带内水平标签
-      this.drawInternalLabel(visuals, shape, 'top');
+      // 垂直池：顶带内水平标签（头带左上）
+      this.drawInternalLabel(visuals, shape, 'band');
     }
   }
 
@@ -528,7 +528,7 @@ export class BpmnRenderer extends BaseRenderer {
       this.drawRotatedLabel(visuals, shape, 28);
     } else {
       // 垂直泳道：顶部水平标签（泳道不画带分隔线，仅自身边框）
-      this.drawInternalLabel(visuals, shape, 'top');
+      this.drawInternalLabel(visuals, shape, 'band');
     }
   }
 
@@ -543,19 +543,20 @@ export class BpmnRenderer extends BaseRenderer {
 
   // ---------------- 标签 ----------------
 
-  private drawInternalLabel(visuals: SVGElement, shape: any, mode: 'middle' | 'top' = 'middle'): void {
+  private drawInternalLabel(visuals: SVGElement, shape: any, mode: 'middle' | 'top' | 'band' = 'middle'): void {
     const text = shape.businessObject?.name;
     if (!text) {
       return;
     }
-    // 'top'=容器类（展开子流程族）顶部标签带：水平居中（2026-10-26 用户定规
-    // "顶部居中"取代 left-top；高度 26 为单行带，多行向下生长不裁剪）
-    const box = mode === 'top'
-      ? { x: 8, y: 6, width: shape.width - 16, height: 26 }
-      : internalLabelBox(shape);
+    // 'top'=展开子流程族顶带居中（2026-10-26 用户定规"顶部居中"）；'band'=
+    // 垂直池/道头带左上（头带标签语义，2026-10-26 误改居中后恢复原左对齐）
+    const box = mode === 'middle'
+      ? internalLabelBox(shape)
+      : { x: 8, y: 6, width: shape.width - 16, height: 26 };
+    const align = mode === 'middle' ? 'center-middle' : mode === 'band' ? 'left-top' : 'center-top';
     const el = this.textUtil.createText(text, {
       box: { width: box.width, height: box.height } as any,
-      align: (mode === 'top' ? 'center-top' : 'center-middle') as any,
+      align: align as any,
       style: { ...INTERNAL_FONT, fill: this.config.labelColor },
       padding: 2
     });
