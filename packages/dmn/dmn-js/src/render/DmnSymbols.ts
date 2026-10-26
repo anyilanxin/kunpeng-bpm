@@ -20,13 +20,12 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * DMN 记法符号库（规范 §6.2 DRD 记法）。
- *
- * 形状框为依据规范记法文字描述自行设计的描边几何（规范不定义像素路径）：
- * - Decision：圆角矩形（§6.2.1）；
- * - BusinessKnowledgeModel：上下边内切角矩形（§6.2.2 罐形）；
- * - InputData：两端半圆胶囊（§6.2.3）；
- * - KnowledgeSource：底边波浪开底（§6.2.4）；
+ * DMN 记法符号库（规范 §6.2 DRD 记法；轮廓几何对齐用户资产 dmnicons
+ * ——2026-10-26 定规「画布图形基于这些图标」）：
+ * - Decision：直角矩形（资产 dmn-icon-decision 平边矩形）；
+ * - BusinessKnowledgeModel：左上+右下双切角罐形（资产 dmn-icon-business-knowledge）；
+ * - InputData：两端半圆胶囊（资产 dmn-icon-input-data）；
+ * - KnowledgeSource：底边三扇波浪开底（资产 dmn-icon-knowledge-source 扇贝节奏）；
  * - DecisionService：粗框矩形+顶带+分割线（§6.2.5）；
  * - TextAnnotation：左界线+开放框（§6.2.6）；
  * - 连线端头：信息需求=实心箭头（§6.2.7）、知识需求=虚线空心箭头、
@@ -55,19 +54,14 @@ function drawRectPath(visuals: SVGElement, d: string, theme: StyleTheme, strokeW
   append(visuals, path);
 }
 
-/** Decision：圆角矩形（半径 8=名字区外留 1 行余量的自有取值） */
+/** Decision：直角矩形（资产 dmn-icon-decision 平边矩形，无圆角） */
 export function drawDecisionShape(visuals: SVGElement, w: number, h: number, theme: StyleTheme): void {
-  const r = 8;
-  drawRectPath(
-    visuals,
-    `M${r},0 H${w - r} A${r},${r} 0 0 1 ${w},${r} V${h - r} A${r},${r} 0 0 1 ${w - r},${h} H${r} A${r},${r} 0 0 1 0,${h - r} V${r} A${r},${r} 0 0 1 ${r},0 Z`,
-    theme
-  );
+  drawRectPath(visuals, `M0,0 H${w} V${h} H0 Z`, theme);
 }
 
-/** BKM：上下边内切角矩形（切角边 SIZES.BKM_CUT） */
+/** BKM：左上+右下双切角罐形（资产 dmn-icon-business-knowledge；切角腿 BKM_CUT） */
 export function drawBkmShape(visuals: SVGElement, w: number, h: number, cut: number, theme: StyleTheme): void {
-  drawRectPath(visuals, `M${cut},0 H${w - cut} L${w},${cut / 2} V${h - cut / 2} L${w - cut},${h} H${cut} L0,${h - cut / 2} V${cut / 2} Z`, theme);
+  drawRectPath(visuals, `M${cut},0 H${w} V${h - cut} L${w - cut},${h} H0 V${cut} Z`, theme);
 }
 
 /** InputData：两端半圆胶囊（半径=高半） */
@@ -76,11 +70,16 @@ export function drawInputDataShape(visuals: SVGElement, w: number, h: number, th
   drawRectPath(visuals, `M${r},0 H${w - r} A${r},${r} 0 0 1 ${w - r},${h} H${r} A${r},${r} 0 0 1 ${r},0 Z`, theme);
 }
 
-/** KnowledgeSource：底边三峰波浪（波幅 KS_WAVE；开底为记法本义，底边波浪线示意文档源） */
+/** KnowledgeSource：底边三扇波浪（资产扇贝节奏；波幅 wave，开底为记法本义——底边波浪线示意文档源） */
 export function drawKnowledgeSourceShape(visuals: SVGElement, w: number, h: number, wave: number, theme: StyleTheme): void {
-  const third = w / 6;
-  const waveD = `M0,0 H${w} V${h - wave} C${w - third},${h + wave} ${w - 3 * third},${h - 2 * wave} ${w / 2},${h - wave} C${3 * third},${h - 2 * wave} ${third},${h + wave} 0,${h - wave} Z`;
-  drawRectPath(visuals, waveD, theme);
+  const seg = w / 3;
+  let d = `M0,0 H${w} V${h - wave}`;
+  for (let i = 0; i < 3; i++) {
+    const x1 = w - i * seg;
+    const x0 = x1 - seg;
+    d += ` C${x1 - seg * 0.25},${h + wave} ${x0 + seg * 0.25},${h + wave} ${x0},${h - wave}`;
+  }
+  drawRectPath(visuals, d + ' Z', theme);
 }
 
 /** DecisionService：粗框（宽 3）+顶带着色+分割线（dividerY 相对值） */

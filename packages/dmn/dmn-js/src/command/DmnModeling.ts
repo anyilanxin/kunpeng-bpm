@@ -26,16 +26,18 @@
 import Modeling from 'diagram-js/lib/features/modeling/Modeling';
 import { UpdatePropertiesHandler, UpdateModdlePropertiesHandler, UpdateLabelHandler } from './DmnUpdateHandlers';
 import { ListAddHandler, ListRemoveHandler, ClauseAddHandler, ClauseRemoveHandler } from './DmnListHandlers';
+import type { DmnFactory } from '../factory/DmnFactory';
+import type { BkmExpressionMode } from '../meta/ElementTypes';
 
 export class DmnModeling extends Modeling {
-  static $inject = ['eventBus', 'elementFactory', 'commandStack'];
+  static $inject = ['eventBus', 'elementFactory', 'commandStack', 'dmnFactory'];
 
   /** 基座 Modeling 的命令栈（protected 转自有私有名，命令门面统一出口） */
   private get commandStack(): { execute(id: string, context: any): void } {
     return (this as unknown as { _commandStack: { execute(id: string, context: any): void } })._commandStack;
   }
 
-  constructor(eventBus: any, elementFactory: any, commandStack: any) {
+  constructor(eventBus: any, elementFactory: any, commandStack: any, private readonly dmnFactory: DmnFactory) {
     super(eventBus, elementFactory, commandStack);
     commandStack.registerHandler('properties.update', UpdatePropertiesHandler as any);
     commandStack.registerHandler('element.updateModdleProperties', UpdateModdlePropertiesHandler as any);
@@ -78,5 +80,28 @@ export class DmnModeling extends Modeling {
     context: { table: any; property: string; entryProperty: string; clause: any; createEntry: () => any }
   ): void {
     this.commandStack.execute('dmn.table.clause.remove', { element, ...context });
+  }
+
+  /**
+   * BKM 表达式模式切换（用户定规 2026-10-26：Literal expression ⇄ Empty，
+   * Empty=无下钻角标）：Literal 建 encapsulatedLogic（FunctionDefinition 包
+   * LiteralExpression 空文本——DMN 1.3 引用盒之外的本地子树，无 id 引用），
+   * Empty 置 undefined（moddle set 语义=删键）。经 updateModdleProperties
+   * 命令入栈（撤销/重做对称，elements.changed 令角标重算）。
+   */
+  switchBkmExpression(element: any, mode: BkmExpressionMode): void {
+    const bo = element.businessObject;
+    const value =
+      mode === 'literal'
+        ? this.dmnFactory.create<any>({
+            $type: 'dmn:FunctionDefinition',
+            body: this.dmnFactory.create<any>({ $type: 'dmn:LiteralExpression', text: '' })
+          })
+        : undefined;
+    this.commandStack.execute('element.updateModdleProperties', {
+      element,
+      moddleElement: bo,
+      properties: { encapsulatedLogic: value }
+    });
   }
 }

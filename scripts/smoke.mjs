@@ -382,7 +382,9 @@ const dmnExpected = [
   'DmnRules', 'connectionTypeFor',
   'DmnModules', 'ViewerModules', 'NavigatedViewerModules',
   'DmnFactory', 'DmnModeling', 'DmnUpdater',
-  'mainDiagram', 'diagramOfElement', 'referenceId'
+  'mainDiagram', 'diagramOfElement', 'referenceId',
+  // 图标基座（用户资产 dmnicons）+ BKM 表达式模式/下钻判定（2026-10-26 定规）
+  'DmnIcons', 'dmnIconBody', 'bkmExpressionMode', 'isDrillableElement'
 ];
 const dmnMissing = dmnExpected.filter((name) => !(name in dmnEsm));
 if (dmnMissing.length > 0) {
@@ -392,6 +394,22 @@ if (dmnMissing.length > 0) {
 const dmnCjs = require('../packages/dmn/dmn-js/dist/dmn-js.cjs');
 if (typeof dmnCjs.Modeler !== 'function' || typeof dmnCjs.connectionTypeFor !== 'function') {
   console.error('dmn-js CJS 导出缺失: Modeler / connectionTypeFor');
+  process.exit(1);
+}
+
+// 图标基座行为（用户资产 dmnicons 映射=index.js 定规；面板运行时注入契约）
+const iconSvg = dmnEsm.DmnIcons.iconOfElement({ $type: 'dmn:Decision' }, 32);
+if (!iconSvg.includes('viewBox="0 0 32 32"') || !iconSvg.includes('width="32"') || dmnEsm.DmnIcons.iconOfElement({ $type: 'dmn:Unknown' }) !== '') {
+  console.error('DmnIcons.iconOfElement 映射/尺寸/未知类型回落不符定规');
+  process.exit(1);
+}
+if (!dmnEsm.DmnIcons.iconOfElement({ $type: 'dmn:DecisionTable' }).includes('M3.56334224')) {
+  console.error('DecisionTable→DRD 网格图标映射缺失（index.js 定规）');
+  process.exit(1);
+}
+// BKM 表达式模式判定（encapsulatedLogic 在=literal，缺=empty）
+if (dmnEsm.bkmExpressionMode({ encapsulatedLogic: {} }) !== 'literal' || dmnEsm.bkmExpressionMode({}) !== 'empty') {
+  console.error('bkmExpressionMode 判定不符定规');
   process.exit(1);
 }
 

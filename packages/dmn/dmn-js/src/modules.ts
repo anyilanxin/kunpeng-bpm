@@ -80,6 +80,7 @@ import { DmnModeling } from './command/DmnModeling';
 import { DmnUpdater } from './behavior/DmnUpdater';
 import { DmnPaletteProvider } from './provider/DmnPaletteProvider';
 import { DmnContextPadProvider } from './provider/DmnContextPadProvider';
+import { DmnExpressionMenuProvider } from './provider/DmnExpressionMenuProvider';
 import { DrillViewService } from './drill/DrillView';
 import { DrillBadgeBehavior } from './drill/DrillBadge';
 
@@ -180,12 +181,13 @@ export const DmnModelingModule: ModuleDeclaration = {
   'dmnUpdater': ['type', DmnUpdater]
 };
 
-/** palette / context pad（DMN 元数据） */
+/** palette / context pad / 弹框（DMN 元数据） */
 export const DmnPaletteModule: ModuleDeclaration = {
-  __depends__: [PaletteModule, ContextPadModule, CreateModule, ConnectModule, DmnModelingModule],
-  __init__: ['dmnPaletteProvider', 'dmnContextPadProvider'],
+  __depends__: [PaletteModule, ContextPadModule, PopupMenuModule, CreateModule, ConnectModule, DmnModelingModule],
+  __init__: ['dmnPaletteProvider', 'dmnContextPadProvider', 'dmnExpressionMenuProvider'],
   'dmnPaletteProvider': ['type', DmnPaletteProvider],
-  'dmnContextPadProvider': ['type', DmnContextPadProvider]
+  'dmnContextPadProvider': ['type', DmnContextPadProvider],
+  'dmnExpressionMenuProvider': ['type', DmnExpressionMenuProvider]
 };
 
 /** 只读查看器模块集（Viewer） */

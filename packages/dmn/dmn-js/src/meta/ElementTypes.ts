@@ -202,3 +202,27 @@ export class DmnElementTypes {
   isRequirementType = isRequirementType;
   isDrgShapeType = isDrgShapeType;
 }
+
+/** BKM 表达式模式（用户定规 2026-10-26）：encapsulatedLogic 在=Literal expression，缺=Empty */
+export type BkmExpressionMode = 'literal' | 'empty';
+
+export function bkmExpressionMode(bo: any): BkmExpressionMode {
+  return bo?.encapsulatedLogic ? 'literal' : 'empty';
+}
+
+/**
+ * 下钻判定（用户定规：唯一区别在图标——可下钻=角标图标（按内容型），
+ * Empty=无角标）：注册表 drillable 为前提；Decision 恒可下钻（点击落
+ * 决策表，G5）；BKM 仅 Literal expression 模式可下钻，Empty 无角标。
+ */
+export function isDrillableElement(element: any): boolean {
+  const type = element?.businessObject?.$type ?? element?.type;
+  const meta = shapeMetaOf(type ?? '');
+  if (!meta?.drillable) {
+    return false;
+  }
+  if (meta.type === 'dmn:BusinessKnowledgeModel') {
+    return bkmExpressionMode(element.businessObject) === 'literal';
+  }
+  return true;
+}

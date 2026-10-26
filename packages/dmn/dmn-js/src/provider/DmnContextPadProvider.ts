@@ -20,19 +20,22 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * context pad：DRG 形状上=连线工具/注记/删除；连线=删除。连线类型由规则层
- * 按拖拽落点现型裁决（connectionTypeFor），pad 只给通用连线入口。
+ * context pad：DRG 形状上=连线工具/注记/删除（BKM 另有「切换表达式」钮，
+ * 打开 Literal expression ⇄ Empty 弹框——Empty=无下钻角标）；连线=删除。
+ * 连线类型由规则层按拖拽落点现型裁决（connectionTypeFor），pad 只给通用连线入口。
  */
 import type ContextPad from 'diagram-js/lib/features/context-pad/ContextPad';
 import type Modeling from 'diagram-js/lib/features/modeling/Modeling';
 import type Create from 'diagram-js/lib/features/create/Create';
 import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
-import type { DmnElementFactory } from '../factory/DmnElementFactory';
+import type PopupMenu from 'diagram-js/lib/features/popup-menu/PopupMenu';
+import { DmnElementFactory } from '../factory/DmnElementFactory';
 import { SIZES } from '../meta/ElementTypes';
 import { toolEntryHtml } from '../icons/ToolIcons';
+import { EXPRESSION_MENU_ID } from './DmnExpressionMenuProvider';
 
 export class DmnContextPadProvider {
-  static $inject = ['contextPad', 'modeling', 'elementFactory', 'create', 'connect', 'dmnI18n'];
+  static $inject = ['contextPad', 'modeling', 'elementFactory', 'create', 'connect', 'popupMenu', 'dmnI18n'];
 
   static readonly PRIORITY = 1000;
 
@@ -42,6 +45,7 @@ export class DmnContextPadProvider {
     private readonly elementFactory: DmnElementFactory & ElementFactory,
     private readonly create: Create,
     private readonly connect: any,
+    private readonly popupMenu: PopupMenu,
     private readonly i18n: { t(s: string): string }
   ) {
     contextPad.registerProvider(DmnContextPadProvider.PRIORITY, this as never);
@@ -66,6 +70,18 @@ export class DmnContextPadProvider {
       }
     };
 
+    if (element.businessObject?.$type === 'dmn:BusinessKnowledgeModel') {
+      entries.switchExpression = {
+        group: 'model',
+        html: toolEntryHtml('business-knowledge'),
+        title: t('切换表达式（Literal expression / Empty）'),
+        action: {
+          click: (event: Event, _e: unknown) =>
+            this.popupMenu.open(element, EXPRESSION_MENU_ID, this.menuPosition(event))
+        }
+      };
+    }
+
     entries.annotate = {
       group: 'model',
       html: toolEntryHtml('note'),
@@ -84,6 +100,12 @@ export class DmnContextPadProvider {
 
     entries.delete = this.deleteEntry(element, t('删除'));
     return entries;
+  }
+
+  /** 弹框锚点：触发钮的点击位（基座弹层自动收敛进视口） */
+  private menuPosition(event: Event): { x: number; y: number } {
+    const e = event as MouseEvent;
+    return { x: e.clientX, y: e.clientY };
   }
 
   private deleteEntry(element: any, title: string): Record<string, unknown> {

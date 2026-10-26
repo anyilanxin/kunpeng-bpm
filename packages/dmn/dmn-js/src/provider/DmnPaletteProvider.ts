@@ -31,12 +31,12 @@ import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
 import type { DmnElementFactory } from '../factory/DmnElementFactory';
 import { toolEntryHtml, type ToolIconName } from '../icons/ToolIcons';
 
-/** palette 定规四形状（顺序=面板序：Decision → InputData → KS → BKM） */
+/** palette 定规四形状（顺序=面板序：Decision → InputData → KS → BKM；图标=用户资产 dmnicons 定名） */
 const CREATE_ENTRIES: Array<{ type: string; label: string; icon: ToolIconName }> = [
-  { type: 'dmn:Decision', label: '创建决策', icon: 'grid' },
-  { type: 'dmn:InputData', label: '创建输入数据', icon: 'input' },
-  { type: 'dmn:KnowledgeSource', label: '创建知识源', icon: 'source' },
-  { type: 'dmn:BusinessKnowledgeModel', label: '创建业务知识模型', icon: 'literal' }
+  { type: 'dmn:Decision', label: '创建决策', icon: 'decision' },
+  { type: 'dmn:InputData', label: '创建输入数据', icon: 'input-data' },
+  { type: 'dmn:KnowledgeSource', label: '创建知识源', icon: 'knowledge-source' },
+  { type: 'dmn:BusinessKnowledgeModel', label: '创建业务知识模型', icon: 'business-knowledge' }
 ];
 
 export class DmnPaletteProvider implements PaletteProvider {

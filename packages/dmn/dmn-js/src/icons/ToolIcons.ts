@@ -30,6 +30,7 @@
  */
 import { iconSetAsset } from './IconSet';
 import { svgShell, entryShell } from './shell';
+import { dmnIconBody, type DmnIconName } from './DmnIconSet';
 
 const S = 'fill="none" stroke="currentColor" stroke-width="1.5"';
 
@@ -39,6 +40,11 @@ function setScaled18(key: Parameters<typeof iconSetAsset>[0]): string {
   return `<g transform="scale(${(18 / a.w).toFixed(6)})" fill="currentColor">${a.body}</g>`;
 }
 
+/** DMN 记法资产缩进 18 视框（用户资产 dmnicons，32 视框等比 0.5625） */
+function dmnScaled18(name: DmnIconName): string {
+  return `<g transform="scale(${18 / 32})">${dmnIconBody(name)}</g>`;
+}
+
 const ICON_BODIES: Record<string, string> = {
   // 抓手（图标集 toolHand 手掌剪影）
   hand: setScaled18('toolHand'),
@@ -46,9 +52,8 @@ const ICON_BODIES: Record<string, string> = {
   lasso: setScaled18('toolLasso'),
   // 空间工具（图标集 toolSpace 两侧界块+推移元素）
   space: setScaled18('toolSpace'),
-  // 连线（图标集 connection 实心细箭头；画布顺序流箭头按其头部 3:1 等比——
-  // 工具语义与连线视觉同形态语言）
-  connect: setScaled18('connection'),
+  // 连线（用户资产：信息需求实心箭头——通用连线入口，类型按落点裁决）
+  connect: dmnScaled18('information-requirement'),
   // 替换：开口扳手（图标集 toolWrench——头部开口钳口，替换/服务动作族同语言）
   wrench: setScaled18('toolWrench'),
   // 泳道插入（上/下）：横带 + 头带刻线，+ 号位置示方向
@@ -76,19 +81,17 @@ const ICON_BODIES: Record<string, string> = {
     `<path d="M9,3.5 V14.5 M3.5,9 H14.5" ${S} stroke-linecap="round"/>`,
   // 删除：垃圾桶（图标集 toolTrash——带盖提手 + 竖刻筋剪影）
   trash: setScaled18('toolTrash'),
-  // —— DMN DRG 形状记法缩样（palette 创建条目，与画布 DmnSymbols 同源语言）——
-  // 决策：方框内表格刻线（决策承载决策表，网格=决策表语义）
-  grid:
-    `<rect x="2.5" y="3.5" width="13" height="11" rx="1.5" ${S}/>` +
-    `<path d="M2.5,7.2 H15.5 M7.8,7.2 V14.5" ${S}/>`,
-  // 输入数据：胶囊（圆角全倒边）
-  input: `<rect x="2.5" y="5" width="13" height="8" rx="4" ${S}/>`,
-  // 知识源：方框底边波浪
-  source: `<path d="M2.5,4 H15.5 V12.4 C13,11 10.5,13.8 8,12.4 C5.5,11 4,13.4 2.5,12.4 Z" ${S}/>`,
-  // 业务知识模型：方框右上切角（承载函数字面表达式）
-  literal: `<path d="M2.5,4 H11 L15.5,8.5 V14.5 H2.5 Z" ${S}/>`,
-  // 注记：左括号形（DMN/BPMN 注记记法缩样——左界线+上下短横）
-  note: `<path d="M12.5,3.5 H5.5 V14.5 H12.5" ${S} stroke-linecap="round"/>`
+  // —— DMN 记法图标（用户资产 dmnicons，2026-10-26 定规：palette/pad/画布/角标同源）——
+  // 决策（创建决策条目）：平边矩形（画布 Decision 形状同记法）
+  decision: dmnScaled18('decision'),
+  // 输入数据：胶囊
+  'input-data': dmnScaled18('input-data'),
+  // 知识源：底边波浪
+  'knowledge-source': dmnScaled18('knowledge-source'),
+  // 业务知识模型：左上/右下双切角罐形
+  'business-knowledge': dmnScaled18('business-knowledge'),
+  // 注记：左界线+斜纹（用户资产 text-annotation 记法）
+  note: dmnScaled18('text-annotation')
 };
 
 /** 工具/动作图标名：palette 工具区与 context pad 动作钮的合法取值 */

@@ -49,6 +49,17 @@ export class DmnElementFactory extends ElementFactoryBase {
         $type: semanticType,
         ...(attrs.name !== undefined ? { name: attrs.name } : {})
       });
+      // palette 建形缺省（用户定规：create knowledge model 落形即可下钻）：
+      // BKM 自带 encapsulatedLogic（Literal 空表达式）——Empty 由 pad 切换
+      if (semanticType === 'dmn:BusinessKnowledgeModel') {
+        businessObject.set(
+          'encapsulatedLogic',
+          this.dmnFactory.create<any>({
+            $type: 'dmn:FunctionDefinition',
+            body: this.dmnFactory.create<any>({ $type: 'dmn:LiteralExpression', text: '' })
+          })
+        );
+      }
     }
 
     const merged: any = { ...attrs };
