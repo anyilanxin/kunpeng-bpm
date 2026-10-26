@@ -28,7 +28,7 @@ import BaseRenderer from 'diagram-js/lib/draw/BaseRenderer';
 import type EventBus from 'diagram-js/lib/core/EventBus';
 import type TextUtil from 'diagram-js/lib/util/Text';
 import { append, attr, create } from 'tiny-svg';
-import { SIZES, shapeMetaOf } from '../meta/ElementTypes';
+import { SIZES } from '../meta/ElementTypes';
 import {
   drawDecisionShape,
   drawBkmShape,
@@ -65,9 +65,6 @@ const TIP_RETREAT = 2;
 /** 连线记法：知识/权威需求虚线（规范 §6.2.7 dashed），关联长虚线弱化 */
 const DASH_REQUIREMENT = '6 4';
 const DASH_ASSOCIATION = '4 4';
-
-/** 下钻图标（左上角 12×12 网格形+右下角空隙，记法=进入内部编辑）：描边小方格 */
-const DRILL_ICON = 'M2,2 H12 V12 M10,14 H14 V10';
 
 export class DmnRenderer extends BaseRenderer {
   static $inject = ['eventBus', 'textRenderer', 'config.dmnRenderer'];
@@ -121,7 +118,6 @@ export class DmnRenderer extends BaseRenderer {
         drawDecisionShape(visuals, shape.width, shape.height, theme);
     }
     this.drawName(visuals, shape, type);
-    this.drawDrillIcon(visuals, shape, type);
     return visuals;
   }
 
@@ -195,29 +191,8 @@ export class DmnRenderer extends BaseRenderer {
     append(visuals, el);
   }
 
-  /**
-   * 左上角下钻图标（用户定规 2026-10-26）：可下钻元素（注册表 drillable）
-   * 左上角 14×14 记法图标（网格+入口缺口=进入内部编辑）。绘制只管视觉，
-   * 命中/点击由 plane 下钻层经元素事件接（左上角矩形命中测试）。
-   */
-  private drawDrillIcon(visuals: SVGElement, shape: any, type: string): void {
-    const meta = shapeMetaOf(type);
-    if (!meta?.drillable) {
-      return;
-    }
-    const icon = create('path');
-    attr(icon, {
-      d: DRILL_ICON,
-      fill: 'none',
-      stroke: this.config.labelColor,
-      'stroke-width': 1.2,
-      'stroke-linecap': 'round',
-      'stroke-linejoin': 'round',
-      transform: 'translate(4 4) scale(0.9)',
-      'data-drill-icon': type
-    });
-    append(visuals, icon);
-  }
+  // 下钻角标不走渲染层：DrillBadgeBehavior 以 overlays 挂 DOM 按钮（原生
+  // 点击不进画布事件链，移动/删除跟随由 Overlays 基座承担）
 
   private theme(): StyleTheme {
     return {

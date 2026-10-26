@@ -80,6 +80,8 @@ import { DmnModeling } from './command/DmnModeling';
 import { DmnUpdater } from './behavior/DmnUpdater';
 import { DmnPaletteProvider } from './provider/DmnPaletteProvider';
 import { DmnContextPadProvider } from './provider/DmnContextPadProvider';
+import { DrillViewService } from './drill/DrillView';
+import { DrillBadgeBehavior } from './drill/DrillBadge';
 
 /** 只读查看平台特性（Viewer 底座） */
 export const ViewerPlatformModules: ModuleDeclaration[] = [
@@ -129,11 +131,12 @@ export const PlatformModules: ModuleDeclaration[] = [
   ...EditorPlatformModules
 ];
 
-/** DMN 核心：类型表/工厂/渲染/词典/模式（三形态恒装） */
+/** DMN 核心：类型表/工厂/渲染/词典/模式/下钻（三形态恒装） */
 export const DmnCoreModule: ModuleDeclaration = {
   // dmnRenderer 必须急切构造：BaseRenderer 仅在构造时向 eventBus 注册，
-  // 懒构造会落到 diagram-js 的 fuchsia 兜底渲染；dmnMode 同理（首帧容器标记）
-  __init__: ['dmnRenderer', 'dmnMode'],
+  // 懒构造会落到 diagram-js 的 fuchsia 兜底渲染；dmnMode 同理（首帧容器标记）；
+  // drillView/drillBadge 急切（监听导入/创建时机挂角标）
+  __init__: ['dmnRenderer', 'dmnMode', 'drillView', 'drillBadge'],
   'dmnIds': ['factory', () => new Ids([36, 36, 1])],
   'dmnElementTypes': ['type', ElementTypesClass],
   'dmnFactory': ['type', DmnFactory],
@@ -145,7 +148,9 @@ export const DmnCoreModule: ModuleDeclaration = {
   })],
   'dmnRenderer': ['type', DmnRenderer],
   'dmnI18n': ['type', DmnI18n],
-  'translate': ['factory', (dmnI18n: { t(s: string): string }) => (text: string) => dmnI18n.t(text)]
+  'translate': ['factory', (dmnI18n: { t(s: string): string }) => (text: string) => dmnI18n.t(text)],
+  'drillView': ['type', DrillViewService],
+  'drillBadge': ['type', DrillBadgeBehavior]
 };
 
 /** IO：读写器/命名空间/文档状态/建图器 */

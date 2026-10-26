@@ -278,3 +278,72 @@
   color: #7f7f7f;
   flex-shrink: 0;
 }
+
+/* ===================== 下钻角标 + 同页面下钻视图（G4，用户定规 2026-10-26 终版） ===================== */
+
+/* 右上角蓝底白网格角标（overlays 挂载的 DOM 按钮）：原生点击不进画布
+   事件链（不误触选中/拖拽）；预览模式隐藏（只读浏览不提供编辑入口） */
+.dmn-drill-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: all;
+}
+.dmn-drill-badge svg {
+  display: block;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1.5px #fff, 0 1px 3px rgb(0 0 0 / 20%);
+}
+.dmn-drill-badge:hover svg {
+  filter: brightness(1.08);
+}
+.bpmn-preview-mode .djs-overlay .dmn-drill-badge {
+  display: none;
+}
+
+/* 下钻编辑视图：整面覆盖画布区（同页面切换，画布 DOM 保持挂载不动） */
+.dmn-drill-view {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+.dmn-drill-view-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-bottom: 1px solid #e0e3e8;
+  flex-shrink: 0;
+}
+.dmn-drill-back {
+  padding: 4px 12px;
+  border: 1px solid #c8ccd4;
+  border-radius: 4px;
+  background: #fff;
+  font: 600 13px/1.4 system-ui, "PingFang SC", sans-serif;
+  color: #1a1f2b;
+  cursor: pointer;
+}
+.dmn-drill-back:hover {
+  border-color: #4d8fff;
+  color: #1461c9;
+}
+.dmn-drill-view-title {
+  font: 600 15px/1.4 system-ui, "PingFang SC", sans-serif;
+  color: #1a1f2b;
+}
+.dmn-drill-view-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
