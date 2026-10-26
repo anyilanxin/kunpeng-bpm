@@ -20,8 +20,10 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * 下钻角标（用户定规 2026-10-26 终版）：可下钻元素（注册表 drillable：
- * Decision/BKM）右上角蓝底白网格角标，点击进同页面编辑视图。
+ * 下钻角标（用户定规 2026-10-26 终版+截图校准）：可下钻元素（注册表
+ * drillable：Decision/BKM）**元素内部左上角**蓝底角标，点击进同页面编辑
+ * 视图。角标图形按元素类型区分（截图定规）：Decision=白网格（决策表）、
+ * BKM=白花括号（boxed/字面表达式）。
  *
  * 实现走 diagram-js overlays（原生 DOM 按钮）：点击不进画布事件链——
  * 不会误触选中/拖拽；移动/缩放/删除的跟随与清理由 Overlays 基座自动
@@ -36,17 +38,27 @@ import { shapeMetaOf } from '../meta/ElementTypes';
 
 const BADGE_TYPE = 'dmn-drill-badge';
 
-// 角标骑缝右上角：18px 方标取 -9/-9 半出半入（overlays 定位语义：
-// top/right 为到元素边的外偏移，负值向外）
-const BADGE_POSITION = { top: -9, right: -9 };
+// 元素内部左上角（用户定规：固定在元素内部左上角）——overlays 定位语义
+// top/left 正值向内，距上/左各留 4px 视觉边距
+const BADGE_POSITION = { top: 4, left: 4 };
 
-// 蓝底白网格（用户截图定规）：亮蓝与画布主题色系解耦（导航角标恒定
- // 可辨），白格线三行两列=决策表记法缩样
-const BADGE_SVG =
-  '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">' +
-  '<rect x="0.75" y="0.75" width="16.5" height="16.5" rx="3" fill="#4d8fff"/>' +
-  '<path d="M1 6.4 H17 M7.2 6.4 V17 M12.4 6.4 V17" stroke="#fff" stroke-width="1.5"/>' +
-  '</svg>';
+// 蓝底白图形（用户截图定规）：亮蓝与画布主题色系解耦（导航角标恒定可辨）；
+// 决策=三行两列网格（决策表记法缩样）、BKM=花括号（boxed/字面表达式记法）
+const BADGE_ICON_BY_TYPE: Record<string, string> = {
+  'dmn:Decision':
+    '<path d="M1 6.4 H17 M7.2 6.4 V17 M12.4 6.4 V17" stroke="#fff" stroke-width="1.5"/>',
+  'dmn:BusinessKnowledgeModel':
+    '<path d="M7.2 4.2 C5.4 4.2 5.4 7 5.4 8 C5.4 9.4 4.6 10 3.4 10.2 C4.6 10.4 5.4 11 5.4 12.4 C5.4 13.4 5.4 16.2 7.2 16.2 M10.8 4.2 C12.6 4.2 12.6 7 12.6 8 C12.6 9.4 13.4 10 14.6 10.2 C13.4 10.4 12.6 11 12.6 12.4 C12.6 13.4 12.6 16.2 10.8 16.2" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>'
+};
+
+function badgeSvg(type: string): string {
+  return (
+    '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">' +
+    '<rect x="0.75" y="0.75" width="16.5" height="16.5" rx="3" fill="#4d8fff"/>' +
+    (BADGE_ICON_BY_TYPE[type] ?? BADGE_ICON_BY_TYPE['dmn:Decision']) +
+    '</svg>'
+  );
+}
 
 export class DrillBadgeBehavior {
   static $inject = ['eventBus', 'overlays', 'elementRegistry', 'drillView'];
@@ -81,7 +93,7 @@ export class DrillBadgeBehavior {
     button.type = 'button';
     button.className = 'dmn-drill-badge';
     button.title = `编辑${meta.label}`;
-    button.innerHTML = BADGE_SVG;
+    button.innerHTML = badgeSvg(element.businessObject?.$type ?? element.type);
     button.addEventListener('click', (event) => {
       event.stopPropagation();
       this.drillView.open(element);
