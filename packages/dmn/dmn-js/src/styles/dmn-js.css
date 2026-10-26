@@ -99,92 +99,154 @@
   z-index: 10;
 }
 
-/* ── 决策表编辑器（DOM 网格）── */
+/* ── 决策表编辑器（DOM 网格，bpmn.io 风格：白底细灰线、族界圆形加号）──
+   色板自设计：线 #d9d9d9 / 主文 #222 / 次文 #888 / 弱文 #999 / 焦点 #4c9aff */
 .dmn-table-editor {
-  padding: 16px 20px 40px;
+  padding: 0 20px 40px;
 }
 
+/* 头部行：决策名 + 命中策略 */
+.dmn-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 4px 10px;
+}
+
+.dmn-table-title {
+  flex: 0 1 320px;
+  min-width: 120px;
+  font-size: 20px;
+  font-weight: 500;
+  color: #222222;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 2px 6px;
+  background: transparent;
+}
+
+.dmn-table-title:hover,
+.dmn-table-title:focus {
+  border-color: #d9d9d9;
+  background: #ffffff;
+  outline: none;
+}
+
+.dmn-table-hitbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.dmn-table-hitbar-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #222222;
+}
+
+.dmn-table-select,
+.dmn-clause-type-select {
+  font-size: 12px;
+  border: 1px solid #cccccc;
+  border-radius: 3px;
+  padding: 3px 6px;
+  background: #ffffff;
+  color: #222222;
+}
+
+.dmn-table-agg {
+  max-width: 96px;
+}
+
+/* 表体：白底、细灰线；wrap 可见溢出（族界加号骑缝凸出表缘） */
 .dmn-table-wrap {
   display: inline-block;
   min-width: 420px;
-  border: 1px solid #c9c9c9;
-  border-radius: 4px;
-  overflow: hidden;
   background: #ffffff;
+  /* 右侧给骑缝在表缘的加号留半径空间，避免贴容器边被裁 */
+  padding-right: 12px;
 }
 
 .dmn-table-grid {
   border-collapse: collapse;
   table-layout: fixed;
+  border: 1px solid #d9d9d9;
 }
 
-/* 左上角命中策略格 */
-.dmn-table-grid .dmn-table-hit {
-  background: #f4f5f7;
-  border: 1px solid #dfe1e6;
-  padding: 4px;
-  min-width: 120px;
-  vertical-align: top;
+.dmn-table-grid th,
+.dmn-table-grid td {
+  border: 1px solid #d9d9d9;
 }
 
-.dmn-table-grid .dmn-table-hit select,
-.dmn-clause-type,
-.dmn-table-select {
+/* 行号列（含跨两行的左上角空格） */
+.dmn-table-corner,
+.dmn-table-grid .dmn-table-rownum {
+  width: 36px;
+  min-width: 36px;
+  text-align: center;
+  vertical-align: middle;
   font-size: 12px;
-  border: 1px solid #dfe1e6;
-  border-radius: 3px;
-  padding: 2px 4px;
+  color: #999999;
   background: #ffffff;
-  color: #172b4d;
-  max-width: 110px;
 }
 
-.dmn-table-agg {
-  margin-top: 4px;
-  max-width: 110px;
-}
-
-/* 子句（列）头 */
-.dmn-table-grid .dmn-table-clause {
-  border: 1px solid #dfe1e6;
-  padding: 4px 6px;
-  min-width: 140px;
+/* 组头行（When/And | Then/And | Annotations）：小字浅灰，Annotations 跨列居中 */
+.dmn-table-group {
+  position: relative;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #888888;
+  text-align: left;
   vertical-align: top;
-  background: #fafbfc;
+  background: #ffffff;
 }
 
-.dmn-table-grid .dmn-table-input {
-  background: #e8f1ff;
+.dmn-table-group.dmn-group-annotation {
+  text-align: center;
 }
 
-.dmn-table-grid .dmn-table-output {
-  background: #e6f4ea;
+/* 族界圆形加号：深灰底白字骑缝，垂直对组头行中线 */
+.dmn-seam-add {
+  position: absolute;
+  top: 50%;
+  margin-top: -10px;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: #444444;
+  color: #ffffff;
+  font-size: 14px;
+  line-height: 18px;
+  text-align: center;
+  cursor: pointer;
+  padding: 0;
+  z-index: 2;
 }
 
-.dmn-table-grid .dmn-table-annotation {
-  background: #fff7e6;
+.dmn-seam-add:hover {
+  background: #111111;
 }
 
-.dmn-clause-title {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.dmn-clause-badge {
-  font-size: 11px;
-  padding: 1px 5px;
-  border-radius: 3px;
-  background: rgba(9, 30, 66, 0.08);
-  color: #42526e;
-  white-space: nowrap;
+/* 列头行：名称居中浅灰、typeRef 小字右下角、删除 × 悬停右上 */
+.dmn-table-grid .dmn-table-clause {
+  position: relative;
+  min-width: 140px;
+  padding: 10px 10px 16px;
+  vertical-align: middle;
+  background: #ffffff;
 }
 
 .dmn-clause-name {
-  flex: 1;
-  min-width: 60px;
-  font-size: 12px;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  font-size: 15px;
+  color: #666666;
   border: 1px solid transparent;
   border-radius: 3px;
   padding: 2px 4px;
@@ -193,38 +255,60 @@
 
 .dmn-clause-name:hover,
 .dmn-clause-name:focus {
-  border-color: #dfe1e6;
+  border-color: #d9d9d9;
   background: #ffffff;
+  color: #222222;
   outline: none;
+}
+
+.dmn-clause-type {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  color: #999999;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.dmn-clause-type:hover {
+  color: #222222;
+}
+
+.dmn-clause-type-select {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  max-width: 120px;
+  z-index: 2;
 }
 
 .dmn-clause-del {
   visibility: hidden;
+  position: absolute;
+  top: 2px;
+  right: 2px;
   border: none;
   background: transparent;
-  color: #de350b;
+  color: #999999;
   cursor: pointer;
   font-size: 13px;
   line-height: 1;
   padding: 0 3px;
+  z-index: 2;
+}
+
+.dmn-clause-del:hover {
+  color: #de350b;
 }
 
 .dmn-table-clause:hover .dmn-clause-del {
   visibility: visible;
 }
 
-/* 行号列与行内操作 */
-.dmn-table-grid .dmn-table-rownum {
-  border: 1px solid #dfe1e6;
-  background: #f4f5f7;
-  text-align: center;
-  vertical-align: middle;
-  padding: 2px 6px;
-  font-size: 12px;
-  color: #6b778c;
-  white-space: nowrap;
-}
-
+/* 行内操作（行号格悬停） */
 .dmn-row-ops {
   display: none;
   margin-left: 2px;
@@ -237,7 +321,7 @@
 .dmn-tiny-btn {
   border: none;
   background: transparent;
-  color: #42526e;
+  color: #999999;
   cursor: pointer;
   font-size: 11px;
   padding: 0 2px;
@@ -250,7 +334,6 @@
 
 /* 单元格 */
 .dmn-table-grid .dmn-table-cell {
-  border: 1px solid #dfe1e6;
   padding: 0;
   vertical-align: middle;
 }
@@ -259,9 +342,14 @@
   width: 100%;
   box-sizing: border-box;
   border: none;
-  padding: 5px 8px;
+  padding: 6px 8px;
   font-size: 13px;
+  color: #222222;
   background: transparent;
+}
+
+.dmn-cell-input::placeholder {
+  color: #cccccc;
 }
 
 .dmn-cell-input:focus {
@@ -270,39 +358,74 @@
   background: #ffffff;
 }
 
-/* 添加行/列 */
+/* 表底行：行号列底格 "+"，其余格留空 */
 .dmn-table-grid .dmn-table-add-rule {
-  border: 1px dashed #c9c9c9;
-  padding: 2px;
   text-align: center;
-  background: #fafbfc;
+  padding: 2px;
 }
 
-.dmn-table-btn {
+.dmn-row-add {
   border: none;
   background: transparent;
-  color: #0747a6;
-  font-size: 12px;
+  color: #4c9aff;
+  font-size: 16px;
+  line-height: 1;
   cursor: pointer;
-  padding: 4px 10px;
+  padding: 2px 6px;
 }
 
-.dmn-table-btn:hover {
-  text-decoration: underline;
-}
-
-.dmn-table-actions {
-  margin-top: 6px;
-  display: flex;
-  gap: 8px;
+.dmn-row-add:hover {
+  color: #0747a6;
 }
 
 /* 只读（预览形态）：条目输入整体禁用外观 */
 .dmn-editor-layer .dmn-cell-input:disabled,
-.dmn-editor-layer .dmn-clause-name:disabled {
-  color: #172b4d;
+.dmn-editor-layer .dmn-clause-name:disabled,
+.dmn-editor-layer .dmn-table-title:disabled {
+  color: #222222;
   background: transparent;
   cursor: default;
+}
+
+.dmn-editor-layer .dmn-clause-type:disabled {
+  cursor: default;
+}
+
+/* ── 下钻徽标与编辑器返回钮 ──
+   徽标=画布元素右下角 overlays 小方钮（bpmn 线折叠子流程下钻徽标同款语义）；
+   返回钮=各表达式编辑器头部左侧出口 */
+.dmn-drill-badge {
+  width: 22px;
+  height: 22px;
+  border: 1px solid #d9d9d9;
+  border-radius: 3px;
+  background: #ffffff;
+  color: #666666;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dmn-drill-badge:hover {
+  background: #f2f2f2;
+  color: #222222;
+  border-color: #aaaaaa;
+}
+
+.dmn-editor-back {
+  border: none;
+  background: transparent;
+  color: #4c9aff;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 4px;
+  white-space: nowrap;
+}
+
+.dmn-editor-back:hover {
+  color: #0747a6;
 }
 
 /* ── 字面表达式编辑器 ── */

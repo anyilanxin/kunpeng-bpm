@@ -80,7 +80,15 @@ export const sampleDmn = `<?xml version="1.0" encoding="UTF-8"?>
       <dmn:requiredDecision href="#Decision_1"/>
     </dmn:informationRequirement>
   </dmn:decision>
-  <dmn:businessKnowledgeModel id="BusinessKnowledgeModel_1" name="评级规则库"/>
+  <dmn:businessKnowledgeModel id="BusinessKnowledgeModel_1" name="评级规则库">
+    <dmn:encapsulatedLogic id="EncLogic_1">
+      <dmn:formalParameter id="Param_1" name="信用分" typeRef="integer"/>
+      <dmn:formalParameter id="Param_2" name="年龄" typeRef="integer"/>
+      <dmn:literalExpression id="EncBody_1">
+        <dmn:text>信用分 * 0.7 + 年龄 * 0.3</dmn:text>
+      </dmn:literalExpression>
+    </dmn:encapsulatedLogic>
+  </dmn:businessKnowledgeModel>
   <dmn:knowledgeSource id="KnowledgeSource_1" name="风控政策文件"/>
   <dmn:association id="Association_1">
     <dmn:sourceRef href="#Decision_1"/>

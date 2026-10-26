@@ -102,13 +102,31 @@ export class DmnViews {
     });
   }
 
-  /** 视图清单：DRD 恒在首位，其后按文档序为各带可编辑表达式的决策 */
+  /** 视图清单：DRD 恒在首位，其后按文档序为各带可编辑表达式的决策/BKM */
   list(): DmnView[] {
     return this.views;
   }
 
   getActive(): DmnView {
     return this.views.find((v) => v.id === this.activeId) ?? { id: 'drd', kind: 'drd', name: 'DRD', element: null };
+  }
+
+  /**
+   * 下钻视图判定：元素 bo 有表达式编辑视图时返回其视图 id（=bo.id），否则 null。
+   * 决策=decisionLogic 可识别；BKM=encapsulatedLogic 存在（规范：恒 FunctionDefinition→boxed）。
+   * DrillDownBehavior（徽标）与 recompute（清单）共用此单一判定点。
+   */
+  viewIdFor(bo: any): string | null {
+    if (!bo) {
+      return null;
+    }
+    if (bo.$type === 'dmn:Decision') {
+      return EXPRESSION_VIEWS[bo.decisionLogic?.$type ?? ''] ? bo.id : null;
+    }
+    if (bo.$type === 'dmn:BusinessKnowledgeModel') {
+      return bo.encapsulatedLogic ? bo.id : null;
+    }
+    return null;
   }
 
   /** 打开视图：DRD=收编辑器层亮画布层；决策=挂对应编辑器 */
@@ -124,13 +142,13 @@ export class DmnViews {
   private recompute(): boolean {
     const views: DmnView[] = [{ id: 'drd', kind: 'drd', name: 'DRD', element: null }];
     for (const bo of this.state.definitions.drgElement ?? []) {
-      if (bo.$type !== 'dmn:Decision') {
+      if (!this.viewIdFor(bo)) {
         continue;
       }
-      const kind = EXPRESSION_VIEWS[bo.decisionLogic?.$type ?? ''];
-      if (!kind) {
-        continue;
-      }
+      const kind =
+        bo.$type === 'dmn:BusinessKnowledgeModel'
+          ? 'boxed'
+          : EXPRESSION_VIEWS[bo.decisionLogic?.$type ?? ''];
       views.push({ id: bo.id, kind, name: bo.name || bo.id, element: bo });
     }
     this.views = views;

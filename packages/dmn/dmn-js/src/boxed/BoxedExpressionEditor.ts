@@ -33,6 +33,7 @@
  * 嵌套决策表暂不在内嵌范围（显式提示，见需求文档登记）。
  */
 import type { DmnFactory } from '../factory/DmnFactory';
+import { backButton } from '../views/backButton';
 import type { DmnMode } from '../mode/DmnMode';
 import type { DmnI18n } from '../i18n/DmnI18n';
 
@@ -57,6 +58,8 @@ export interface BoxedExpressionEditorDeps {
   dmnFactory: DmnFactory;
   dmnMode: DmnMode;
   i18n: DmnI18n;
+  /** 视图管理（返回 DRD 通道） */
+  dmnViews: { open(id: string): void };
 }
 
 export class BoxedExpressionEditor {
@@ -65,7 +68,8 @@ export class BoxedExpressionEditor {
 
   constructor(
     container: HTMLElement,
-    private readonly decision: any,
+    /** 表达式宿主：决策（decisionLogic）或 BKM（encapsulatedLogic） */
+    private readonly host: any,
     private readonly deps: BoxedExpressionEditorDeps
   ) {
     this.root = document.createElement('div');
@@ -91,8 +95,17 @@ export class BoxedExpressionEditor {
     return this.deps.dmnMode.isEditable();
   }
 
+  /** BKM 宿主的逻辑字段是 encapsulatedLogic（规范：恒 FunctionDefinition） */
+  private get isBkm(): boolean {
+    return this.host.$type === 'dmn:BusinessKnowledgeModel';
+  }
+
+  private get logic(): any {
+    return this.isBkm ? this.host.encapsulatedLogic : this.host.decisionLogic;
+  }
+
   private get canvasElement(): any {
-    return this.deps.elementRegistry.get(this.decision.id);
+    return this.deps.elementRegistry.get(this.host.id);
   }
 
   private get t(): (s: string) => string {
@@ -106,16 +119,17 @@ export class BoxedExpressionEditor {
     const wrap = document.createElement('div');
     wrap.className = 'dmn-boxed-wrap';
 
-    // 顶栏：决策名 + decisionLogic 类型切换
+    // 顶栏：返回 DRD + 宿主名 + decisionLogic 类型切换（BKM 恒 FunctionDefinition 壳，不切）
     const bar = document.createElement('div');
     bar.className = 'dmn-boxed-bar';
+    bar.appendChild(backButton(this.t, () => this.deps.dmnViews.open('drd')));
     const name = document.createElement('span');
     name.className = 'dmn-boxed-title';
-    name.textContent = this.decision.name || this.decision.id;
+    name.textContent = this.host.name || this.host.id;
     bar.appendChild(name);
-    if (this.editable) {
-      const select = this.typeSelect(TOP_LEVEL_TYPES, this.decision.decisionLogic?.$type, (value) => {
-        this.deps.modeling.updateModdleProperties(this.canvasElement, this.decision, {
+    if (this.editable && !this.isBkm) {
+      const select = this.typeSelect(TOP_LEVEL_TYPES, this.logic?.$type, (value) => {
+        this.deps.modeling.updateModdleProperties(this.canvasElement, this.host, {
           decisionLogic: this.newExpression(value)
         });
       });
@@ -124,7 +138,7 @@ export class BoxedExpressionEditor {
     }
     wrap.appendChild(bar);
 
-    wrap.appendChild(this.renderNode(this.decision.decisionLogic, 0));
+    wrap.appendChild(this.renderNode(this.logic, 0));
     this.root.replaceChildren(wrap);
   }
 

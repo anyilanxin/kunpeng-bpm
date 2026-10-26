@@ -27,6 +27,7 @@
 import type { DmnFactory } from '../factory/DmnFactory';
 import type { DmnMode } from '../mode/DmnMode';
 import type { DmnI18n } from '../i18n/DmnI18n';
+import { backButton } from '../views/backButton';
 
 /** 与决策表 typeRef 下拉同源的类型候选（FEEL 基础类型） */
 const TYPE_REFS = [
@@ -52,6 +53,8 @@ export interface LiteralExpressionEditorDeps {
   dmnFactory: DmnFactory;
   dmnMode: DmnMode;
   i18n: DmnI18n;
+  /** 视图管理（返回 DRD 通道） */
+  dmnViews: { open(id: string): void };
 }
 
 export class LiteralExpressionEditor {
@@ -103,9 +106,10 @@ export class LiteralExpressionEditor {
     const wrap = document.createElement('div');
     wrap.className = 'dmn-literal-wrap';
 
-    // 顶栏：类型切换 / 变量名 / 变量类型 / 表达式语言
+    // 顶栏：返回 DRD / 类型切换 / 变量名 / 变量类型 / 表达式语言
     const bar = document.createElement('div');
     bar.className = 'dmn-literal-bar';
+    bar.prepend(backButton(t, () => this.deps.dmnViews.open('drd')));
     if (this.editable) {
       const kindSelect = document.createElement('select');
       kindSelect.className = 'dmn-literal-input';

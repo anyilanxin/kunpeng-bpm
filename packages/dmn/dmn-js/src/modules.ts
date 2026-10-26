@@ -99,6 +99,7 @@ import { DmnReplaceMenuProvider } from './provider/DmnReplaceMenuProvider';
 import { DmnEditorActions } from './provider/DmnEditorActions';
 import DirectEditingModule from 'diagram-js-direct-editing';
 import { DmnViews } from './views/DmnViews';
+import { DrillDownBehavior } from './behavior/DrillDownBehavior';
 import { DecisionTableEditor } from './table/DecisionTableEditor';
 import { LiteralExpressionEditor } from './literal/LiteralExpressionEditor';
 import { BoxedExpressionEditor } from './boxed/BoxedExpressionEditor';
@@ -297,12 +298,13 @@ export const DmnContextPadModule: ModuleDeclaration = {
  */
 export const DmnTableModule: ModuleDeclaration = {
   __depends__: [DmnModelingModule],
-  __init__: ['dmnViews'],
+  __init__: ['dmnViews', 'drillDownBehavior'],
   'dmnViews': ['type', DmnViews],
+  'drillDownBehavior': ['type', DrillDownBehavior],
   'decisionTableEditorFactory': [
     'factory',
     Object.assign(
-      (modeling: any, eventBus: any, elementRegistry: any, dmnFactory: DmnFactory, dmnMode: any, dmnI18n: any) => ({
+      (modeling: any, eventBus: any, elementRegistry: any, dmnFactory: DmnFactory, dmnMode: any, dmnI18n: any, dmnViews: any) => ({
         create: (container: HTMLElement, decision: any) =>
           new DecisionTableEditor(container, decision, {
             modeling,
@@ -310,16 +312,17 @@ export const DmnTableModule: ModuleDeclaration = {
             elementRegistry,
             dmnFactory,
             dmnMode,
-            i18n: dmnI18n
+            i18n: dmnI18n,
+            dmnViews
           })
       }),
-      { $inject: ['modeling', 'eventBus', 'elementRegistry', 'dmnFactory', 'dmnMode', 'dmnI18n'] }
+      { $inject: ['modeling', 'eventBus', 'elementRegistry', 'dmnFactory', 'dmnMode', 'dmnI18n', 'dmnViews'] }
     )
   ],
   'literalExpressionEditorFactory': [
     'factory',
     Object.assign(
-      (modeling: any, eventBus: any, elementRegistry: any, dmnFactory: DmnFactory, dmnMode: any, dmnI18n: any) => ({
+      (modeling: any, eventBus: any, elementRegistry: any, dmnFactory: DmnFactory, dmnMode: any, dmnI18n: any, dmnViews: any) => ({
         create: (container: HTMLElement, decision: any) =>
           new LiteralExpressionEditor(container, decision, {
             modeling,
@@ -327,27 +330,29 @@ export const DmnTableModule: ModuleDeclaration = {
             elementRegistry,
             dmnFactory,
             dmnMode,
-            i18n: dmnI18n
+            i18n: dmnI18n,
+            dmnViews
           })
       }),
-      { $inject: ['modeling', 'eventBus', 'elementRegistry', 'dmnFactory', 'dmnMode', 'dmnI18n'] }
+      { $inject: ['modeling', 'eventBus', 'elementRegistry', 'dmnFactory', 'dmnMode', 'dmnI18n', 'dmnViews'] }
     )
   ],
   'boxedExpressionEditorFactory': [
     'factory',
     Object.assign(
-      (modeling: any, eventBus: any, elementRegistry: any, dmnFactory: DmnFactory, dmnMode: any, dmnI18n: any) => ({
-        create: (container: HTMLElement, decision: any) =>
-          new BoxedExpressionEditor(container, decision, {
+      (modeling: any, eventBus: any, elementRegistry: any, dmnFactory: DmnFactory, dmnMode: any, dmnI18n: any, dmnViews: any) => ({
+        create: (container: HTMLElement, host: any) =>
+          new BoxedExpressionEditor(container, host, {
             modeling,
             eventBus,
             elementRegistry,
             dmnFactory,
             dmnMode,
-            i18n: dmnI18n
+            i18n: dmnI18n,
+            dmnViews
           })
       }),
-      { $inject: ['modeling', 'eventBus', 'elementRegistry', 'dmnFactory', 'dmnMode', 'dmnI18n'] }
+      { $inject: ['modeling', 'eventBus', 'elementRegistry', 'dmnFactory', 'dmnMode', 'dmnI18n', 'dmnViews'] }
     )
   ]
 };

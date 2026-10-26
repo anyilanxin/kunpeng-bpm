@@ -20,9 +20,12 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * 决策表编辑器（自研 DOM 网格）：子句（输入/输出/注释列）增删与命名/
- * typeRef 下拉、规则（行）增删插、单元格就地编辑、命中策略（含 COLLECT
- * 聚合子选）、键盘导航（方向键/Enter）、行号。全部编辑经命令栈（可撤销），
+ * 决策表编辑器（自研 DOM 网格，bpmn.io 风格版式）：
+ * 头部行（决策名+命中策略）+ 组头行（When/And | Then/And | Annotations
+ * 标准记法词，英文为规范记法关键词不译）+ 两行式列头（名称居中/typeRef
+ * 小字右下角点击弹选）+ 窄行号列。加列入口=族界圆形加号（输入族尾缝加输入、
+ * 输出族尾缝加输出、注释族尾缝加注释；族空退化锚前一族尾格，同格多钮按
+ * 族序水平级联）；加行入口=行号列底格 "+"。全部编辑经命令栈（可撤销），
  * commandStack.changed 全量重渲（网格规模小，换取单一渲染路径）。
  *
  * 规范对应：dmn:DecisionTable §8.2（hitPolicy/aggregation 枚举）、InputClause
@@ -32,16 +35,17 @@
 import type { DmnFactory } from '../factory/DmnFactory';
 import type { DmnMode } from '../mode/DmnMode';
 import type { DmnI18n } from '../i18n/DmnI18n';
+import { backButton } from '../views/backButton';
 
 /** 命中策略全集（规范 §8.2.2 hitPolicy 枚举），label 经 i18n */
 const HIT_POLICIES: Array<{ value: string; labelKey: string }> = [
-  { value: 'UNIQUE', labelKey: '命中策略·唯一（U）' },
-  { value: 'FIRST', labelKey: '命中策略·首个（F）' },
-  { value: 'PRIORITY', labelKey: '命中策略·优先级（P）' },
-  { value: 'ANY', labelKey: '命中策略·任意（A）' },
-  { value: 'COLLECT', labelKey: '命中策略·收集（C）' },
-  { value: 'RULE_ORDER', labelKey: '命中策略·规则序（R）' },
-  { value: 'OUTPUT_ORDER', labelKey: '命中策略·输出序（O）' }
+  { value: 'UNIQUE', labelKey: '唯一（U）' },
+  { value: 'FIRST', labelKey: '首个（F）' },
+  { value: 'PRIORITY', labelKey: '优先级（P）' },
+  { value: 'ANY', labelKey: '任意（A）' },
+  { value: 'COLLECT', labelKey: '收集（C）' },
+  { value: 'RULE_ORDER', labelKey: '规则序（R）' },
+  { value: 'OUTPUT_ORDER', labelKey: '输出序（O）' }
 ];
 
 /** COLLECT 聚合子选（规范 §8.2.3 aggregation 枚举） */
@@ -65,6 +69,11 @@ const CLAUSE_KINDS = {
   annotation: { property: 'annotation', entryProperty: 'annotationEntry', entryType: 'dmn:RuleAnnotation' }
 } as const;
 
+type ClauseKind = keyof typeof CLAUSE_KINDS;
+
+/** 族界加号直径（px）：骑缝偏移与级联步进的唯一事实源 */
+const SEAM_BTN_D = 20;
+
 export interface DecisionTableEditorDeps {
   modeling: any;
   eventBus: any;
@@ -72,12 +81,18 @@ export interface DecisionTableEditorDeps {
   dmnFactory: DmnFactory;
   dmnMode: DmnMode;
   i18n: DmnI18n;
+  /** 视图管理（返回 DRD 通道） */
+  dmnViews: { open(id: string): void };
 }
 
 export class DecisionTableEditor {
   private readonly root: HTMLElement;
   /** 重渲后恢复焦点用：{ rule: 行序, col: 列序（含 rownum 列） } */
   private focusCell: { row: number; col: number } | null = null;
+  /** 列头 typeRef 弹出选择态：正编辑类型的列（globalIndex） */
+  private editingTypeCol: number | null = null;
+  /** 加列后待聚焦的列名单元格（globalIndex） */
+  private pendingFocusClause: number | null = null;
   private destroyed = false;
 
   constructor(
@@ -123,64 +138,47 @@ export class DecisionTableEditor {
     if (this.destroyed) {
       return;
     }
-    this.root.replaceChildren(this.buildGrid());
+    this.root.replaceChildren(this.buildHeader(), this.buildGrid());
     this.restoreFocus();
   }
 
-  // ---------- 构建 ----------
+  // ---------- 头部行（决策名 + 命中策略） ----------
 
-  private buildGrid(): HTMLElement {
+  private buildHeader(): HTMLElement {
     const t = this.deps.i18n.t.bind(this.deps.i18n);
+    const header = document.createElement('div');
+    header.className = 'dmn-table-header';
+    header.appendChild(backButton(t, () => this.deps.dmnViews.open('drd')));
+
+    const title = document.createElement('input');
+    title.className = 'dmn-table-title';
+    title.value = this.decision.name ?? '';
+    title.placeholder = t('未命名决策');
+    if (this.editable) {
+      title.addEventListener('change', () => {
+        this.deps.modeling.updateModdleProperties(this.canvasElement, this.decision, {
+          name: title.value || undefined
+        });
+      });
+    } else {
+      title.disabled = true;
+    }
+    header.appendChild(title);
+
+    const hitbar = document.createElement('div');
+    hitbar.className = 'dmn-table-hitbar';
+    const label = document.createElement('span');
+    label.className = 'dmn-table-hitbar-label';
+    label.textContent = t('命中策略：');
+    hitbar.appendChild(label);
     const table = this.table;
-    const wrap = document.createElement('div');
-    wrap.className = 'dmn-table-wrap';
-
-    const grid = document.createElement('table');
-    grid.className = 'dmn-table-grid';
-    grid.appendChild(this.buildHeader(table));
-    const tbody = document.createElement('tbody');
-    (table.rule ?? []).forEach((rule: any, index: number) => {
-      tbody.appendChild(this.buildRuleRow(table, rule, index));
-    });
-    grid.appendChild(tbody);
-    if (this.editable) {
-      grid.appendChild(this.buildFooterRow(table));
-    }
-    wrap.appendChild(grid);
-
-    if (this.editable) {
-      const actions = document.createElement('div');
-      actions.className = 'dmn-table-actions';
-      actions.appendChild(this.actionButton(t('+ 输入列'), () => this.addClause('input')));
-      actions.appendChild(this.actionButton(t('+ 输出列'), () => this.addClause('output')));
-      actions.appendChild(this.actionButton(t('+ 注释列'), () => this.addClause('annotation')));
-      wrap.appendChild(actions);
-    }
-    return wrap;
-  }
-
-  private buildHeader(table: any): HTMLElement {
-    const thead = document.createElement('thead');
-    const tr = document.createElement('tr');
-    tr.appendChild(this.buildHitPolicyCell(table));
-    this.forEachClause(table, (kind, clause) => {
-      tr.appendChild(this.buildClauseHead(kind, clause));
-    });
-    thead.appendChild(tr);
-    return thead;
-  }
-
-  /** 左上角命中策略格：规范记法位（U/F/P/A/C/R/O），COLLECT 时带聚合子选 */
-  private buildHitPolicyCell(table: any): HTMLElement {
-    const th = document.createElement('th');
-    th.className = 'dmn-table-hit';
     const select = this.selectEl(HIT_POLICIES, table.hitPolicy ?? 'UNIQUE', (value) => {
       this.deps.modeling.updateModdleProperties(this.canvasElement, table, { hitPolicy: value });
     });
     if (!this.editable) {
       select.disabled = true;
     }
-    th.appendChild(select);
+    hitbar.appendChild(select);
     if ((table.hitPolicy ?? 'UNIQUE') === 'COLLECT') {
       const agg = this.selectEl(AGGREGATIONS, table.aggregation ?? '', (value) => {
         this.deps.modeling.updateModdleProperties(this.canvasElement, table, {
@@ -188,26 +186,131 @@ export class DecisionTableEditor {
         });
       });
       agg.classList.add('dmn-table-agg');
-      agg.prepend(new Option(this.deps.i18n.t('不聚合'), ''));
+      agg.prepend(new Option(t('不聚合'), ''));
       if (!this.editable) {
         agg.disabled = true;
       }
-      th.appendChild(agg);
+      hitbar.appendChild(agg);
     }
-    return th;
+    header.appendChild(hitbar);
+    return header;
   }
 
-  private buildClauseHead(kind: 'input' | 'output' | 'annotation', clause: any): HTMLElement {
+  // ---------- 表格构建 ----------
+
+  private buildGrid(): HTMLElement {
+    const wrap = document.createElement('div');
+    wrap.className = 'dmn-table-wrap';
+
+    const grid = document.createElement('table');
+    grid.className = 'dmn-table-grid';
+    grid.appendChild(this.buildHead());
+    const tbody = document.createElement('tbody');
+    (this.table.rule ?? []).forEach((rule: any, index: number) => {
+      tbody.appendChild(this.buildRuleRow(this.table, rule, index));
+    });
+    grid.appendChild(tbody);
+    if (this.editable) {
+      grid.appendChild(this.buildFooterRow());
+    }
+    wrap.appendChild(grid);
+    return wrap;
+  }
+
+  /** thead 两行：tr1 组头（When/And | Then/And | Annotations + 族界加号），tr2 列头 */
+  private buildHead(): HTMLElement {
+    const t = this.deps.i18n.t.bind(this.deps.i18n);
+    const thead = document.createElement('thead');
+
+    const groupRow = document.createElement('tr');
+    groupRow.className = 'dmn-table-groups';
+    const corner = document.createElement('th');
+    corner.className = 'dmn-table-corner';
+    corner.rowSpan = 2;
+    groupRow.appendChild(corner);
+
+    // 组头格逐族生成并记录各族尾格（族界加号锚点）
+    const familyTail: Partial<Record<ClauseKind, HTMLElement>> = {};
+    const counts: Record<ClauseKind, number> = { input: 0, output: 0, annotation: 0 };
+    this.forEachClause(this.table, (kind) => {
+      counts[kind]++;
+    });
+    this.forEachClause(this.table, (kind, _clause, index) => {
+      if (kind === 'annotation') {
+        return; // 注释族合并为单一跨列格，下方统一渲染
+      }
+      const th = document.createElement('th');
+      th.className = `dmn-table-group dmn-group-${kind}`;
+      th.textContent = kind === 'input' ? (index === 0 ? 'When' : 'And') : index === 0 ? 'Then' : 'And';
+      groupRow.appendChild(th);
+      familyTail[kind] = th;
+    });
+    if (counts.annotation > 0) {
+      const th = document.createElement('th');
+      th.className = 'dmn-table-group dmn-group-annotation';
+      th.colSpan = counts.annotation;
+      th.textContent = 'Annotations';
+      groupRow.appendChild(th);
+      familyTail.annotation = th;
+    }
+
+    // 族界加号：锚=族尾格，族空退化锚前一族尾格（再空到行号列头格）；
+    // 同格多钮按族序级联——族序靠后（更靠右的族）骑缝，其余格内右依次左排
+    if (this.editable) {
+      const anchors: Record<ClauseKind, HTMLElement> = {
+        input: familyTail.input ?? corner,
+        output: familyTail.output ?? familyTail.input ?? corner,
+        annotation: familyTail.annotation ?? familyTail.output ?? familyTail.input ?? corner
+      };
+      const placements = new Map<HTMLElement, ClauseKind[]>();
+      (Object.keys(anchors) as ClauseKind[]).forEach((kind) => {
+        const cell = anchors[kind];
+        const list = placements.get(cell) ?? [];
+        list.push(kind);
+        placements.set(cell, list);
+      });
+      placements.forEach((kinds, cell) => {
+        cell.classList.add('dmn-group-anchor');
+        kinds.forEach((kind, i) => {
+          const isSeam = i === kinds.length - 1;
+          const btn = this.seamButton(
+            t(kind === 'input' ? '添加输入列' : kind === 'output' ? '添加输出列' : '添加注释列'),
+            () => this.addClause(kind)
+          );
+          // 骑缝=中心压界（右移半径）；级联钮格内右起按直径+4 间距左排
+          btn.style.right = isSeam
+            ? `${-SEAM_BTN_D / 2}px`
+            : `${4 + (kinds.length - 2 - i) * (SEAM_BTN_D + 4) + SEAM_BTN_D / 2}px`;
+          cell.appendChild(btn);
+        });
+      });
+    }
+    thead.appendChild(groupRow);
+
+    const clauseRow = document.createElement('tr');
+    clauseRow.className = 'dmn-table-clauses';
+    this.forEachClause(this.table, (kind, clause, _index, globalIndex) => {
+      clauseRow.appendChild(this.buildClauseHead(kind, clause, globalIndex));
+    });
+    thead.appendChild(clauseRow);
+    return thead;
+  }
+
+  /** 列头（tr2）：名称居中就地编辑、typeRef 小字右下角点击弹选、删除 × 悬停 */
+  private buildClauseHead(kind: ClauseKind, clause: any, globalIndex: number): HTMLElement {
     const t = this.deps.i18n.t.bind(this.deps.i18n);
     const th = document.createElement('th');
     th.className = `dmn-table-clause dmn-table-${kind}`;
 
-    const title = document.createElement('div');
-    title.className = 'dmn-clause-title';
-    const badge = document.createElement('span');
-    badge.className = 'dmn-clause-badge';
-    badge.textContent = kind === 'input' ? t('输入') : kind === 'output' ? t('输出') : t('注释');
-    title.appendChild(badge);
+    if (this.editable) {
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'dmn-clause-del';
+      del.textContent = '×';
+      del.title = t('删除列');
+      del.addEventListener('click', () => this.removeClause(kind, clause));
+      th.appendChild(del);
+    }
 
     // 名称：输入列=inputExpression.text（常用形）、输出/注释=自身 name 属性
     const nameTarget = kind === 'input' ? clause.inputExpression : clause;
@@ -216,6 +319,7 @@ export class DecisionTableEditor {
     nameInput.className = 'dmn-clause-name';
     nameInput.value = nameTarget?.[nameKey] ?? '';
     nameInput.placeholder = t(kind === 'input' ? '输入表达式' : '列名');
+    nameInput.dataset.clause = String(globalIndex);
     if (this.editable) {
       nameInput.addEventListener('change', () => {
         this.deps.modeling.updateModdleProperties(this.canvasElement, nameTarget, {
@@ -225,28 +329,45 @@ export class DecisionTableEditor {
     } else {
       nameInput.disabled = true;
     }
-    title.appendChild(nameInput);
+    th.appendChild(nameInput);
 
-    // typeRef：输入列在 inputExpression 上，输出列在子句自身；注释列无类型
+    // typeRef：输入列在 inputExpression 上，输出列在子句自身；注释列无类型。
+    // 小字显示、点击弹选（截图版式：类型是角落元信息而非常驻控件）
     if (kind !== 'annotation') {
       const typeTarget = kind === 'input' ? clause.inputExpression : clause;
-      const typeSelect = this.typeRefSelect(typeTarget?.typeRef, (value) => {
-        this.deps.modeling.updateModdleProperties(this.canvasElement, typeTarget, {
-          typeRef: value || undefined
+      if (this.editable && this.editingTypeCol === globalIndex) {
+        const typeSelect = this.typeRefSelect(typeTarget?.typeRef, (value) => {
+          this.editingTypeCol = null;
+          this.deps.modeling.updateModdleProperties(this.canvasElement, typeTarget, {
+            typeRef: value || undefined
+          });
         });
-      });
-      title.appendChild(typeSelect);
+        typeSelect.dataset.clauseType = String(globalIndex);
+        typeSelect.addEventListener('blur', () => {
+          // change 已提交则 editingTypeCol 已空，此处幂等；未选择仅退出弹选态
+          if (this.editingTypeCol === globalIndex) {
+            this.editingTypeCol = null;
+            this.render();
+          }
+        });
+        th.appendChild(typeSelect);
+      } else {
+        const typeBtn = document.createElement('button');
+        typeBtn.type = 'button';
+        typeBtn.className = 'dmn-clause-type';
+        typeBtn.textContent = typeTarget?.typeRef ?? t('类型');
+        if (this.editable) {
+          typeBtn.title = t('选择类型');
+          typeBtn.addEventListener('click', () => {
+            this.editingTypeCol = globalIndex;
+            this.render();
+          });
+        } else {
+          typeBtn.disabled = true;
+        }
+        th.appendChild(typeBtn);
+      }
     }
-
-    if (this.editable) {
-      const del = document.createElement('button');
-      del.className = 'dmn-clause-del';
-      del.textContent = '×';
-      del.title = t('删除列');
-      del.addEventListener('click', () => this.removeClause(kind, clause));
-      title.appendChild(del);
-    }
-    th.appendChild(title);
     return th;
   }
 
@@ -276,13 +397,14 @@ export class DecisionTableEditor {
     return tr;
   }
 
-  /** 单元格：文本就位编辑（空条目也提供输入位——落字即建 text） */
-  private buildCell(kind: 'input' | 'output' | 'annotation', entry: any, rowIndex: number, colIndex: number): HTMLElement {
+  /** 单元格：文本就位编辑（空条目显示 '-' 占位——占位不落模型，落字即建 text） */
+  private buildCell(kind: ClauseKind, entry: any, rowIndex: number, colIndex: number): HTMLElement {
     const td = document.createElement('td');
     td.className = `dmn-table-cell dmn-cell-${kind}`;
     const input = document.createElement('input');
     input.className = 'dmn-cell-input';
     input.value = entry?.text ?? '';
+    input.placeholder = '-';
     input.dataset.row = String(rowIndex);
     input.dataset.col = String(colIndex);
     if (this.editable) {
@@ -302,16 +424,26 @@ export class DecisionTableEditor {
     return td;
   }
 
-  private buildFooterRow(table: any): HTMLElement {
+  /** 表底行：行号列底格 "+" 加规则，其余格留空（截图版式） */
+  private buildFooterRow(): HTMLElement {
     const t = this.deps.i18n.t.bind(this.deps.i18n);
     const tfoot = document.createElement('tfoot');
     const tr = document.createElement('tr');
-    const td = document.createElement('td');
-    td.className = 'dmn-table-add-rule';
-    td.colSpan = 1 + this.clauseCount(table);
-    const btn = this.actionButton(t('+ 添加规则'), () => this.addRule());
-    td.appendChild(btn);
-    tr.appendChild(td);
+    const add = document.createElement('td');
+    add.className = 'dmn-table-add-rule';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'dmn-row-add';
+    btn.textContent = '+';
+    btn.title = t('添加规则');
+    btn.addEventListener('click', () => this.addRule());
+    add.appendChild(btn);
+    tr.appendChild(add);
+    for (let i = 0; i < this.clauseCount(this.table); i++) {
+      const td = document.createElement('td');
+      td.className = 'dmn-table-add-pad';
+      tr.appendChild(td);
+    }
     tfoot.appendChild(tr);
     return tfoot;
   }
@@ -322,7 +454,7 @@ export class DecisionTableEditor {
     const table = this.table;
     const rule = this.deps.dmnFactory.create<any>({ $type: 'dmn:DecisionRule' });
     // 行内条目与子句成对（规范 §8.2.14）：建行即按当前子句铺满空条目
-    for (const kind of Object.keys(CLAUSE_KINDS) as Array<'input' | 'output' | 'annotation'>) {
+    for (const kind of Object.keys(CLAUSE_KINDS) as ClauseKind[]) {
       const count = (table[CLAUSE_KINDS[kind].property] ?? []).length;
       const entries: any[] = [];
       for (let i = 0; i < count; i++) {
@@ -341,8 +473,18 @@ export class DecisionTableEditor {
     this.deps.modeling.listRemove(this.canvasElement, this.table, 'rule', rule);
   }
 
-  private addClause(kind: 'input' | 'output' | 'annotation'): void {
+  private addClause(kind: ClauseKind): void {
     const meta = CLAUSE_KINDS[kind];
+    const table = this.table;
+    // 新列 globalIndex=该族尾+1：输入列插在输入族尾（输出族之前），焦点随列
+    const familySize = (table[meta.property] ?? []).length;
+    const before: Record<ClauseKind, number> = {
+      input: 0,
+      output: (table[CLAUSE_KINDS.input.property] ?? []).length,
+      annotation:
+        (table[CLAUSE_KINDS.input.property] ?? []).length +
+        (table[CLAUSE_KINDS.output.property] ?? []).length
+    };
     const clause =
       kind === 'input'
         ? this.deps.dmnFactory.create<any>({
@@ -356,15 +498,16 @@ export class DecisionTableEditor {
           ? this.deps.dmnFactory.create<any>({ $type: 'dmn:OutputClause', typeRef: 'string' })
           : this.deps.dmnFactory.create<any>({ $type: 'dmn:RuleAnnotationClause' });
     this.deps.modeling.clauseAdd(this.canvasElement, {
-      table: this.table,
+      table,
       property: meta.property,
       entryProperty: meta.entryProperty,
       clause,
       createEntry: () => this.deps.dmnFactory.create<any>({ $type: meta.entryType })
     });
+    this.pendingFocusClause = before[kind] + familySize;
   }
 
-  private removeClause(kind: 'input' | 'output' | 'annotation', clause: any): void {
+  private removeClause(kind: ClauseKind, clause: any): void {
     const meta = CLAUSE_KINDS[kind];
     this.deps.modeling.clauseRemove(this.canvasElement, {
       table: this.table,
@@ -409,14 +552,30 @@ export class DecisionTableEditor {
     );
   }
 
-  /** 命令后全量重渲的焦点恢复（编辑连续性） */
+  /** 命令后全量重渲的焦点恢复（编辑连续性）：单元格 > 新列列名 > 类型弹选 */
   private restoreFocus(): void {
-    if (!this.focusCell) {
-      return;
+    if (this.focusCell) {
+      const input = this.cellInputAt(this.focusCell.row, this.focusCell.col);
+      if (input) {
+        input.focus();
+        return;
+      }
     }
-    const input = this.cellInputAt(this.focusCell.row, this.focusCell.col);
-    if (input) {
-      input.focus();
+    if (this.pendingFocusClause !== null) {
+      const nameInput = this.root.querySelector<HTMLInputElement>(
+        `.dmn-clause-name[data-clause="${this.pendingFocusClause}"]`
+      );
+      this.pendingFocusClause = null;
+      if (nameInput) {
+        nameInput.focus();
+        return;
+      }
+    }
+    if (this.editingTypeCol !== null) {
+      const typeSelect = this.root.querySelector<HTMLSelectElement>(
+        `.dmn-clause-type-select[data-clause-type="${this.editingTypeCol}"]`
+      );
+      typeSelect?.focus();
     }
   }
 
@@ -424,10 +583,10 @@ export class DecisionTableEditor {
 
   private forEachClause(
     table: any,
-    fn: (kind: 'input' | 'output' | 'annotation', clause: any, index: number, globalIndex: number) => void
+    fn: (kind: ClauseKind, clause: any, index: number, globalIndex: number) => void
   ): void {
     let globalIndex = 0;
-    for (const kind of Object.keys(CLAUSE_KINDS) as Array<'input' | 'output' | 'annotation'>) {
+    for (const kind of Object.keys(CLAUSE_KINDS) as ClauseKind[]) {
       (table[CLAUSE_KINDS[kind].property] ?? []).forEach((clause: any, index: number) => {
         fn(kind, clause, index, globalIndex++);
       });
@@ -435,7 +594,7 @@ export class DecisionTableEditor {
   }
 
   private clauseCount(table: any): number {
-    return (Object.keys(CLAUSE_KINDS) as Array<keyof typeof CLAUSE_KINDS>).reduce(
+    return (Object.keys(CLAUSE_KINDS) as ClauseKind[]).reduce(
       (sum, kind) => sum + (table[CLAUSE_KINDS[kind].property] ?? []).length,
       0
     );
@@ -462,7 +621,7 @@ export class DecisionTableEditor {
 
   private typeRefSelect(current: string | undefined, onChange: (value: string) => void): HTMLSelectElement {
     const select = document.createElement('select');
-    select.className = 'dmn-clause-type';
+    select.className = 'dmn-clause-type-select';
     select.add(new Option(this.deps.i18n.t('类型'), ''));
     for (const type of TYPE_REFS) {
       select.add(new Option(type, type));
@@ -471,19 +630,16 @@ export class DecisionTableEditor {
       select.add(new Option(current, current));
     }
     select.value = current ?? '';
-    if (this.editable) {
-      select.addEventListener('change', () => onChange(select.value));
-    } else {
-      select.disabled = true;
-    }
+    select.addEventListener('change', () => onChange(select.value));
     return select;
   }
 
-  private actionButton(label: string, onClick: () => void): HTMLButtonElement {
+  private seamButton(title: string, onClick: () => void): HTMLButtonElement {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'dmn-table-btn';
-    btn.textContent = label;
+    btn.className = 'dmn-seam-add';
+    btn.textContent = '+';
+    btn.title = title;
     btn.addEventListener('click', onClick);
     return btn;
   }
