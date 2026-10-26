@@ -1,0 +1,22 @@
+{
+  "name": "dmn-example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@kunpeng-io/dmn-js": "workspace:*",
+    "@kunpeng-io/kunpeng-dmn-moddle": "workspace:*",
+    "vue": "catalog:"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vue-tsc": "^2.1.0"
+  }
+}

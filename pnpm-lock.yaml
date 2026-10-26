@@ -105,6 +105,9 @@ catalogs:
     diagram-js-minimap:
       specifier: ^5.4.1
       version: 5.6.0
+    dmn-moddle:
+      specifier: 12.2.1
+      version: 12.2.1
     element-plus:
       specifier: ^2.14.7
       version: 2.14.7
@@ -156,6 +159,9 @@ catalogs:
     sortablejs:
       specifier: ^1.15.7
       version: 1.15.7
+    tiny-svg:
+      specifier: ^4.1.4
+      version: 4.1.4
     typescript:
       specifier: ^5.9.3
       version: 5.9.3
@@ -224,6 +230,31 @@ importers:
         version: 5.9.3
       vite:
         specifier: ^8.3.5
+        version: 8.3.5(esbuild@0.28.2)
+      vue-tsc:
+        specifier: ^2.1.0
+        version: 2.2.12(typescript@5.9.3)
+
+  examples/dmn-example:
+    dependencies:
+      '@kunpeng-io/dmn-js':
+        specifier: workspace:*
+        version: link:../../packages/dmn/dmn-js
+      '@kunpeng-io/kunpeng-dmn-moddle':
+        specifier: workspace:*
+        version: link:../../packages/dmn/kunpeng-dmn-moddle
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.44(typescript@5.9.3)
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: 'catalog:'
+        version: 6.0.10(vite@8.3.5(esbuild@0.28.2))(vue@3.5.44(typescript@5.9.3))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
         version: 8.3.5(esbuild@0.28.2)
       vue-tsc:
         specifier: ^2.1.0
@@ -730,6 +761,51 @@ importers:
       vite-plugin-babel:
         specifier: 'catalog:'
         version: 1.7.3(@babel/core@7.29.7)(vite@8.3.5(esbuild@0.28.2))
+
+  packages/dmn/dmn-js:
+    dependencies:
+      '@kunpeng-io/kunpeng-dmn-moddle':
+        specifier: workspace:*
+        version: link:../kunpeng-dmn-moddle
+      diagram-js:
+        specifier: 'catalog:'
+        version: 15.28.1
+      didi:
+        specifier: ^11.0.1
+        version: 11.0.1
+      dmn-moddle:
+        specifier: 'catalog:'
+        version: 12.2.1
+      htm:
+        specifier: ^3.1.1
+        version: 3.1.1
+      ids:
+        specifier: 'catalog:'
+        version: 3.0.2
+      min-dash:
+        specifier: 'catalog:'
+        version: 5.1.0
+      min-dom:
+        specifier: 'catalog:'
+        version: 5.3.0
+      moddle:
+        specifier: ^8.2.1
+        version: 8.2.1
+      moddle-xml:
+        specifier: ^12.3.1
+        version: 12.3.1(moddle@8.2.1)
+      tiny-svg:
+        specifier: 'catalog:'
+        version: 4.1.4
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.5(esbuild@0.28.2)
+
+  packages/dmn/kunpeng-dmn-moddle: {}
 
   packages/form/form-js:
     devDependencies:
@@ -1971,6 +2047,10 @@ packages:
 
   didi@11.0.1:
     resolution: {integrity: sha512-eEBvv5SHBhoCyDX/kOR8UozNfqEkjEXjNCTsE2vWWoxoJ5QC8KXYRTE78mrpdpvXNtSEriLhbgQdD0OkHvLFWQ==}
+    engines: {node: '>= 20.12'}
+
+  dmn-moddle@12.2.1:
+    resolution: {integrity: sha512-X0UmMGmF3klrDv3NPHq045InNBAE5whmK2GAmXZJ7QszsIWR2p/EHYcD4XiJSUr2n8F8VghY79yDY/eBeiAhxA==}
     engines: {node: '>= 20.12'}
 
   dom-serializer@1.4.1:
@@ -4209,6 +4289,12 @@ snapshots:
       - preact-render-to-string
 
   didi@11.0.1: {}
+
+  dmn-moddle@12.2.1:
+    dependencies:
+      min-dash: 5.1.0
+      moddle: 8.2.1
+      moddle-xml: 12.3.1(moddle@8.2.1)
 
   dom-serializer@1.4.1:
     dependencies:

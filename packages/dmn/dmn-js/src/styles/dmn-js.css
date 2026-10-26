@@ -1,0 +1,44 @@
+/*
+ * Copyright (c) 2026 anyilanxin zxh (anyilanxin@aliyun.com). All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation. The copyright holder designates
+ * this particular file as subject to the "Classpath" exception as provided
+ * in the LICENSE file and licenses/ directory that accompany this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the licenses/ directory that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+/**
+ * 组件自有样式（随包发布，exports "./styles" 子路径）。
+ * 画布基础：字体族与渲染器 INTERNAL_FONT 同源；预览模式隐藏编辑 UI
+ * （双层防线之一，规则层见 mode/DmnMode 注释）。
+ */
+
+.dmn-js-container,
+.dmn-js-container .djs-container {
+  font-family: system-ui, 'PingFang SC', sans-serif;
+}
+
+/* 预览模式：编辑类 UI 隐藏（palette/context pad P2 落地后生效） */
+.dmn-preview-mode .djs-palette {
+  display: none !important;
+}
+
+.dmn-preview-mode .djs-context-pad {
+  display: none !important;
+}
+
+.dmn-preview-mode .djs-direct-editing-content {
+  pointer-events: none;
+}

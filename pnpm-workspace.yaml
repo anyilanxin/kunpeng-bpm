@@ -6,6 +6,10 @@ packages:
   # @kunpeng-js/bpmnlint-plugin-kunpeng-compat 已从 registry 下架（404），
   # 排除出安装图让新机器可装；预构建文件原样保留，消费方自行提供其依赖
   - '!packages/bpmn/linting'
+  # vendored 未适配的 dmn 属性面板：其 package.json 仍声明上游的 catalog:
+  # devDeps（@rollup/plugin-alias 等，catalog 无条目）且 scope 待对齐——
+  # P3 适配（改 @kunpeng-io、依赖面收敛）前排除出安装图，届时解除
+  - '!packages/dmn/dmn-js-properties-panel'
 
 # 统一版本目录（pnpm catalog 协议）：packages/{bpmn,common}/* 家族包从这里取版本。
 # 自研组件（@kunpeng-io/bpmn-js、kunpeng-bpmn-moddle）与示例仍用内联版本，不进目录。
@@ -48,6 +52,7 @@ catalog:
   diagram-js-grid: ^2.1.0
   diagram-js-direct-editing: ^3.6.0
   diagram-js-minimap: ^5.4.1
+  dmn-moddle: 12.2.1
   bpmn-js-color-picker: ^0.7.2
   bpmn-moddle: ^10.3.1
   bpmn-font: ^0.13.0

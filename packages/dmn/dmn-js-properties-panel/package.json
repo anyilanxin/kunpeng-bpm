@@ -1,0 +1,87 @@
+{
+  "name": "@kunpeng/dmn-js-properties-panel",
+  "version": "2026.0.0-alpha1",
+  "description": "A properties panel for dmn-js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "all": "run-s lint test distro",
+    "distro": "run-s build test:build",
+    "build": "rimraf dist && vite build",
+    "lib": "rimraf dist && vite build",
+    "bundle": "rimraf dist && vite build",
+    "bundle:watch": "vite build --watch",
+    "lint": "eslint .",
+    "dev": "vitest --watch",
+    "test": "vitest run",
+    "test:build": "mocha --reporter=spec --recursive test/distro",
+    "start": "npm run start:cloud",
+    "start:cloud": "cross-env SINGLE_START=cloud npm run dev",
+    "start:platform": "cross-env SINGLE_START=platform npm run dev",
+    "start:dmn": "cross-env SINGLE_START=dmn npm run dev",
+    "prepare": "run-s bundle"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bpmn-io/dmn-js-properties-panel"
+  },
+  "keywords": [
+    "bpmn-io",
+    "dmn-js",
+    "properties",
+    "properties-panel"
+  ],
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "author": {
+    "name": "Nico Rehwaldt",
+    "url": "https://github.com/nikku"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": "*"
+  },
+  "dependencies": {
+    "min-dash": "catalog:",
+    "min-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@babel/plugin-transform-react-jsx": "catalog:",
+    "@bpmn-io/cm-theme": "catalog:",
+    "@kunpeng/dmn-js": "workspace:*",
+    "@kunpeng/dmn-js-drd": "workspace:*",
+    "@kunpeng/dmn-js-shared": "workspace:*",
+    "@kunpeng/dmn-moddle": "workspace:*",
+    "@kunpeng/expression-lint": "workspace:*",
+    "@kunpeng/lang-expression": "workspace:*",
+    "@kunpeng/properties-panel": "workspace:*",
+    "@rollup/plugin-alias": "catalog:",
+    "@rollup/plugin-commonjs": "catalog:",
+    "@rollup/plugin-node-resolve": "catalog:",
+    "@testing-library/preact": "catalog:",
+    "chai": "catalog:",
+    "cross-env": "catalog:",
+    "diagram-js": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-bpmn-io": "catalog:",
+    "eslint-plugin-import": "catalog:",
+    "eslint-plugin-react-hooks": "catalog:",
+    "fs-extra": "catalog:",
+    "happy-dom": "catalog:",
+    "mocha": "catalog:",
+    "mocha-test-container-support": "catalog:",
+    "npm-run-all2": "catalog:",
+    "rimraf": "catalog:",
+    "semver": "catalog:",
+    "sinon": "catalog:",
+    "sinon-chai": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-babel": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "diagram-js": ">= 14.3.1",
+    "@kunpeng/dmn-js": ">=13"
+  }
+}

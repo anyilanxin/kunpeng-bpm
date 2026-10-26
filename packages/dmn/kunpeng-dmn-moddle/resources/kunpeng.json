@@ -1,0 +1,33 @@
+{
+  "name": "kunpeng",
+  "prefix": "kunpeng",
+  "uri": "http://anyilanxin.com/schema/dmn/1.0",
+  "xml": {
+    "tagAlias": "lowerCase"
+  },
+  "associations": [],
+  "types": [
+    {
+      "name": "Decision",
+      "isAbstract": true,
+      "extends": [
+        "dmn:Decision"
+      ],
+      "meta": {
+        "description": "kunpeng DMN extension attributes on dmn:Decision. Single-value string extensions use the abstract-mixin + isAttr idiom (moddle serializes them as namespaced XML attributes); property names are lowerCamelCase to match the DMN attribute naming convention. The properties panel reads/writes these via bo.get()/modeling.updateProperties() with the prefixed keys kunpeng:versionTag / kunpeng:historyTimeToLive."
+      },
+      "properties": [
+        {
+          "name": "versionTag",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "historyTimeToLive",
+          "isAttr": true,
+          "type": "String"
+        }
+      ]
+    }
+  ]
+}
