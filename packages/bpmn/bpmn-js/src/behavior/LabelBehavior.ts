@@ -29,23 +29,37 @@
  * 在 BpmnElementMenuProvider 建形后直调激活（同一语义）。
  */
 import type EventBus from 'diagram-js/lib/core/EventBus';
+import type Canvas from 'diagram-js/lib/core/Canvas';
+
+/** 编辑期标签隐藏 marker（配合皮肤 .label-editing text 规则）：编辑框
+ * 透明化后若不藏已渲染标签会双文本重影 */
+const LABEL_EDITING_MARKER = 'label-editing';
 
 export class LabelBehavior {
-  static $inject = ['eventBus', 'directEditing'];
+  static $inject = ['eventBus', 'directEditing', 'canvas'];
 
-  constructor(eventBus: EventBus, private readonly directEditing: any) {
+  constructor(
+    eventBus: EventBus,
+    private readonly directEditing: any,
+    private readonly canvas: Canvas
+  ) {
     eventBus.on('element.dblclick', 1200, (event: any) => {
       this.directEditing.activate(event.element);
     });
     // TextBox 只设选区不显式聚焦（基座库无 focus 调用）：真实点击路径用户
-    // 会点进框内才可打字，创建即编要求落地即可输入——激活事件（框已建）
+    // 会点进框内才打字，创建即编要求落地即可输入——激活事件（框已建）
     // 后统一显式聚焦，双击/追加/弹框放置三路径同源
-    eventBus.on('directEditing.activate', () => {
+    eventBus.on('directEditing.activate', (event: any) => {
       document.querySelector<HTMLElement>('.djs-direct-editing-content')?.focus();
+      this.hideLabels(event.active?.element);
     });
+    // complete 时 updateLabel 已重渲标签（新文本节点默认可见），cancel 则
+    // 原文本恢复显示——两路都摘 marker
+    eventBus.on('directEditing.complete', () => this.restoreLabels());
+    eventBus.on('directEditing.cancel', () => this.restoreLabels());
     // create.end 基座处理者（默认 1000）在监听内真正建形并回填
     // context.shape，本监听取 500 排其后才能拿到画布元素；基座取消分支
-    // （canExecute false / 无 target）返回 false 截断传播，天然只在成功
+    //（canExecute false / 无 target）返回 false 截断传播，天然只在成功
     // 落形时触发
     eventBus.on('create.end', 500, (event: any) => {
       this.editCreated(event.context?.shape);
@@ -54,6 +68,23 @@ export class LabelBehavior {
     eventBus.on('autoPlace.end', (event: any) => {
       this.editCreated(event.shape);
     });
+  }
+
+  private hidden: any[] = [];
+
+  /** 藏被编元素及其外部标签的已渲染文本（透明编辑框下防双文本重影） */
+  private hideLabels(element: any): void {
+    this.restoreLabels();
+    if (!element) {
+      return;
+    }
+    this.hidden = [element, ...(element.labels ?? [])];
+    this.hidden.forEach(el => this.canvas.addMarker(el, LABEL_EDITING_MARKER));
+  }
+
+  private restoreLabels(): void {
+    this.hidden.forEach(el => this.canvas.removeMarker(el, LABEL_EDITING_MARKER));
+    this.hidden = [];
   }
 
   private editCreated(shape: any): void {

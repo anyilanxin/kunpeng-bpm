@@ -182,19 +182,22 @@
 }
 
 /* ── 直编输入框外观 ──
-   diagram-js-direct-editing 的 TextBox 默认为内联「白底 + 1px #ccc 边」裸框
-   （该包不附任何 CSS），调整手柄更是无样式空 div——与弹框家族不配。
-   形内标签的编辑框由 Provider 以「居中卡片」几何给出（略窄于元素、高度随
-   文字），这里负责皮肤：白底 + 极轻投影、**无边框**（2026-10-26 用户定规
-   "去掉边框才协调"——任何描边/发丝线都会与元素自身边界叠成双线，尤以
-   顶带卡片贴元素上缘最明显；编辑中元素自带选中蓝轮廓，卡片再描蓝即双层
-   蓝框）。取值为自有设计。内联样式为 normal 优先级，author 样式表
-   !important 可覆写。 */
+   diagram-js-direct-editing 的 TextBox 默认内联「白底 + 1px #ccc 边」，且
+   内联样式压过普通 CSS——边框/底色全部由 Provider 按族内联下发（LabelEditing
+   Provider TRANSPARENT_STYLE/PANEL_INPUT_STYLE），本表只管公共几何：
+   圆角 2px 对齐属性面板输入框。两族形态（2026-10-26 用户定规）：
+   ① 形内标签族（任务/池/道/展开子流程/注记）= 隐形框（透明+无边框），
+     编辑期已渲染标签由 LabelBehavior 加 label-editing marker 藏去——画布
+     上只见光标闪烁，看不出输入框；
+   ② 外部标签（事件/网关/数据/连线）= 属性面板输入框同款浮卡（浅灰底+
+     1px 灰边；面板的聚焦变蓝刻意不带）。 */
 
 .djs-direct-editing-parent {
-  border: none !important;
-  border-radius: 4px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  border-radius: 2px !important;
+}
+
+.djs-element.label-editing text {
+  visibility: hidden;
 }
 
 /* 文字区：行距与左右呼吸感——行高 1.4 与卡片高度测量（internalCard）同
