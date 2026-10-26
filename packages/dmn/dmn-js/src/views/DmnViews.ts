@@ -35,7 +35,7 @@ import type Canvas from 'diagram-js/lib/core/Canvas';
 import type { Injector } from 'didi';
 import type { DmnDocumentState } from '../xml/DocumentState';
 
-export type DmnViewKind = 'drd' | 'decisionTable' | 'literalExpression';
+export type DmnViewKind = 'drd' | 'decisionTable' | 'literalExpression' | 'boxed';
 
 export interface DmnView {
   /** 'drd' 或决策 bo.id */
@@ -46,10 +46,15 @@ export interface DmnView {
   element: any | null;
 }
 
-/** 表达式 $type → 视图类型（P7 起 Boxed 族入列；未识别表达式暂无编辑视图） */
+/** 表达式 $type → 视图类型（Boxed 五族入列；未识别表达式暂无编辑视图） */
 const EXPRESSION_VIEWS: Record<string, DmnViewKind> = {
   'dmn:DecisionTable': 'decisionTable',
-  'dmn:LiteralExpression': 'literalExpression'
+  'dmn:LiteralExpression': 'literalExpression',
+  'dmn:Context': 'boxed',
+  'dmn:Invocation': 'boxed',
+  'dmn:Relation': 'boxed',
+  'dmn:List': 'boxed',
+  'dmn:FunctionDefinition': 'boxed'
 };
 
 export class DmnViews {
@@ -66,15 +71,21 @@ export class DmnViews {
     private readonly injector: Injector,
     private readonly state: DmnDocumentState
   ) {
-    // 任何命令（含撤销重做）后重算清单：decisionLogic 的建/拆走
+    // 任何命令（含撤销重做）后重算清单：decisionLogic 的建/拆/类型切换走
     // updateModdleProperties（不另发事件），commandStack.changed 是全命令的
     // 单一汇合点。只重算不重建——活跃编辑器自监听命令栈重渲，此处重建会
-    // 打断编辑焦点；活跃视图消失（决策被删/表达式被拆）才回落 DRD。
+    // 打断编辑焦点；活跃视图消失（决策被删/表达式被拆）或**类型切换**
+    // （编辑器种类随 kind 变化）才重挂/回落 DRD。
     const recompute = (): void => {
+      const before = this.views.find((v) => v.id === this.activeId);
       const hadActive = this.recompute();
       if (!hadActive && this.activeId !== 'drd') {
         this.open('drd');
         return;
+      }
+      const after = this.views.find((v) => v.id === this.activeId);
+      if (before && after && before.kind !== after.kind) {
+        this.remountActive();
       }
       this.eventBus.fire('views.changed', { views: this.views });
     };
@@ -139,8 +150,14 @@ export class DmnViews {
     layer.style.display = '';
     this.canvas.getContainer().style.display = 'none';
     // 视图类型对应编辑器工厂经 injector 取（模块未装配则显式失败，不做兜底）
-    const factoryName = view.kind === 'decisionTable' ? 'decisionTableEditorFactory' : 'literalExpressionEditorFactory';
-    const editorFactory = this.injector.get<{ create(c: HTMLElement, bo: any): { destroy(): void } }>(factoryName);
+    const FACTORY_BY_KIND: Record<string, string> = {
+      decisionTable: 'decisionTableEditorFactory',
+      literalExpression: 'literalExpressionEditorFactory',
+      boxed: 'boxedExpressionEditorFactory'
+    };
+    const editorFactory = this.injector.get<{ create(c: HTMLElement, bo: any): { destroy(): void } }>(
+      FACTORY_BY_KIND[view.kind]
+    );
     this.currentEditor = editorFactory.create(layer, view.element);
   }
 

@@ -372,3 +372,151 @@
   background: transparent;
   color: #172b4d;
 }
+
+/* ── Boxed Expression 编辑器（递归网格）── */
+.dmn-boxed-editor {
+  padding: 16px 20px 40px;
+}
+
+.dmn-boxed-wrap {
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dmn-boxed-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dmn-boxed-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dmn-boxed-select,
+.dmn-boxed-top-type {
+  font-size: 12px;
+  border: 1px solid #dfe1e6;
+  border-radius: 3px;
+  padding: 2px 6px;
+  background: #ffffff;
+  color: #172b4d;
+}
+
+.dmn-boxed-node {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dmn-boxed-grid {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #c9c9c9;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.dmn-boxed-row {
+  display: flex;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.dmn-boxed-row:last-child {
+  border-bottom: none;
+}
+
+.dmn-boxed-head .dmn-boxed-cell {
+  background: #f4f5f7;
+  font-size: 12px;
+  color: #42526e;
+  font-weight: 600;
+}
+
+.dmn-boxed-cell {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border-right: 1px solid #e8e8e8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dmn-boxed-cell:last-child {
+  border-right: none;
+}
+
+.dmn-boxed-op {
+  flex: 0 0 32px;
+  justify-content: center;
+}
+
+.dmn-boxed-input {
+  flex: 1;
+  min-width: 60px;
+  font-size: 12px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 2px 4px;
+  background: transparent;
+}
+
+.dmn-boxed-input:hover,
+.dmn-boxed-input:focus {
+  border-color: #dfe1e6;
+  background: #ffffff;
+  outline: none;
+}
+
+.dmn-boxed-input:disabled {
+  color: #172b4d;
+}
+
+.dmn-boxed-literal {
+  width: 100%;
+  font-size: 13px;
+  border: 1px solid #dfe1e6;
+  border-radius: 3px;
+  padding: 3px 6px;
+  background: #ffffff;
+}
+
+.dmn-boxed-literal:disabled {
+  background: transparent;
+  color: #172b4d;
+}
+
+.dmn-boxed-value {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.dmn-boxed-value-head {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dmn-boxed-kind {
+  font-size: 11px;
+  color: #6b778c;
+}
+
+.dmn-boxed-value .dmn-boxed-node {
+  padding: 2px 0;
+}
+
+.dmn-boxed-hint {
+  font-size: 12px;
+  color: #6b778c;
+  padding: 4px 2px;
+}
+
+.dmn-boxed-add .dmn-boxed-cell {
+  justify-content: center;
+  background: #fafbfc;
+}

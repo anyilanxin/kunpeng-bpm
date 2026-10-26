@@ -101,6 +101,7 @@ import DirectEditingModule from 'diagram-js-direct-editing';
 import { DmnViews } from './views/DmnViews';
 import { DecisionTableEditor } from './table/DecisionTableEditor';
 import { LiteralExpressionEditor } from './literal/LiteralExpressionEditor';
+import { BoxedExpressionEditor } from './boxed/BoxedExpressionEditor';
 
 /** 只读查看平台特性（Viewer 底座）：元素事件 / 鼠标 / 调度 / 悬停修正 / overlays——无选择与编辑 */
 export const ViewerPlatformModules: ModuleDeclaration[] = [
@@ -321,6 +322,23 @@ export const DmnTableModule: ModuleDeclaration = {
       (modeling: any, eventBus: any, elementRegistry: any, dmnFactory: DmnFactory, dmnMode: any, dmnI18n: any) => ({
         create: (container: HTMLElement, decision: any) =>
           new LiteralExpressionEditor(container, decision, {
+            modeling,
+            eventBus,
+            elementRegistry,
+            dmnFactory,
+            dmnMode,
+            i18n: dmnI18n
+          })
+      }),
+      { $inject: ['modeling', 'eventBus', 'elementRegistry', 'dmnFactory', 'dmnMode', 'dmnI18n'] }
+    )
+  ],
+  'boxedExpressionEditorFactory': [
+    'factory',
+    Object.assign(
+      (modeling: any, eventBus: any, elementRegistry: any, dmnFactory: DmnFactory, dmnMode: any, dmnI18n: any) => ({
+        create: (container: HTMLElement, decision: any) =>
+          new BoxedExpressionEditor(container, decision, {
             modeling,
             eventBus,
             elementRegistry,

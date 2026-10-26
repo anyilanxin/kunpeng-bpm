@@ -34,6 +34,17 @@ const TYPE_REFS = [
   'dateTime', 'daysAndTimeDuration', 'yearsAndMonthsDuration'
 ];
 
+/** decisionLogic 全类切换（类型切换与视图重挂联动，见 DmnViews） */
+const LOGIC_TYPES: Array<{ value: string; label: string }> = [
+  { value: 'dmn:LiteralExpression', label: '字面表达式' },
+  { value: 'dmn:DecisionTable', label: '决策表' },
+  { value: 'dmn:Context', label: '上下文' },
+  { value: 'dmn:Invocation', label: '调用' },
+  { value: 'dmn:Relation', label: '关系' },
+  { value: 'dmn:List', label: '列表' },
+  { value: 'dmn:FunctionDefinition', label: '函数定义' }
+];
+
 export interface LiteralExpressionEditorDeps {
   modeling: any;
   eventBus: any;
@@ -92,9 +103,24 @@ export class LiteralExpressionEditor {
     const wrap = document.createElement('div');
     wrap.className = 'dmn-literal-wrap';
 
-    // 顶栏：变量名 / 变量类型 / 表达式语言
+    // 顶栏：类型切换 / 变量名 / 变量类型 / 表达式语言
     const bar = document.createElement('div');
     bar.className = 'dmn-literal-bar';
+    if (this.editable) {
+      const kindSelect = document.createElement('select');
+      kindSelect.className = 'dmn-literal-input';
+      for (const opt of LOGIC_TYPES) {
+        kindSelect.add(new Option(t(opt.label), opt.value));
+      }
+      kindSelect.value = this.decision.decisionLogic?.$type ?? '';
+      kindSelect.addEventListener('change', () => {
+        const fresh = this.deps.dmnFactory.create<any>(
+          this.skeleton(kindSelect.value)
+        );
+        this.deps.modeling.updateModdleProperties(this.canvasElement, this.decision, { decisionLogic: fresh });
+      });
+      bar.appendChild(this.fieldLabel(t('表达式类型'), kindSelect));
+    }
     bar.appendChild(this.fieldLabel(t('输出变量名'), this.variableInput('name', this.decision.variable?.name, (value) => {
       this.ensureVariable({ name: value || undefined });
     })));
@@ -134,6 +160,26 @@ export class LiteralExpressionEditor {
     if (this.focusExpression && this.editable) {
       const el = this.root.querySelector<HTMLTextAreaElement>('.dmn-literal-area');
       el?.focus();
+    }
+  }
+
+  /** 各类型切换骨架（空容器/首列首行等合法起点） */
+  private skeleton(type: string): { $type: string } & Record<string, unknown> {
+    switch (type) {
+      case 'dmn:DecisionTable':
+        return { $type: 'dmn:DecisionTable', hitPolicy: 'UNIQUE' };
+      case 'dmn:Context':
+        return { $type: 'dmn:Context', contextEntry: [] };
+      case 'dmn:Invocation':
+        return { $type: 'dmn:Invocation', binding: [] };
+      case 'dmn:Relation':
+        return { $type: 'dmn:Relation', column: [], row: [] };
+      case 'dmn:List':
+        return { $type: 'dmn:List', elements: [] };
+      case 'dmn:FunctionDefinition':
+        return { $type: 'dmn:FunctionDefinition', formalParameter: [] };
+      default:
+        return { $type: 'dmn:LiteralExpression' };
     }
   }
 
