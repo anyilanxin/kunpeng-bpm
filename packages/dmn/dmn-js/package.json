@@ -28,7 +28,10 @@
     "prepublishOnly": "pnpm run typecheck && pnpm run build"
   },
   "dependencies": {
+    "@kunpeng-io/kunpeng-bpmn-moddle": "workspace:*",
     "@kunpeng-io/kunpeng-dmn-moddle": "workspace:*",
+    "bpmn-moddle": "^10.3.1",
+    "inherits-browser": "^0.1.0",
     "diagram-js": "catalog:",
     "diagram-js-direct-editing": "catalog:",
     "didi": "^11.0.1",

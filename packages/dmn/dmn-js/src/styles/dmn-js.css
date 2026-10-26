@@ -5,7 +5,7 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation. The copyright holder designates
+ * published by the Free Software Foundation.  The copyright holder designates
  * this particular file as subject to the "Classpath" exception as provided
  * in the LICENSE file and licenses/ directory that accompany this code.
  *
@@ -20,45 +20,45 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * 组件自有样式（随包发布，exports "./styles" 子路径）。
- * 画布基础：字体族与渲染器 INTERNAL_FONT 同源；预览模式隐藏编辑 UI
- * （双层防线之一，规则层见 mode/DmnMode 注释）。
+ * @kunpeng-io/bpmn-js 组件自有功能样式。
+ *
+ * 使用方引入（必须在 diagram-js/assets/diagram-js.css 之后，同特异性靠后胜出）：
+ *   import 'diagram-js/assets/diagram-js.css';
+ *   import '@kunpeng-io/bpmn-js/styles';
+ *
+ * 收录约束（产品决策"观感 = diagram-js.css 默认"，唯弹框家族除外）：
+ * - 只放「功能性覆写」——影响布局/交互行为的规则，缺了组件功能不完整；
+ * - 皮肤类规则（配色/阴影/圆角等观感定制）不入此文件，由宿主自行覆盖；
+ * - 弹框家族（palette "…" 创建 / context pad 替换·追加·创建 / 对齐）皮肤
+ *   按产品给定样式收编为组件标准外观（见下「弹框家族外观」一节）；
+ * - 图标全部为组件内联自绘 SVG（src/icons/），本文件不承担图标样式。
  */
 
-.dmn-js-container,
-.dmn-js-container .djs-container {
-  font-family: system-ui, 'PingFang SC', sans-serif;
-}
+/* 元素面板单双列：完全交给引擎自动切换（Palette._needsCollapse：容器高 <
+   条目数×46+50 → 切 .two-column 双列 94px；足够高时单列 48px）。本组件
+   不覆写宽度——强制窄条会压坏双列布局；也不设 max-height/overflow——
+   双列即终态自适应高度，面板永不出现滚动条（产品要求）。 */
 
-/* 预览模式：编辑类 UI 隐藏（palette/context pad P2 落地后生效） */
-.dmn-preview-mode .djs-palette {
-  display: none !important;
-}
+/* 元素面板：条目内联自绘 SVG 垂直居中（记法缩样 26px / 工具图标 22px，
+   默认行高 46px，inline 基线对齐会沉底） */
+.djs-palette .entry svg { vertical-align: middle; }
 
-.dmn-preview-mode .djs-context-pad {
-  display: none !important;
-}
+/* 弹框标题行循环特性切换钮：内联 SVG 与字体图标基线对齐 */
+.djs-popup-header .entry svg { vertical-align: middle; }
 
-.dmn-preview-mode .djs-direct-editing-content {
-  pointer-events: none;
-}
-
-/* ── 面板/弹框图标基线（与 bpmn 线同款功能覆写） ── */
-.djs-palette .entry svg,
-.djs-popup-header .entry svg {
-  vertical-align: middle;
-}
-
-/* ── 上下文面板布局：条目跨组连续流式三列换行（引擎默认 inline-block 随条目
-   数撑宽、面板右缘不齐；三列等宽阵列与 palette/弹框的规整语言一致。
-   引擎 .djs-context-pad.open{display:block} 特异性高于容器规则，须同名
-   覆盖为 flex。选择器不锚容器类——.djs-context-pad 每画布唯一 ── */
+/* 上下文面板布局：条目跨组连续流式三列换行——引擎默认 entry
+   inline-block 随条目数自然撑宽，分组宽度参差、面板右缘不齐；三列等宽
+   阵列（3×22px 钮 + 2×2px 缝 = 70px）与 palette/弹框的规整语言一致。
+   组退化为 display:contents 透明容器（分组语义保留，条目直排父级流），
+   避免各组独立换行在中间留下空位。
+   引擎 .djs-context-pad.open{display:block} 特异性高于容器规则，须
+   同名覆盖为 flex。 */
 .djs-context-pad,
 .djs-context-pad.open {
   display: flex;
   flex-wrap: wrap;
   gap: 2px;
-  width: 70px; /* 三列封行 */
+  width: 70px; /* 三列封行：append 族 6 项两行，工具族顺位续接 */
 }
 .djs-context-pad .group {
   display: contents;
@@ -67,579 +67,214 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0;
-  width: 22px;
-  height: 22px;
+  margin: 0; /* 引擎 0 2px 2px 0 外距让位 flex gap */
+}
+
+/* 底色与 palette 同面：引擎默认条目底/白晕取 --bio-surface（纯白），在
+   点阵画布与浅灰面板（--bio-surface-subtle）之间偏白扎眼，暗色下同理
+   偏亮一档——对齐面板同面后令牌级联动（白晕阴影同变量，暗色随宿主令牌） */
+.djs-parent {
+  --context-pad-entry-background-color: var(--bio-surface-subtle);
+}
+
+/* 预览模式（BpmnMode）：隐藏元素面板与上下文面板——只读预览模型。
+ * 规则层（BpmnRules）同步否决全部编辑动作，此为 UI 防线而非唯一防线。 */
+.djs-container.bpmn-preview-mode .djs-palette,
+.djs-container.bpmn-preview-mode .djs-context-pad { display: none !important; }
+
+/* 连线拖拽预览：恢复实心箭头填充。diagram-js 影子样式对 .djs-dragger 容器
+   内全部图形强制 fill:none !important（线框化拖拽影子），但实心箭头是
+   方向语义而非形状轮廓——被线框化后会与空心箭头记法（消息流/数据关联，
+   规范 §8.4.3/§10.4.1）混淆，误传连线类型。本规则特异性 (0,2,1) 高于
+   引擎 .djs-dragger * 的 (0,1,1)，同处 important 层级靠特异性胜出；颜色
+   取拖拽主题色与预览线一致。正常态连线不在 .djs-dragger 容器，不受影响。 */
+.djs-dragger path.bpmn-arrow-filled {
+  fill: var(--element-dragger-color) !important;
+  stroke: var(--element-dragger-color) !important;
+}
+
+/* ── 弹框家族外观（产品给定样式：白底直角轻阴影、加粗标题、整宽搜索、
+      灰色分组头、单列「图标+文字」行、右侧细滚动条）──
+   取值为自有设计：按 48px palette 视觉密度自适配，非抄任何上游实现。 */
+
+/* 无边框线：柔和投影 + 一圈极淡发丝影界定边界，双线（边框+阴影）显重 */
+.djs-popup {
+  border: none;
+  border-radius: 3px; /* 轻圆角：直角生硬，大圆角与画布方角记法不配 */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+/* 标题：比条目主文大一档并加深（层级差），行距给足 */
+.djs-popup .djs-popup-header { margin: 12px 14px 8px; }
+.djs-popup .djs-popup-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* 标题行切换钮（替换弹框循环特性）：与条目同语言的轻底小方钮——
+   引擎默认是 18px 裸按钮（无底色无圆角），在统一皮肤里像外来控件。
+   取值为自有设计：24px 与搜索框 32px 同族的点击区梯度、3px 圆角与弹框
+   同语言、hover/active 6%/8% 灰与条目 hover 同族；active 文字色保持
+   引擎主题色高亮（选中态可辨识），仅补底与形态。 */
+.djs-popup .djs-popup-header-group { margin-left: auto; gap: 2px; }
+.djs-popup .djs-popup-header .entry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+}
+/* 面板/操作钮条目悬停反馈:背景提亮(与弹框条目同族 6% 灰)+ 图标随悬停主题色
+   (diagram-js 默认仅改 color,图标须 currentColor 才可见)+ 抓取光标提示可拖建 */
+.djs-palette .entry,
+.djs-context-pad .entry {
+  cursor: grab;
+}
+
+.djs-palette .entry:active,
+.djs-context-pad .entry:active {
+  cursor: grabbing;
+}
+
+.djs-palette .entry:hover,
+.djs-context-pad .entry:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.djs-popup .djs-popup-header .entry:hover { background: rgba(0, 0, 0, 0.06); }
+.djs-popup .djs-popup-header .entry.active { background: rgba(0, 0, 0, 0.08); }
+
+/* 搜索框：整宽、加高（30px 量级），放大镜图标随高度居中 */
+.djs-popup .djs-popup-search { margin: 8px 14px 10px; }
+.djs-popup .djs-popup-search input {
+  padding: 6px 6px 6px 30px;
+  line-height: 18px;
+  border-radius: 3px;
+}
+.djs-popup .djs-popup-search-icon { left: 9px; top: 9px; }
+
+/* 结果区：左右留白收窄对齐搜索框，滚动条（细样式为引擎默认）贴右缘 */
+.djs-popup .djs-popup-results { margin: 2px 6px 8px 14px; }
+
+/* 分组头：灰一档且小于条目主文（次级层级），组间距略收紧 */
+.djs-popup .djs-popup-body .entry-header {
+  font-size: 12px;
+  color: #7f7f7f;
+}
+.djs-popup .djs-popup-body .entry-header:not(:first-child) { margin-top: 6px; }
+
+/* 条目行：舒展行高（参考样式行距明显大于默认 5px 紧排） */
+.djs-popup .djs-popup-body .entry { padding: 6px 8px; }
+
+/* 对齐/分布弹框（bpmn-align-popup）：无搜索的图标栅格，每行 3 个
+   （2026-10-25 产品定规）——组各自成栅格不跨行混排，条目图标居中占格 */
+.djs-popup.bpmn-align-popup .djs-popup-body .djs-popup-group {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+.djs-popup.bpmn-align-popup .djs-popup-body .djs-popup-group .entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px;
 }
 
 /* ── 直编输入框外观 ──
-   diagram-js-direct-editing 的 TextBox 默认内联「白底 + 1px #ccc 边」且内联
-   压过普通 CSS——边框/底色由 Provider 按族内联下发（TRANSPARENT_STYLE），
-   本表零皮肤干预；行高 1.4 与 Provider 测量参数同源。编辑期已渲染名字由
-   DmnEditingBehavior 加 label-editing marker 藏去——透明框下双文本重影。 */
+   diagram-js-direct-editing 的 TextBox 默认内联「白底 + 1px #ccc 边」，且
+   内联样式压过普通 CSS——边框/底色全部由 Provider 按族内联下发
+   （LabelEditingProvider TRANSPARENT_STYLE），本表零皮肤干预（无边框、
+   无底色、**无圆角**——2026-10-26 用户定规方形直角）。全族隐形框
+   （2026-10-26 用户定稿）：编辑期已渲染标签由 LabelBehavior 加
+   label-editing marker 藏去——画布上只见光标闪烁，看不出输入框；
+   调宽手柄（resizable）已按用户定规去掉，勿回加。 */
+
+.djs-element.label-editing text {
+  visibility: hidden;
+}
+
+/* 文字区：行距与左右呼吸感——行高 1.4 与卡片高度测量（internalCard）同
+   参数；左右垫 4 使换行宽=元素宽−20，与渲染排版宽（internalLabelBox
+   padX 8×2 + 渲染 padding 2×2）严格同宽，换行点所见即所得，勿单独改 */
 .djs-direct-editing-parent .djs-direct-editing-content {
   padding: 3px 4px;
   line-height: 1.4;
 }
 
-/* 编辑期藏已渲染名字（DMN 形内名 = 元素视觉内唯一 text 节点，按 marker 定点隐藏；
-   选择器不锚容器类——marker 类每画布元素唯一） */
-.djs-element.label-editing .djs-visual text {
-  visibility: hidden;
-}
-
-/* ── 多视图编辑器层（DmnViews）──
-   挂画布容器兄弟位：DRD 激活时整层 display:none（由 DmnViews 内联控制），
-   此处只定基础布局与滚动；层内组件自带皮肤。 */
-.dmn-editor-layer {
-  position: absolute;
-  inset: 0;
-  overflow: auto;
-  background: #ffffff;
-  z-index: 10;
-}
-
-/* ── 决策表编辑器（DOM 网格，bpmn.io 风格：白底细灰线、族界圆形加号）──
-   色板自设计：线 #d9d9d9 / 主文 #222 / 次文 #888 / 弱文 #999 / 焦点 #4c9aff */
-.dmn-table-editor {
-  padding: 0 20px 40px;
-}
-
-/* 头部行：决策名 + 命中策略 */
-.dmn-table-header {
+/* ── 下钻徽标（折叠子流程右下角外侧，plane/DrillBadges）──
+   蓝底白角标（用户定规色 #0095ff）：22px 点击区；overlays 为 HTML 通道
+   不随画布缩放，恒定像素可点。无阴影、无 hover/active 底色变化
+   （用户定规：悬浮反馈不要，鼠标手型即可）。 */
+.bpmn-drill-badge {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 4px 10px;
-}
-
-.dmn-table-title {
-  flex: 0 1 320px;
-  min-width: 120px;
-  font-size: 20px;
-  font-weight: 500;
-  color: #222222;
-  border: 1px solid transparent;
-  border-radius: 3px;
-  padding: 2px 6px;
-  background: transparent;
-}
-
-.dmn-table-title:hover,
-.dmn-table-title:focus {
-  border-color: #d9d9d9;
-  background: #ffffff;
-  outline: none;
-}
-
-.dmn-table-hitbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-}
-
-.dmn-table-hitbar-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #222222;
-}
-
-.dmn-table-select,
-.dmn-clause-type-select {
-  font-size: 12px;
-  border: 1px solid #cccccc;
-  border-radius: 3px;
-  padding: 3px 6px;
-  background: #ffffff;
-  color: #222222;
-}
-
-.dmn-table-agg {
-  max-width: 96px;
-}
-
-/* 表体：白底、细灰线；wrap 可见溢出（族界加号骑缝凸出表缘） */
-.dmn-table-wrap {
-  display: inline-block;
-  min-width: 420px;
-  background: #ffffff;
-  /* 右侧给骑缝在表缘的加号留半径空间，避免贴容器边被裁 */
-  padding-right: 12px;
-}
-
-.dmn-table-grid {
-  border-collapse: collapse;
-  table-layout: fixed;
-  border: 1px solid #d9d9d9;
-}
-
-.dmn-table-grid th,
-.dmn-table-grid td {
-  border: 1px solid #d9d9d9;
-}
-
-/* 行号列（含跨两行的左上角空格） */
-.dmn-table-corner,
-.dmn-table-grid .dmn-table-rownum {
-  width: 36px;
-  min-width: 36px;
-  text-align: center;
-  vertical-align: middle;
-  font-size: 12px;
-  color: #999999;
-  background: #ffffff;
-}
-
-/* 组头行（When/And | Then/And | Annotations）：小字浅灰，Annotations 跨列居中 */
-.dmn-table-group {
-  position: relative;
-  padding: 3px 8px;
-  font-size: 12px;
-  font-weight: 400;
-  color: #888888;
-  text-align: left;
-  vertical-align: top;
-  background: #ffffff;
-}
-
-.dmn-table-group.dmn-group-annotation {
-  text-align: center;
-}
-
-/* 族界圆形加号：深灰底白字骑缝，垂直对组头行中线 */
-.dmn-seam-add {
-  position: absolute;
-  top: 50%;
-  margin-top: -10px;
-  width: 20px;
-  height: 20px;
-  border: none;
-  border-radius: 50%;
-  background: #444444;
-  color: #ffffff;
-  font-size: 14px;
-  line-height: 18px;
-  text-align: center;
-  cursor: pointer;
-  padding: 0;
-  z-index: 2;
-}
-
-.dmn-seam-add:hover {
-  background: #111111;
-}
-
-/* 列头行：名称居中浅灰、typeRef 小字右下角、删除 × 悬停右上 */
-.dmn-table-grid .dmn-table-clause {
-  position: relative;
-  min-width: 140px;
-  padding: 10px 10px 16px;
-  vertical-align: middle;
-  background: #ffffff;
-}
-
-.dmn-clause-name {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-  text-align: center;
-  font-size: 15px;
-  color: #666666;
-  border: 1px solid transparent;
-  border-radius: 3px;
-  padding: 2px 4px;
-  background: transparent;
-}
-
-.dmn-clause-name:hover,
-.dmn-clause-name:focus {
-  border-color: #d9d9d9;
-  background: #ffffff;
-  color: #222222;
-  outline: none;
-}
-
-.dmn-clause-type {
-  position: absolute;
-  right: 4px;
-  bottom: 2px;
-  border: none;
-  background: transparent;
-  font-size: 11px;
-  color: #999999;
-  cursor: pointer;
-  padding: 0 2px;
-}
-
-.dmn-clause-type:hover {
-  color: #222222;
-}
-
-.dmn-clause-type-select {
-  position: absolute;
-  right: 4px;
-  bottom: 2px;
-  max-width: 120px;
-  z-index: 2;
-}
-
-.dmn-clause-del {
-  visibility: hidden;
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  border: none;
-  background: transparent;
-  color: #999999;
-  cursor: pointer;
-  font-size: 13px;
-  line-height: 1;
-  padding: 0 3px;
-  z-index: 2;
-}
-
-.dmn-clause-del:hover {
-  color: #de350b;
-}
-
-.dmn-table-clause:hover .dmn-clause-del {
-  visibility: visible;
-}
-
-/* 行内操作（行号格悬停） */
-.dmn-row-ops {
-  display: none;
-  margin-left: 2px;
-}
-
-.dmn-table-rule:hover .dmn-row-ops {
-  display: inline;
-}
-
-.dmn-tiny-btn {
-  border: none;
-  background: transparent;
-  color: #999999;
-  cursor: pointer;
-  font-size: 11px;
-  padding: 0 2px;
-  line-height: 1;
-}
-
-.dmn-tiny-btn:hover {
-  color: #0747a6;
-}
-
-/* 单元格 */
-.dmn-table-grid .dmn-table-cell {
-  padding: 0;
-  vertical-align: middle;
-}
-
-.dmn-cell-input {
-  width: 100%;
-  box-sizing: border-box;
-  border: none;
-  padding: 6px 8px;
-  font-size: 13px;
-  color: #222222;
-  background: transparent;
-}
-
-.dmn-cell-input::placeholder {
-  color: #cccccc;
-}
-
-.dmn-cell-input:focus {
-  outline: 2px solid #4c9aff;
-  outline-offset: -2px;
-  background: #ffffff;
-}
-
-/* 表底行：行号列底格 "+"，其余格留空 */
-.dmn-table-grid .dmn-table-add-rule {
-  text-align: center;
-  padding: 2px;
-}
-
-.dmn-row-add {
-  border: none;
-  background: transparent;
-  color: #4c9aff;
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 2px 6px;
-}
-
-.dmn-row-add:hover {
-  color: #0747a6;
-}
-
-/* 只读（预览形态）：条目输入整体禁用外观 */
-.dmn-editor-layer .dmn-cell-input:disabled,
-.dmn-editor-layer .dmn-clause-name:disabled,
-.dmn-editor-layer .dmn-table-title:disabled {
-  color: #222222;
-  background: transparent;
-  cursor: default;
-}
-
-.dmn-editor-layer .dmn-clause-type:disabled {
-  cursor: default;
-}
-
-/* ── 下钻徽标与编辑器返回钮 ──
-   徽标=画布元素右下角 overlays 小方钮（bpmn 线折叠子流程下钻徽标同款语义）；
-   返回钮=各表达式编辑器头部左侧出口 */
-.dmn-drill-badge {
+  justify-content: center;
   width: 22px;
   height: 22px;
-  border: 1px solid #d9d9d9;
-  border-radius: 3px;
-  background: #ffffff;
-  color: #666666;
-  cursor: pointer;
   padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.dmn-drill-badge:hover {
-  background: #f2f2f2;
-  color: #222222;
-  border-color: #aaaaaa;
-}
-
-.dmn-editor-back {
   border: none;
-  background: transparent;
-  color: #4c9aff;
-  font-size: 13px;
+  border-radius: 4px;
+  background: #0095ff;
+  color: #ffffff;
   cursor: pointer;
-  padding: 2px 4px;
-  white-space: nowrap;
 }
 
-.dmn-editor-back:hover {
-  color: #0747a6;
-}
-
-/* ── 字面表达式编辑器 ── */
-.dmn-literal-editor {
-  padding: 16px 20px 40px;
-}
-
-.dmn-literal-wrap {
-  max-width: 720px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.dmn-literal-bar {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.dmn-literal-field {
+/* ── 平面面包屑（plane/PlaneBreadcrumb）：画布左上角层级路径 ──
+   主平面隐藏（[hidden] 显式声明——display:flex 会盖掉 UA 的 [hidden] 隐藏，
+   同悬浮卡弹层陷阱）；祖先段主题蓝可点、当前段加重不可点。
+   无卡片底（用户定规：不悬浮——白底/投影/圆角/内距全无，裸排画布上）。
+   起点避让左上悬浮 palette（20 + 94 两列宽 + 16 间距）；16px 字号（用户定规）。
+   层级过多不换行：容器单行溢出隐藏，早期段优先收缩成省略号
+   （flex-shrink 阶梯），当前段恒完整可见。 */
+.bpmn-plane-breadcrumb {
+  position: absolute;
+  top: 10px;
+  left: 130px;
+  right: 16px;
+  z-index: 60;
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #42526e;
-}
-
-.dmn-literal-input {
-  font-size: 12px;
-  border: 1px solid #dfe1e6;
-  border-radius: 3px;
-  padding: 3px 6px;
-  min-width: 110px;
-  background: #ffffff;
-}
-
-.dmn-literal-input:disabled {
-  background: transparent;
-  color: #172b4d;
-}
-
-.dmn-literal-area-label {
-  font-size: 12px;
-  color: #42526e;
-}
-
-.dmn-literal-area {
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 140px;
-  font-family: ui-monospace, Menlo, monospace;
-  font-size: 13px;
-  border: 1px solid #dfe1e6;
-  border-radius: 4px;
-  padding: 10px;
-  resize: vertical;
-  background: #ffffff;
-}
-
-.dmn-literal-area:focus {
-  outline: 2px solid #4c9aff;
-  outline-offset: -2px;
-}
-
-.dmn-literal-area:disabled {
-  background: transparent;
-  color: #172b4d;
-}
-
-/* ── Boxed Expression 编辑器（递归网格）── */
-.dmn-boxed-editor {
-  padding: 16px 20px 40px;
-}
-
-.dmn-boxed-wrap {
-  max-width: 860px;
-  display: flex;
-  flex-direction: column;
   gap: 8px;
-}
-
-.dmn-boxed-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.dmn-boxed-title {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.dmn-boxed-select,
-.dmn-boxed-top-type {
-  font-size: 12px;
-  border: 1px solid #dfe1e6;
-  border-radius: 3px;
-  padding: 2px 6px;
-  background: #ffffff;
-  color: #172b4d;
-}
-
-.dmn-boxed-node {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.dmn-boxed-grid {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid #c9c9c9;
-  border-radius: 4px;
   overflow: hidden;
-  background: #ffffff;
+  font-size: 16px;
+  line-height: 22px;
+  color: #1a1a1a;
+  user-select: none;
 }
-
-.dmn-boxed-row {
-  display: flex;
-  border-bottom: 1px solid #e8e8e8;
+.bpmn-plane-breadcrumb[hidden] {
+  display: none;
 }
-
-.dmn-boxed-row:last-child {
-  border-bottom: none;
+.bpmn-plane-breadcrumb-crumb {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: #0095ff;
+  cursor: pointer;
+  /* 非当前段可收缩（挤让空间），下限 24px 保省略号可点回跳 */
+  flex-shrink: 1;
+  min-width: 24px;
+  max-width: 260px;
 }
-
-.dmn-boxed-head .dmn-boxed-cell {
-  background: #f4f5f7;
-  font-size: 12px;
-  color: #42526e;
+.bpmn-plane-breadcrumb-crumb:hover {
+  text-decoration: underline;
+}
+.bpmn-plane-breadcrumb-crumb.current {
+  color: inherit;
   font-weight: 600;
+  cursor: default;
+  /* 当前段不收缩不截断——层级再深也完整可见 */
+  flex-shrink: 0;
+  max-width: none;
 }
-
-.dmn-boxed-cell {
-  flex: 1;
-  min-width: 0;
-  padding: 4px 6px;
-  border-right: 1px solid #e8e8e8;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.bpmn-plane-breadcrumb-crumb.current:hover {
+  text-decoration: none;
 }
-
-.dmn-boxed-cell:last-child {
-  border-right: none;
-}
-
-.dmn-boxed-op {
-  flex: 0 0 32px;
-  justify-content: center;
-}
-
-.dmn-boxed-input {
-  flex: 1;
-  min-width: 60px;
-  font-size: 12px;
-  border: 1px solid transparent;
-  border-radius: 3px;
-  padding: 2px 4px;
-  background: transparent;
-}
-
-.dmn-boxed-input:hover,
-.dmn-boxed-input:focus {
-  border-color: #dfe1e6;
-  background: #ffffff;
-  outline: none;
-}
-
-.dmn-boxed-input:disabled {
-  color: #172b4d;
-}
-
-.dmn-boxed-literal {
-  width: 100%;
-  font-size: 13px;
-  border: 1px solid #dfe1e6;
-  border-radius: 3px;
-  padding: 3px 6px;
-  background: #ffffff;
-}
-
-.dmn-boxed-literal:disabled {
-  background: transparent;
-  color: #172b4d;
-}
-
-.dmn-boxed-value {
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.dmn-boxed-value-head {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.dmn-boxed-kind {
-  font-size: 11px;
-  color: #6b778c;
-}
-
-.dmn-boxed-value .dmn-boxed-node {
-  padding: 2px 0;
-}
-
-.dmn-boxed-hint {
-  font-size: 12px;
-  color: #6b778c;
-  padding: 4px 2px;
-}
-
-.dmn-boxed-add .dmn-boxed-cell {
-  justify-content: center;
-  background: #fafbfc;
+.bpmn-plane-breadcrumb-separator {
+  color: #7f7f7f;
+  flex-shrink: 0;
 }

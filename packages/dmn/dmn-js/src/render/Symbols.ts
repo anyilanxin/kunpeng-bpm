@@ -5,7 +5,7 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation. The copyright holder designates
+ * published by the Free Software Foundation.  The copyright holder designates
  * this particular file as subject to the "Classpath" exception as provided
  * in the LICENSE file and licenses/ directory that accompany this code.
  *
@@ -20,12 +20,19 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * DMN 记法绘制件（形状 path / 端点装饰）——记法语义按 DMN 1.6 §6.2.1，
- * 几何常量自有设计（见 meta/ElementTypes SIZES 注释）。
- * 坐标契约：一律以元素原点 (0,0) 起画（gfx 组自带 translate）。
+ * BPMN 记法符号库。
+ *
+ * 形状框（事件圆/网关菱形/任务盒/数据件轮廓）为依据规范记法文字描述自行设计
+ * 的描边几何（规范不定义像素路径）；框内字形类标记（事件符号/网关标记/任务
+ * 字标/循环/多实例标记行）一律取标准图标集的内部字形（icons/IconSet glyph*
+ * 键，见 iconSetGlyph）——面板图标与画布字形同源（2026-10-21 全量一致性核对），
+ * 带框整元素剪影不入画布（画布框遵循规范记法描边）。
+ * - 事件符号取自对应事件图标（捕获=空心变体，抛出=实心变体，规范 §10.3）；
+ * - 网关标记取自对应网关图标（X / + / O / 双圆，规范 §10.4.2-§10.4.5）；
+ * - 任务族字标置于任务盒左上角（规范 §10.3 标记位约定，面板记法图标同位，见 icons/BpmnIcons）。
  */
-import { append, attr, create } from 'tiny-svg';
-import { SIZES } from '../meta/ElementTypes';
+import { append, create, attr } from 'tiny-svg';
+import { GLYPH_CENTERS, iconSetAsset, type IconSetKey } from '../icons/IconSet';
 
 export interface StyleTheme {
   stroke: string;
@@ -33,179 +40,476 @@ export interface StyleTheme {
   labelColor: string;
 }
 
-export const DEFAULT_THEME: StyleTheme = Object.freeze({
-  stroke: '#000000',
-  fill: '#ffffff',
-  labelColor: '#000000'
-});
-
-/** 线型记法（规范 §6.2.2：信息需求实线；知识/授权需求虚线；关联点线细） */
-export const LINE_WIDTH = 1.5;
-export const DASH_REQUIREMENT = '5 3';
-export const DASH_ASSOCIATION = '2 3';
-
-/** 决策：矩形（规范 §6.2.1.1 "a rectangle, normally drawn with solid lines"） */
-export function drawDecisionShape(visuals: SVGElement, shape: any, theme: StyleTheme): void {
-  drawPath(visuals, `M0,0 H${shape.width} V${shape.height} H0 Z`, theme);
-}
-
 /**
- * 业务知识模型：双切角矩形（规范 §6.2.1.2 "a rectangle with two clipped
- * corners"）——切角取对角（左上/右下），切边长 BKM_CUT=20：五段闭合 path。
+ * 图标集剪影字形（标准图标集 path，"面板=画布"基准）：以 (cx,cy) 为中心、
+ * 边长 box 等比缩放填充（按资产自身 viewBox 宽计算系数；glyph* 资产已归一
+ * 100 方盒并保留纵横比）。用于事件符号/网关标记/任务字标/循环标记行等框内
+ * 字形；带框整元素剪影不入画布——画布形状框遵循 BPMN 规范描边记法（见文件头）。
+ *
+ * 居中按墨迹中心（GLYPH_CENTERS）而非归一盒中心——字形紧 bbox 贴盒原点
+ * 归一，窄高/横宽形的墨迹中心偏离盒中心，按盒中心平移会系统性偏心。
  */
-export function drawBkmShape(visuals: SVGElement, shape: any, theme: StyleTheme): void {
-  const { width: w, height: h } = shape;
-  const c = Math.min(SIZES.BKM_CUT, w / 2, h / 2);
-  drawPath(visuals, `M${c},0 H${w} V${h - c} L${w - c},${h} H0 V${c} Z`, theme);
-}
-
 /**
- * 输入数据：两侧直边 + 两端半圆（规范 §6.2.1.3 "two parallel straight sides
- * and two semi-circular ends"）——胶囊形 path，半径=高之半。
+ * 字形资产解析缓存：同一 key 的 SVG 片段只解析一次，后续绘制走 cloneNode
+ * （重绘风暴下避免逐元素重复 innerHTML 解析；缓存体为离屏 <g> 模板）。
  */
-export function drawInputDataShape(visuals: SVGElement, shape: any, theme: StyleTheme): void {
-  const { width: w, height: h } = shape;
-  const r = h / 2;
-  drawPath(
-    visuals,
-    `M${r},0 H${w - r} A${r},${r} 0 0 1 ${w - r},${h} H${r} A${r},${r} 0 0 1 ${r},0 Z`,
-    theme
-  );
-}
+const glyphTemplates = new Map<IconSetKey, SVGElement>();
 
-/**
- * 知识源：三直边 + 一波浪边（规范 §6.2.1.4 "three straight sides and one
- * wavy one"）——波浪落在底边：Q 曲线控制点上下交替（偏移 2×波幅=8，二次
- * 曲线中点偏移为其半 ≈ 波幅 4），波数按宽度自适应（段长约 26，整除收敛）。
- */
-export function drawKnowledgeSourceShape(visuals: SVGElement, shape: any, theme: StyleTheme): void {
-  const { width: w, height: h } = shape;
-  const amp = SIZES.KS_WAVE;
-  const waves = Math.max(2, Math.round(w / 26));
-  const seg = w / waves;
-  let d = `M0,0 H${w} V${h}`;
-  for (let i = 0; i < waves; i++) {
-    const cx = w - (i + 0.5) * seg;
-    const nx = w - (i + 1) * seg;
-    const control = (i % 2 === 0 ? 1 : -1) * amp * 2;
-    d += ` Q${cx},${h + control} ${nx},${h}`;
+function glyphTemplate(key: IconSetKey): SVGElement {
+  let template = glyphTemplates.get(key);
+  if (!template) {
+    template = create('g');
+    template.innerHTML = iconSetAsset(key).body;
+    glyphTemplates.set(key, template);
   }
-  d += ' Z';
-  drawPath(visuals, d, theme);
+  return template;
 }
 
-/** 文本注记：左侧开口方括号（规范 §6.2.1 Artifacts "a square bracket"） */
-export function drawAnnotationBracket(visuals: SVGElement, shape: any, theme: StyleTheme): void {
-  const { height: h } = shape;
-  const arm = 12;
-  drawPath(visuals, `M${arm},0 H0 V${h} H${arm}`, { ...theme, fill: 'none' });
+function iconSetGlyph(g: Element, key: IconSetKey, cx: number, cy: number, box: number, fill: string): void {
+  const asset = iconSetAsset(key);
+  const k = box / asset.w;
+  const c = GLYPH_CENTERS[key] ?? { x: asset.w / 2, y: asset.h / 2 };
+  const group = create('g');
+  attr(group, {
+    transform: `translate(${(cx - c.x * k).toFixed(2)} ${(cy - c.y * k).toFixed(2)}) scale(${k.toFixed(5)})`,
+    fill
+  });
+  const template = glyphTemplate(key);
+  for (let i = 0; i < template.childNodes.length; i++) {
+    group.appendChild(template.childNodes[i].cloneNode(true));
+  }
+  append(g, group);
+}
+
+/** 在组内画路径 */
+function path(g: Element, d: string, stroke: string, fill: string, strokeWidth = 1.6): any {
+  const p = create('path');
+  attr(p, { d, fill, stroke, 'stroke-width': strokeWidth, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
+  return append(g, p) as any;
+}
+
+/** 在组内画线段（面板记法图标亦复用，见 icons/BpmnIcons） */
+export function line(g: Element, x1: number, y1: number, x2: number, y2: number, stroke: string, w = 1.4): any {
+  const l = create('line');
+  attr(l, { x1, y1, x2, y2, stroke, 'stroke-width': w, 'stroke-linecap': 'round' });
+  return append(g, l) as any;
+}
+
+/** 在组内画圆（面板记法图标亦复用，见 icons/BpmnIcons） */
+export function circle(g: Element, cx: number, cy: number, r: number, stroke: string, fill: string, w = 1.6): any {
+  const c = create('circle');
+  attr(c, { cx, cy, r, fill, stroke, 'stroke-width': w });
+  return append(g, c) as any;
+}
+
+/** 盒形样式：任务盒/池体/道体/分组/事务框等五站点 rect 组装的差异面 */
+export interface BoxStyle {
+  strokeWidth: number;
+  /** 圆角半径（缺省直角） */
+  radius?: number;
+  /** 虚线笔型（如分组 '7 5'） */
+  dash?: string;
+  /** true=空心（分组/事务内框）；缺省填充 theme.fill（bioc 着色随之生效） */
+  hollow?: boolean;
+}
+
+/** 盒形 rect（局部坐标；rect 组装公共形态，fill/stroke/圆角/虚线按样式给出） */
+export function drawBox(
+  g: Element,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  theme: StyleTheme,
+  style: BoxStyle
+): SVGElement {
+  const rect = create('rect');
+  attr(rect, {
+    x,
+    y,
+    width,
+    height,
+    ...(style.radius !== undefined ? { rx: style.radius, ry: style.radius } : {}),
+    fill: style.hollow ? 'none' : theme.fill,
+    stroke: theme.stroke,
+    'stroke-width': style.strokeWidth,
+    ...(style.dash ? { 'stroke-dasharray': style.dash } : {})
+  });
+  return append(g, rect) as any;
+}
+
+// ---------------- 事件记法常量（画布与面板图标同源消费） ----------------
+
+/** 非中断虚线外环笔型（自有取值：周期 10px 约 11 段、划隔比 1.5，36px 外圈人眼最易分辨） */
+export const NON_INTERRUPTING_DASH = '6 4';
+
+/** 中间/边界事件 = 双环记法（规范 §10.5.2） */
+export function isDoubleRingEvent(type: string): boolean {
+  return (
+    type === 'bpmn:IntermediateCatchEvent' ||
+    type === 'bpmn:IntermediateThrowEvent' ||
+    type === 'bpmn:BoundaryEvent'
+  );
+}
+
+/** 事件外环线重：开始/中间/边界 2、结束 4（规范 §10.2 线型） */
+export function eventRingWeight(type: string): number {
+  return type === 'bpmn:EndEvent' ? 4 : 2;
+}
+
+/** 网关菱形闭合路径（纯几何串；画布连线端点与主体同源消费） */
+export function diamondPath(cx: number, cy: number, hw: number, hh: number): string {
+  return `M${cx},${cy - hh} L${cx + hw},${cy} L${cx},${cy + hh} L${cx - hw},${cy} Z`;
+}
+
+/** 网关菱形主体（描边 2；面板记法图标同源调用，保证"面板=画布"逐路径一致） */
+export function drawGatewayShape(g: Element, width: number, height: number, theme: StyleTheme): void {
+  const diamond = create('path');
+  attr(diamond, {
+    d: diamondPath(width / 2, height / 2, width / 2, height / 2),
+    fill: theme.fill,
+    stroke: theme.stroke,
+    'stroke-width': 2
+  });
+  append(g, diamond);
+}
+
+const N = (v: number): string => v.toFixed(2);
+
+/**
+ * 字形绑定表（单一结构）：事件/网关/任务三族字形此前三表三函数同构（查 key →
+ * iconSetGlyph(box×系数)），收敛为一份绑定结构 + 一个绘制核心；三入口保留原签名
+ * 作薄委托（画布渲染与面板图标共用同一核心，"面板=画布"由结构保证）。
+ */
+interface GlyphBinding {
+  key: IconSetKey;
+  /** 抛出语义实心变体（规范 §10.3 抛出=实心；有双态的字形才提供） */
+  throwKey?: IconSetKey;
+  /** 字形边长系数（自有取值：按图标集字形紧 bbox / 框内径占比换算） */
+  box: number;
+}
+
+function drawGlyphBinding(
+  g: Element,
+  bindings: Record<string, GlyphBinding>,
+  symbol: string,
+  cx: number,
+  cy: number,
+  size: number,
+  theme: StyleTheme,
+  throwSemantics = false
+): void {
+  const binding = bindings[symbol];
+  if (!binding) {
+    return;
+  }
+  const key = (throwSemantics && binding.throwKey) || binding.key;
+  iconSetGlyph(g, key, cx, cy, size * binding.box, theme.stroke);
+}
+
+/** 事件符号字形（捕获=空心变体，源自对应 start-event/catch 图标内部字形） */
+const EVENT_GLYPH: Record<string, GlyphBinding> = {
+  message: { key: 'glyphEventMessage', throwKey: 'glyphEventMessageThrow', box: 1.02 },
+  timer: { key: 'glyphEventTimer', box: 1.07 },
+  error: { key: 'glyphEventError', throwKey: 'glyphEventErrorThrow', box: 0.96 },
+  escalation: { key: 'glyphEventEscalation', throwKey: 'glyphEventEscalationThrow', box: 0.99 },
+  signal: { key: 'glyphEventSignal', throwKey: 'glyphEventSignalThrow', box: 0.96 },
+  terminate: { key: 'glyphEventTerminate', box: 1.14 },
+  conditional: { key: 'glyphEventConditional', box: 0.95 },
+  link: { key: 'glyphEventLink', throwKey: 'glyphEventLinkThrow', box: 0.97 },
+  multiple: { key: 'glyphEventMultiple', throwKey: 'glyphEventMultipleThrow', box: 1.07 },
+  parallelMultiple: { key: 'glyphEventParallelMultiple', box: 0.97 },
+  cancel: { key: 'glyphEventCancel', throwKey: 'glyphEventCancelThrow', box: 0.99 },
+  compensation: { key: 'glyphEventCompensation', throwKey: 'glyphEventCompensationThrow', box: 1.02 }
+};
+
+/** 事件定义符号：绘制在事件圆心 (cx,cy)，内径 r；抛出语义（结束/中间抛出）取实心变体 */
+export function drawEventSymbol(
+  g: Element,
+  symbol: string,
+  cx: number,
+  cy: number,
+  r: number,
+  theme: StyleTheme,
+  throwSemantics = false
+): void {
+  drawGlyphBinding(g, EVENT_GLYPH, symbol, cx, cy, r, theme, throwSemantics);
+}
+
+/** 网关标记字形（源自对应 gateway 图标内部字形；实例化变体=多实例开始记法） */
+const GATEWAY_GLYPH: Record<string, GlyphBinding> = {
+  exclusive: { key: 'glyphGatewayXor', box: 1.06 },
+  parallel: { key: 'glyphGatewayParallel', box: 1.41 },
+  inclusive: { key: 'glyphGatewayInclusive', box: 1.29 },
+  eventBased: { key: 'glyphGatewayEventBased', box: 1.33 },
+  complex: { key: 'glyphGatewayComplex', box: 0.88 },
+  /** 实例化事件网关（规范 §10.6.6）：标记=多实例开始事件记法（五边形） */
+  eventBasedInstantiate: { key: 'glyphEventMultiple', box: 1.07 },
+  /** 并行事件网关（instantiate+eventGatewayType=Parallel）：标记=并行多实例记法（开口加号） */
+  eventBasedParallel: { key: 'glyphEventParallelMultiple', box: 0.97 }
+};
+
+/** 网关标记：菱形中心 (cx,cy)，标记半区 h（渲染器传入菱形半宽×0.72） */
+export function drawGatewayMarker(g: Element, type: string, cx: number, cy: number, h: number, theme: StyleTheme): void {
+  drawGlyphBinding(g, GATEWAY_GLYPH, type, cx, cy, h, theme);
 }
 
 /**
- * 决策服务：圆角矩形 + 粗实线（规范 §6.2.1.5 "rectangle with rounded
- * corners, drawn with a heavy solid border"）+ 顶带输出区与分割线（规范
- * §6.2.1.5：顶带放 outputDecision、主体放 encapsulatedDecision）。分割线
- * y 取 shape.dividerY（DI 持久化，缺省 SERVICE_DIVIDER_Y）；顶带轻着色
- * 区分两区（自有视觉，规范未规定颜色）。
+ * 网关类型 → 标记语义（单一事实源）：画布 drawGateway 与面板网关图标共消费
+ * （此前两份映射，图标侧缺 complex/实例化变体）。exclusive 可经
+ * isMarkerVisible=false 隐藏标记（XSD 属性）。
  */
-export function drawDecisionServiceShape(visuals: SVGElement, shape: any, theme: StyleTheme): void {
-  const { width: w, height: h } = shape;
-  const dividerY = shape.dividerY ?? SIZES.SERVICE_DIVIDER_Y;
-  const r = 10;
-  // 顶带着色（fill 带圆角顶；描边由外框承担）
-  drawPath(
-    visuals,
-    `M${r},0 H${w - r} A${r},${r} 0 0 1 ${w},${r} V${dividerY} H0 V${r} A${r},${r} 0 0 1 ${r},0 Z`,
-    { ...theme, fill: '#f2f6fc', stroke: 'none' }
+export function gatewayMarkerOf(bo: { $type: string; isMarkerVisible?: boolean; instantiate?: boolean; eventGatewayType?: string }): string | null {
+  switch (bo.$type) {
+    case 'bpmn:ExclusiveGateway':
+      return bo.isMarkerVisible === false ? null : 'exclusive';
+    case 'bpmn:ParallelGateway':
+      return 'parallel';
+    case 'bpmn:InclusiveGateway':
+      return 'inclusive';
+    case 'bpmn:ComplexGateway':
+      return 'complex';
+    case 'bpmn:EventBasedGateway':
+      // 实例化变体（规范 §10.6.6）：instantiate 标记=多实例开始事件（五边形）；
+      // eventGatewayType=Parallel 为并行事件网关（开口加号）
+      if (bo.instantiate === true) {
+        return bo.eventGatewayType === 'Parallel' ? 'eventBasedParallel' : 'eventBasedInstantiate';
+      }
+      return 'eventBased';
+    default:
+      return null;
+  }
+}
+
+/** 任务族字标字形（源自对应任务图标内部字形，实心/空心随图标：send 实心信封、receive 空心信封） */
+const TASK_GLYPH: Record<string, GlyphBinding> = {
+  taskUser: { key: 'glyphTaskUser', box: 1.5 },
+  taskService: { key: 'glyphTaskService', box: 1.65 },
+  taskScript: { key: 'glyphTaskScript', box: 1.6 },
+  taskManual: { key: 'glyphTaskManual', box: 1.9 },
+  taskSend: { key: 'glyphTaskSend', box: 1.75 },
+  taskReceive: { key: 'glyphTaskReceive', box: 1.75 },
+  taskBusinessRule: { key: 'glyphTaskBusinessRule', box: 1.2 }
+};
+
+/** 任务族标记字形（画布与面板图标共用，保证"面板=画布"）：中心 (cx,cy)，半尺寸 s */
+export function taskGlyph(g: Element, symbol: string, cx: number, cy: number, s: number, theme: StyleTheme): void {
+  drawGlyphBinding(g, TASK_GLYPH, symbol, cx, cy, s, theme);
+}
+
+/** 循环/多实例标记字形键（画布 drawLoopMarker 与面板 loopMarkerIconHtml 同源） */
+export function loopMarkerAssetKey(kind: LoopMarkerKind): IconSetKey {
+  return kind === 'loop' ? 'markerLoop' : kind === 'parallel' ? 'markerMiParallel' : 'markerMiSequential';
+}
+
+/** 任务族标记：任务盒左上角（规范 §10.3 标记位），字形与面板记法图标共用 taskGlyph。
+ * 墨迹边长统一取任务高的 25%（自有取值：78px 任务→约 19.5px，实测 22% 以下
+ * 在常规缩放下存在感不足、与主流建模器对比明显偏小），并按各字形紧 bbox
+ * 系数反推标记区半尺寸，保证不同标记墨迹视觉大小一致（此前统一半尺寸时
+ * user 与 manual 墨迹相差近 30%）。
+ */
+export function drawTaskMarker(g: Element, symbol: string, shape: { x: number; y: number; width: number; height: number }, theme: StyleTheme): void {
+  const visual = Math.min(21, shape.height * 0.25);
+  const cx = visual / 2 + 7;
+  const cy = visual / 2 + 7;
+  const binding = TASK_GLYPH[symbol];
+  if (binding) {
+    taskGlyph(g, symbol, cx, cy, visual / binding.box, theme);
+  }
+}
+
+/** 折叠子流程标记（布局取自用户方参考渲染完整 SVG）：14×14 方块浮于框内底缘上方 6（不跨骑下边框）、水平居中；十字臂缩进 2、描边 2，方块描边 1。cx 可选——与循环标记并存时错开 */
+export function drawCollapsedMarker(g: Element, shape: { width: number; height: number }, theme: StyleTheme, cx?: number): void {
+  const size = 14;
+  const x = (cx ?? shape.width / 2) - size / 2;
+  const y = shape.height - size - 6;
+  path(g, `M${N(x)},${N(y)} h${N(size)} v${N(size)} h${N(-size)} Z`, theme.stroke, theme.fill, 1);
+  line(g, x + size / 2, y + 2, x + size / 2, y + size - 2, theme.stroke, 2);
+  line(g, x + 2, y + size / 2, x + size - 2, y + size / 2, theme.stroke, 2);
+}
+
+/** 数据对象：纸盒 + 右上折角（规范 §10.3.1 Artifacts） */
+export function drawDataObjectShape(g: Element, shape: { x: number; y: number; width: number; height: number }, theme: StyleTheme): void {
+  // 局部坐标（gfx 组自带 translate）
+  const { width, height } = shape;
+  const x = 0;
+  const y = 0;
+  const fold = Math.min(12, width * 0.35);
+  path(
+    g,
+    `M${N(x)},${N(y)} h${N(width - fold)} L${N(x + width)},${N(y + fold)} v${N(height - fold)} h${N(-width)} Z`,
+    theme.stroke,
+    theme.fill,
+    1.8
   );
-  // 分割线（细实线，与粗外框形成层级差）
-  drawPath(visuals, `M0,${dividerY} H${w}`, { ...theme, fill: 'none' }, 1);
-  drawPath(
-    visuals,
-    `M${r},0 H${w - r} A${r},${r} 0 0 1 ${w},${r} V${h - r} A${r},${r} 0 0 1 ${w - r},${h} H${r} A${r},${r} 0 0 1 0,${h - r} V${r} A${r},${r} 0 0 1 ${r},0 Z`,
-    theme,
-    3
+  path(g, `M${N(x + width - fold)},${N(y)} v${N(fold)} h${N(fold)}`, theme.stroke, 'none', 1.4);
+}
+
+/** 文本注记：左侧开口括号（规范 Text Annotation 记法；横勾 10px/线宽 2px 对齐用户参考规格样例） */
+export function drawAnnotationBracket(g: Element, shape: { x: number; y: number; width: number; height: number }, theme: StyleTheme): void {
+  const { height } = shape;
+  const x = 0;
+  const y = 0;
+  const arm = 10;
+  path(g, `M${N(x + arm)},${N(y)} H${N(x)} V${N(y + height)} H${N(x + arm)}`, theme.stroke, 'none', 2);
+}
+
+/** 数据存储：椭圆柱 + 两道刻痕弧（规范 §10.3.1 DataStoreReference 记法）。几何为自有取值：顶椭圆扁比 ry≈高 14%（规范示例为扁椭圆），刻痕与顶椭圆同曲率。 */
+export function drawDataStoreShape(g: Element, shape: { x: number; y: number; width: number; height: number }, theme: StyleTheme): void {
+  const { width, height } = shape;
+  const rx = width / 2;
+  const ry = Math.min(7, height * 0.14);
+  const top = ry + 1;
+  const bottom = height - ry - 1;
+  // 柱体：左壁 → 底半椭圆（下凸）→ 右壁 → 顶椭圆下半（下凸）闭合
+  path(
+    g,
+    `M0,${N(top)} V${N(bottom)} A${N(rx)},${N(ry)} 0 0 0 ${N(width)},${N(bottom)} V${N(top)} ` +
+      `A${N(rx)},${N(ry)} 0 0 1 0,${N(top)} Z`,
+    theme.stroke,
+    theme.fill,
+    1.8
   );
+  // 顶椭圆完整描边（上下两半均覆盖）
+  const ellipseEl = create('ellipse');
+  attr(ellipseEl, { cx: N(rx), cy: N(top), rx: N(rx), ry: N(ry), fill: theme.fill, stroke: theme.stroke, 'stroke-width': 1.8 });
+  append(g, ellipseEl);
+  // 两道刻痕：顶椭圆下方的前半弧（下凸），间距取 2.6×ry（规范示例等距刻痕）
+  for (const dy of [ry * 2.4, ry * 4.2]) {
+    const y = top + dy;
+    if (y < bottom - ry * 0.6) {
+      path(g, `M0,${N(y)} A${N(rx)},${N(ry)} 0 0 0 ${N(width)},${N(y)}`, theme.stroke, 'none', 1.3);
+    }
+  }
+}
+
+/** 活动循环特性标记种类（规范 §10.2.2）：标准循环 ↻ / 多实例并行 ‖‖‖ / 多实例顺序 ≡ */
+export type LoopMarkerKind = 'loop' | 'parallel' | 'sequential';
+
+/**
+ * 活动 loopCharacteristics 标记：底部中央标记行（规范 §10.3.1）。
+ * 标记字形=标准图标集剪影（markerLoop 环形箭头 / markerMiParallel 三竖条 /
+ * markerMiSequential 三横条，icons/IconSet 同源），边长 14——与折叠 [+] 方块 16
+ * 同族略小，保持标记行两级视觉。cx 可选：与折叠 [+] 并存时错开。
+ */
+export function drawLoopMarker(g: Element, shape: { width: number; height: number }, kind: LoopMarkerKind, theme: StyleTheme, cx?: number): void {
+  const centerX = cx ?? shape.width / 2;
+  const bottom = shape.height - 4;
+  iconSetGlyph(g, loopMarkerAssetKey(kind), centerX, bottom - 7, 14, theme.stroke);
+}
+
+/** 补偿活动标记（规范 §10.5：底部标记行双三角）：图标集 markerCompensation 剪影同源 */
+export function drawCompensationMarker(g: Element, cx: number, bottom: number, theme: StyleTheme): void {
+  iconSetGlyph(g, 'markerCompensation', cx, bottom - 7, 14, theme.stroke);
 }
 
 /**
- * 实心箭头（信息需求端头，规范 §6.2.2.1 "a solid arrowhead"）：等腰三角
- * path，轴向长 12、半宽 4（长:半宽 3:1，与 BPMN 线同形态语言）。
+ * 波浪号字形资产（用户方参考渲染 data-marker="adhoc" 的原始 path，用户明确
+ * 提供本仓使用）：填充式波浪，包络约 15×3.7（宽高比 ≈ 4:1），fill 与描边
+ * 同色、1px 圆帽连接。曲线锚于自身原点（首段 m 0.84461,2.64411），整体经
+ * translate/scale 定位，不改写控制点数值。
  */
-export function appendFilledArrow(
-  visuals: SVGElement,
-  from: { x: number; y: number },
-  tip: { x: number; y: number },
-  stroke: string
-): void {
-  const angle = Math.atan2(tip.y - from.y, tip.x - from.x);
-  const wing = Math.PI / 2;
-  const len = 12;
-  const halfW = 4;
-  const l = {
-    x: tip.x - len * Math.cos(angle) + halfW * Math.cos(angle + wing),
-    y: tip.y - len * Math.sin(angle) + halfW * Math.sin(angle + wing)
-  };
-  const r2 = {
-    x: tip.x - len * Math.cos(angle) + halfW * Math.cos(angle - wing),
-    y: tip.y - len * Math.sin(angle) + halfW * Math.sin(angle - wing)
-  };
-  const poly = create('path');
-  attr(poly, {
-    d: `M${tip.x},${tip.y} L${l.x},${l.y} L${r2.x},${r2.y} Z`,
-    fill: stroke,
-    stroke: 'none'
-  });
-  append(visuals, poly);
-}
+const ADHOC_WAVE_D =
+  'm 0.84461,2.64411 c 1.05533,-1.23780996 2.64337,-2.07882 4.29653,-1.97997996 ' +
+  '2.05163,0.0805 3.85579,1.15803 5.76082,1.79107 1.06385,0.34139996 2.24454,0.1438 ' +
+  '3.18759,-0.43767 0.61743,-0.33642 1.2775,-0.64078 1.7542,-1.17511 0,0.56023 0,1.12046 ' +
+  '0,1.6807 -0.98706,0.96237996 -2.29792,1.62393996 -3.6918,1.66181996 -1.24459,0.0927 ' +
+  '-2.46671,-0.2491 -3.59505,-0.74812 -1.35789,-0.55965 -2.75133,-1.33436996 ' +
+  '-4.27027,-1.18121996 -1.37741,0.14601 -2.41842,1.13685996 -3.44288,1.96782996 z';
 
-/** 空心箭头（知识需求端头，规范 §6.2.2.2 "an open arrowhead"）：两翼开口 V 线 */
-export function appendOpenArrow(
-  visuals: SVGElement,
-  from: { x: number; y: number },
-  tip: { x: number; y: number },
-  stroke: string
-): void {
-  const angle = Math.atan2(tip.y - from.y, tip.x - from.x);
-  const len = 12;
-  const halfW = 5;
-  const wing = (theta: number) => ({
-    x: tip.x - len * Math.cos(angle) + halfW * Math.cos(angle + theta),
-    y: tip.y - len * Math.sin(angle) + halfW * Math.sin(angle + theta)
-  });
-  const l = wing(Math.PI / 2);
-  const r = wing(-Math.PI / 2);
-  const path = create('path');
-  attr(path, {
-    d: `M${l.x},${l.y} L${tip.x},${tip.y} L${r.x},${r.y}`,
-    fill: 'none',
-    stroke,
-    'stroke-width': LINE_WIDTH,
+/**
+ * Ad-hoc 子流程标记（规范 §10.5.5：底部波浪号 ~）。图标集无此资产——
+ * 使用上方用户提供的波浪字形资产绘制。包络 15×3.7，波浪底缘落在 `bottom`
+ * 参数处（画布标记行取 height-11，与折叠 [+] 方块中心对齐）；图标缩样传
+ * scale 缩小（如展开临时子流程图标参照款取 0.16）。
+ */
+export function drawAdHocMarker(g: Element, cx: number, bottom: number, theme: StyleTheme, scale = 1): void {
+  const el = create('path');
+  // 包络中心 x 偏移 8.34、底缘 y 偏移 4.22（字形资产包络实测），缩放随 scale
+  attr(el, {
+    d: ADHOC_WAVE_D,
+    transform: `translate(${N(cx - 8.34 * scale)},${N(bottom - 4.22 * scale)}) scale(${N(scale)})`,
+    fill: theme.stroke,
+    stroke: theme.stroke,
+    'stroke-width': 1,
     'stroke-linecap': 'round',
     'stroke-linejoin': 'round'
   });
-  append(visuals, path);
+  append(g, el);
 }
 
-/** 实心圆头（授权需求端头，规范 §6.2.2.3 "a filled circular head"） */
-export function appendCircleHead(
-  visuals: SVGElement,
-  tip: { x: number; y: number },
-  stroke: string
+/** 活动底部标记行内容（规范 §12.3.2：标记成组居中；折叠 [+] 为主锚） */
+export interface ActivityMarkerRow {
+  loop?: LoopMarkerKind;
+  /** 补偿活动（forCompensation）：位于 [+] 左侧 */
+  compensation?: boolean;
+  /** Ad-hoc 子流程：位于 [+] 右侧 */
+  adHoc?: boolean;
+  /** 折叠子流程 [+] 方块 */
+  collapsed?: boolean;
+}
+
+/**
+ * 活动底部标记行（规范 §12.3.2；布局取自用户方参考渲染完整 SVG）：折叠 [+]
+ * 方块锚定底边中央、浮于框内底缘上方（不跨骑），其余标记以边缝 4.5 挂靠两侧
+ * ——波浪号在 [+] 右（垂直与方块中心对齐）、补偿/循环在 [+] 左；无 [+] 时
+ * 维持成组居中。
+ */
+export function drawActivityMarkerRow(
+  g: Element,
+  shape: { width: number; height: number },
+  row: ActivityMarkerRow,
+  theme: StyleTheme
 ): void {
-  const circle = create('circle');
-  attr(circle, { cx: tip.x - 4, cy: tip.y, r: 4, fill: stroke, stroke: 'none' });
-  append(visuals, circle);
+  const bottom = shape.height - 4;
+  if (row.collapsed) {
+    const plusCx = shape.width / 2;
+    drawCollapsedMarker(g, shape, theme, plusCx);
+    // 波浪号挂 [+] 右：边缝 4.5 + 半宽 7.5；底缘 ≈ height-11 恰与方块中心对齐
+    if (row.adHoc) {
+      drawAdHocMarker(g, plusCx + 7 + 4.5 + 7.5, shape.height - 11, theme);
+    }
+    // 补偿/循环挂 [+] 左，右缘依次向左排开（少见组合）
+    let left = plusCx - 7 - 4.5;
+    if (row.compensation) {
+      drawCompensationMarker(g, left - 7, bottom, theme);
+      left -= 14 + 4.5;
+    }
+    if (row.loop) {
+      drawLoopMarker(g, shape, row.loop!, theme, left - 7);
+    }
+    return;
+  }
+  const items: Array<(cx: number) => void> = [];
+  if (row.compensation) {
+    items.push((cx) => drawCompensationMarker(g, cx, bottom, theme));
+  }
+  if (row.loop) {
+    items.push((cx) => drawLoopMarker(g, shape, row.loop!, theme, cx));
+  }
+  if (row.adHoc) {
+    // 单独波浪号（展开临时子流程）：底缘浮于 height-11（参考渲染 210 高盒上底缘 199）
+    items.push((cx) => drawAdHocMarker(g, cx, shape.height - 11, theme));
+  }
+  if (items.length === 0) {
+    return;
+  }
+  const gap = 22;
+  const startX = shape.width / 2 - ((items.length - 1) * gap) / 2;
+  items.forEach((draw, i) => draw(startX + i * gap));
 }
 
-function drawPath(visuals: SVGElement, d: string, theme: StyleTheme, strokeWidth = LINE_WIDTH): void {
-  const path = create('path');
-  attr(path, {
-    d,
-    fill: theme.fill,
-    stroke: theme.stroke,
-    'stroke-width': strokeWidth,
-    'stroke-linejoin': 'round'
-  });
-  append(visuals, path);
+/**
+ * 事务子流程边框（规范 §10.5.6：双线边框=外框 + 内框偏移）。偏移 5（自有取值：
+ * 外框描边 2 与内框描边 1.5 之间留 1.5 视觉缝，环重接近事件双环比例）。
+ */
+export function drawTransactionBorder(
+  g: Element,
+  shape: { width: number; height: number },
+  theme: StyleTheme
+): void {
+  const inset = 5;
+  drawBox(g, 0, 0, shape.width, shape.height, theme, { strokeWidth: 2, radius: 9 });
+  drawBox(g, inset, inset, shape.width - inset * 2, shape.height - inset * 2, theme, { strokeWidth: 1.5, radius: 6, hollow: true });
 }
+

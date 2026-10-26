@@ -5,7 +5,7 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation. The copyright holder designates
+ * published by the Free Software Foundation.  The copyright holder designates
  * this particular file as subject to the "Classpath" exception as provided
  * in the LICENSE file and licenses/ directory that accompany this code.
  *
@@ -21,14 +21,17 @@
  */
 /**
  * 只读查看器三件套之二（与 Modeler 相对，bpmn-js/chor-js 生态同款产品形态）：
- * - Viewer：纯查看——渲染 + 导入导出 + 元素事件，编辑类服务不进注入器；
+ * - Viewer：纯查看——渲染 + 导入导出 + 元素事件（element.hover/click 等），
+ *   编辑类服务不进注入器（程序化路径亦不可用，不只是 UI 隐藏）；
  * - NavigatedViewer：Viewer + 画布导航（滚轮缩放 / 拖拽平移 / 方向键平移）。
+ *
+ * 宿主需要选择能力可经 additionalModules 自行补 SelectionModule。
  */
 import type { ModuleDeclaration } from 'didi';
 import { Modeler, type ModelerOptions } from './Modeler';
 import { ViewerModules, NavigatedViewerModules } from './modules';
 
-/** Viewer 构造项（与 ModelerOptions 同形；mode 固定 preview） */
+/** Viewer 构造项（与 ModelerOptions 同形；mode 固定 preview，paletteQuickIds 无面板可言） */
 export type ViewerOptions = Omit<ModelerOptions, 'mode'> & {
   /** 插件 config 透传位（Omit 会丢索引签名，这里补回） */
   [pluginConfig: string]: unknown;

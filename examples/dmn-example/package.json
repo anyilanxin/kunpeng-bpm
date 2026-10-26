@@ -12,6 +12,7 @@
     "@kunpeng-io/dmn-js": "workspace:*",
     "@kunpeng-io/dmn-js-properties-panel": "workspace:*",
     "@kunpeng-io/kunpeng-dmn-moddle": "workspace:*",
+    "diagram-js": "catalog:",
     "vue": "catalog:"
   },
   "devDependencies": {

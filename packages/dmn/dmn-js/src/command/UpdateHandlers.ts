@@ -5,7 +5,7 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation. The copyright holder designates
+ * published by the Free Software Foundation.  The copyright holder designates
  * this particular file as subject to the "Classpath" exception as provided
  * in the LICENSE file and licenses/ directory that accompany this code.
  *
@@ -21,47 +21,36 @@
  */
 /**
  * 更新业务属性命令。
- * execute/revert 返回受影响元素 → 触发 elements.changed 重绘（diagram-js
- * CommandStack 契约）。属性写入走 moddle 描述符语义（set），撤销按执行前
- * 快照逐键回写。
+ * execute/revert 返回受影响元素 → 触发 elements.changed 重绘（diagram-js CommandStack 契约）。
  */
 import type CommandHandler from 'diagram-js/lib/command/CommandHandler';
 
 export class UpdatePropertiesHandler implements CommandHandler {
-  static $inject = ['eventBus', 'dmnIds', 'elementRegistry'];
+  static $inject = ['eventBus', 'bpmnIds'];
 
-  constructor(
-    private readonly eventBus: any,
-    private readonly ids: any,
-    private readonly elementRegistry: any
-  ) {}
+  constructor(private readonly eventBus: any, private readonly ids: any) {}
 
   execute(context: any): any[] {
     const element = context.element;
     const bo = element.businessObject;
     const properties = context.properties;
 
-    // 读写一律走 moddle set/get：带命名空间前缀的扩展键（kunpeng:xxx）不落
-    // 描述符属性、存取都在 $attrs——直赋普通字段 get() 与序列化都不可见
     context.oldProperties = {};
     for (const key of Object.keys(properties)) {
-      context.oldProperties[key] = bo.get(key);
-      bo.set(key, properties[key]);
+      context.oldProperties[key] = bo[key];
+      bo[key] = properties[key];
     }
     // id 变更同步注册表（面板查重 assigned(id) 与新建分配 nextPrefixed 都依赖
-    // 注册表持有全文档 id）
+    // 注册表持有全文档 id；根/普通元素改名同经此通道）
     context.renamedFrom =
       typeof context.oldProperties.id === 'string' && properties.id !== context.oldProperties.id
         ? context.oldProperties.id
         : undefined;
     if (context.renamedFrom !== undefined) {
       this.ids.unclaim(context.renamedFrom);
-      this.ids.claim(bo.get('id'), bo);
-      // 画布侧同步（注册表键/gfx data-element-id/element.id 一体换轨；
-      // DI dmnElementRef 是对象引用，序列化时自动跟随新 id）
-      this.elementRegistry.updateId(element, bo.get('id'));
+      this.ids.claim(bo.id, bo);
     }
-    this.eventBus.fire('dmn.properties.updated', { element, properties });
+    this.eventBus.fire('bpmn.properties.updated', { element, properties });
     return [element];
   }
 
@@ -69,23 +58,22 @@ export class UpdatePropertiesHandler implements CommandHandler {
     const element = context.element;
     const bo = element.businessObject;
     for (const key of Object.keys(context.oldProperties)) {
-      // set(undefined) 会从 $attrs 删除该键——与 execute 侧空值语义对称
-      bo.set(key, context.oldProperties[key]);
+      bo[key] = context.oldProperties[key];
     }
     if (context.renamedFrom !== undefined) {
-      this.ids.unclaim(bo.get('id'));
+      this.ids.unclaim(bo.id);
       this.ids.claim(context.renamedFrom, bo);
-      this.elementRegistry.updateId(element, context.renamedFrom);
     }
     return [element];
   }
 }
 
 /**
- * 嵌套 moddle 元素属性更新（element.updateModdleProperties）：面板编辑的
- * 通用通道——moddleElement 可以是业务对象自身，也可以是其任意后代（需求
- * 引用、扩展属性等）。统一走 moddle 的 set（描述符语义），变更元素整棵
- * 返回触发重绘；撤销按执行前快照逐键回写。
+ * 嵌套 moddle 元素属性更新（element.updateModdleProperties）：面板编辑
+ * 扩展元素/事件定义/条件表达式的通用通道——moddleElement 可以是业务对象
+ * 自身，也可以是其任意后代（extensionElements.values 项、eventDefinitions 项
+ * 等）。统一走 moddle 的 set（描述符语义：数组/引用属性按元模型处理），
+ * 变更元素（画布元素）整棵返回触发重绘。撤销按执行前快照逐键回写。
  */
 export class UpdateModdlePropertiesHandler implements CommandHandler {
   execute(context: any): any[] {
@@ -108,12 +96,14 @@ export class UpdateModdlePropertiesHandler implements CommandHandler {
   }
 }
 
-/** 名称编辑（注记写 text，其余写 name——镜像 DMN 元模型各自字段） */
+/** 名称编辑（注记写 text，其余写 name） */
 export class UpdateLabelHandler implements CommandHandler {
+  // 文本落 bo；标签元素的显/隐与尺寸收敛由 ExternalLabelBehavior 在
+  // postExecute 钩子维护（execute 原子相内不可派生命令）
   execute(context: any): any[] {
     const { element, text } = context;
     const bo = element.businessObject;
-    const field = bo.$type === 'dmn:TextAnnotation' ? 'text' : 'name';
+    const field = bo.$type === 'bpmn:TextAnnotation' ? 'text' : 'name';
     context.oldText = bo[field];
     if (text) {
       bo[field] = text;
@@ -126,8 +116,8 @@ export class UpdateLabelHandler implements CommandHandler {
   revert(context: any): any[] {
     const element = context.element;
     const bo = element.businessObject;
-    const field = bo.$type === 'dmn:TextAnnotation' ? 'text' : 'name';
-    // 判 undefined 而非 falsy：旧值为空串时恢复空串
+    const field = bo.$type === 'bpmn:TextAnnotation' ? 'text' : 'name';
+    // 判 undefined 而非 falsy：旧值为空串时恢复空串（truthy 判定会错走 delete 分支）
     if (context.oldText !== undefined) {
       bo[field] = context.oldText;
     } else {

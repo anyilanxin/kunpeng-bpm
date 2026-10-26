@@ -249,6 +249,9 @@ importers:
       '@kunpeng-io/kunpeng-dmn-moddle':
         specifier: workspace:*
         version: link:../../packages/dmn/kunpeng-dmn-moddle
+      diagram-js:
+        specifier: 'catalog:'
+        version: 15.28.1
       vue:
         specifier: 'catalog:'
         version: 3.5.44(typescript@5.9.3)
@@ -770,9 +773,15 @@ importers:
 
   packages/dmn/dmn-js:
     dependencies:
+      '@kunpeng-io/kunpeng-bpmn-moddle':
+        specifier: workspace:*
+        version: link:../../bpmn/kunpeng-bpmn-moddle
       '@kunpeng-io/kunpeng-dmn-moddle':
         specifier: workspace:*
         version: link:../kunpeng-dmn-moddle
+      bpmn-moddle:
+        specifier: ^10.3.1
+        version: 10.3.1
       diagram-js:
         specifier: 'catalog:'
         version: 15.28.1
@@ -791,6 +800,9 @@ importers:
       ids:
         specifier: 'catalog:'
         version: 3.0.2
+      inherits-browser:
+        specifier: ^0.1.0
+        version: 0.1.0
       min-dash:
         specifier: 'catalog:'
         version: 5.1.0

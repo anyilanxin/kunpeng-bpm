@@ -12,21 +12,13 @@
         </label>
         <button @click="exportXml">导出 XML</button>
         <button @click="runRoundTrip">字节级往返自检</button>
-        <button v-if="withPanel" :class="{ active: panelOpen }" @click="panelOpen = !panelOpen">面板</button>
+        <button :class="{ active: panelOpen }" @click="panelOpen = !panelOpen">面板</button>
         <button :class="{ active: view === 'xml' }" @click="toggleView">{{ view === 'drd' ? 'XML 视图' : 'DRD 视图' }}</button>
         <button :class="{ active: dark }" @click="dark = !dark">暗色</button>
       </div>
     </div>
     <div class="example-header example-subheader">
       <span class="example-status" :class="status.kind">{{ status.text }}</span>
-    </div>
-    <div v-if="views.length > 1" class="view-tabs">
-      <button
-        v-for="v in views"
-        :key="v.id"
-        :class="{ active: v.id === activeViewId }"
-        @click="openView(v.id)"
-      >{{ v.name }}</button>
     </div>
     <div class="example-body">
       <div v-show="view === 'drd'" ref="host" class="canvas-host"></div>
@@ -40,15 +32,6 @@
 import { nextTick, onMounted, ref, shallowRef } from 'vue';
 import { Modeler } from '@kunpeng-io/dmn-js';
 import type { ModelerMode } from '@kunpeng-io/dmn-js';
-import {
-  DmnPropertiesPanelModule,
-  DmnPropertiesProviderModule,
-  KunpengPropertiesProviderModule
-} from '@kunpeng-io/dmn-js-properties-panel';
-import { sampleDmn } from './dmn-template';
-
-// ?plugin=0：干净页对照（不装属性面板插件，验证插件无关路径）
-const withPanel = new URLSearchParams(location.search).get('plugin') !== '0';
 
 const MODES: { id: ModelerMode; label: string }[] = [
   { id: 'edit', label: '编辑' },
@@ -56,51 +39,22 @@ const MODES: { id: ModelerMode; label: string }[] = [
 ];
 
 const host = ref<HTMLElement | null>(null);
-const panelHost = ref<HTMLElement | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
 // 画布元素对象不入 Vue 深层响应式（bpmn 线契约：代理会冻结 children 属性）
 const modeler = shallowRef<Modeler | null>(null);
-const status = ref<{ kind: '' | 'ok' | 'fail'; text: string }>({ kind: '', text: '未运行' });
+const status = ref<{ kind: '' | 'ok' | 'fail'; text: string }>({ kind: '', text: '骨架空图（U2-G1：fork bpmn 内核）' });
 const mode = ref<ModelerMode>('edit');
 const view = ref<'drd' | 'xml'>('drd');
 const xmlText = ref('');
 const dark = ref(false);
-const panelOpen = ref(true);
-const views = ref<{ id: string; name: string; kind: string }[]>([]);
-const activeViewId = ref('drd');
+const panelOpen = ref(false);
 
-onMounted(async () => {
-  const instance = new Modeler({
-    container: host.value!,
-    ...(withPanel && panelHost.value
-      ? {
-          additionalModules: [DmnPropertiesPanelModule, DmnPropertiesProviderModule, KunpengPropertiesProviderModule],
-          propertiesPanel: { parent: panelHost.value }
-        }
-      : {})
-  });
+onMounted(() => {
+  const instance = new Modeler({ container: host.value! });
   modeler.value = instance;
   // 浏览器验收钩子（真实 UI 路径之外的程序化探针入口）
   (window as any).__dmn = instance;
-  // 视图 tab：清单/激活随视图事件驱动
-  instance.on('views.changed', () => {
-    views.value = instance.getViews();
-  });
-  instance.on('view.changed', ({ view }: { view: { id: string } }) => {
-    activeViewId.value = view.id;
-  });
-  views.value = instance.getViews();
-  await reload();
 });
-
-function openView(id: string) {
-  modeler.value!.openView(id);
-}
-
-async function reload() {
-  const { warnings } = await modeler.value!.importXML(sampleDmn);
-  status.value = { kind: warnings.length ? 'fail' : 'ok', text: warnings.length ? `导入告警 ${warnings.length} 条` : '样例导入成功' };
-}
 
 function switchMode(next: ModelerMode) {
   if (mode.value === next) return;
@@ -144,7 +98,6 @@ async function exportXml() {
 async function runRoundTrip() {
   const m = modeler.value!;
   try {
-    await m.importXML(sampleDmn);
     const first = (await m.saveXML()).xml;
     await m.importXML(first);
     const second = (await m.saveXML()).xml;
@@ -292,6 +245,12 @@ button.active,
   flex: 1;
   min-width: 0;
   position: relative;
+}
+
+/* diagram-js 不设定容器尺寸，须由宿主撑满（bpmn-example 同款宿主职责） */
+.canvas-host :deep(.djs-container) {
+  width: 100%;
+  height: 100%;
 }
 
 .xml-view {

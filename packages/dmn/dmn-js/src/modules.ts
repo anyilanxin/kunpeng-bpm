@@ -5,7 +5,7 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation. The copyright holder designates
+ * published by the Free Software Foundation.  The copyright holder designates
  * this particular file as subject to the "Classpath" exception as provided
  * in the LICENSE file and licenses/ directory that accompany this code.
  *
@@ -20,12 +20,10 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * 模块装配 —— 插件替换点（与 bpmn-js 内核同款契约：每功能点一个具名服务，
- * 宿主经 additionalModules 同名覆盖即替换，didi 后注册者胜出）。
+ * 模块装配 —— 插件替换点总表（需求规格 §4）。
  *
- * P1 装配面：查看底座 + Core（类型/工厂/渲染/词典/模式）+ IO（读写器/建图器）。
- * P2 增量（规则/布线/建模命令/行为/palette/contextPad/弹框/直编）在
- * DmnRulesModule 等落位后并入 DmnModules 与 Modeler 默认集。
+ * 每个功能点一个具名服务；宿主/插件经 `new Modeler({ additionalModules })`
+ * 用同名服务覆盖即完成替换（didi 依赖注入，后者胜出）。
  */
 import type { ModuleDeclaration } from 'didi';
 import { Ids } from 'ids';
@@ -54,8 +52,10 @@ import AutoPlaceModule from 'diagram-js/lib/features/auto-place';
 import AutoResizeModule from 'diagram-js/lib/features/auto-resize';
 import AutoScrollModule from 'diagram-js/lib/features/auto-scroll';
 import PopupMenuModule from 'diagram-js/lib/features/popup-menu';
+import SearchModule from 'diagram-js/lib/features/search';
 import OutlineModule from 'diagram-js/lib/features/outline';
 import BendpointsModule from 'diagram-js/lib/features/bendpoints';
+import AttachSupportModule from 'diagram-js/lib/features/attach-support';
 import AlignElementsModule from 'diagram-js/lib/features/align-elements';
 import DistributeElementsModule from 'diagram-js/lib/features/distribute-elements';
 import SnappingModule from 'diagram-js/lib/features/snapping';
@@ -66,45 +66,59 @@ import GridSnappingModule from 'diagram-js/lib/features/grid-snapping';
 import ComplexPreviewModule from 'diagram-js/lib/features/complex-preview';
 import KeyboardModule from 'diagram-js/lib/features/keyboard';
 import KeyboardMoveSelectionModule from 'diagram-js/lib/features/keyboard-move-selection';
-// 画布导航
+import DirectEditingModule from 'diagram-js-direct-editing';
+// 画布导航（seata Editor.js 同款三件套：滚轮缩放 / 拖拽平移 / 方向键平移）
 import ZoomScrollModule from 'diagram-js/lib/navigation/zoomscroll';
 import MoveCanvasModule from 'diagram-js/lib/navigation/movecanvas';
 import KeyboardMoveModule from 'diagram-js/lib/navigation/keyboard-move';
 import EditorActionsModule from 'diagram-js/lib/features/editor-actions';
 
-// DMN 层
-import { DmnElementTypes } from './meta/ElementTypes';
-import { DmnFactory } from './factory/DmnFactory';
-import { DmnElementFactory } from './factory/DmnElementFactory';
-import { DmnRenderer } from './render/DmnRenderer';
-import { DmnMode } from './mode/DmnMode';
-import { DmnDocumentState } from './xml/DocumentState';
-import { DmnNamespaces } from './xml/DmnNamespaces';
-import { DmnModdle } from './meta/DmnModdle';
-import { DmnReader } from './xml/DmnReader';
-import { DmnWriter } from './xml/DmnWriter';
-import { DiagramBuilder } from './xml/DiagramBuilder';
-import { DmnI18n } from './i18n/DmnI18n';
-import { DmnRules } from './rules/DmnRules';
-import { DmnLayouter } from './layout/DmnLayouter';
+// BPMN 层
+import { BpmnElementTypes } from './meta/ElementTypes';
+import { BpmnFactory } from './factory/BpmnFactory';
+import { BpmnElementFactory } from './factory/BpmnElementFactory';
+import { BpmnRenderer } from './render/BpmnRenderer';
+import { BpmnMode } from './mode/BpmnMode';
+import { BpmnRules } from './rules/BpmnRules';
+import { BpmnLayouter } from './layout/BpmnLayouter';
 import CroppingConnectionDocking from 'diagram-js/lib/layout/CroppingConnectionDocking';
-import { DmnModeling } from './command/DmnModeling';
-import { DmnUpdater } from './behavior/DmnUpdater';
-import { DmnLabelEditingProvider } from './label/DmnLabelEditingProvider';
-import { DmnEditingBehavior } from './behavior/DmnEditingBehavior';
-import { DmnPopup } from './provider/DmnPopup';
-import { DmnPaletteProvider } from './provider/DmnPaletteProvider';
-import { DmnContextPadProvider } from './provider/DmnContextPadProvider';
-import { DmnReplaceMenuProvider } from './provider/DmnReplaceMenuProvider';
-import { DmnEditorActions } from './provider/DmnEditorActions';
-import DirectEditingModule from 'diagram-js-direct-editing';
-import { DmnViews } from './views/DmnViews';
-import { DrillDownBehavior } from './behavior/DrillDownBehavior';
-import { DecisionTableEditor } from './table/DecisionTableEditor';
-import { LiteralExpressionEditor } from './literal/LiteralExpressionEditor';
-import { BoxedExpressionEditor } from './boxed/BoxedExpressionEditor';
+import { BpmnDocumentState } from './xml/DocumentState';
+import { PlaneService } from './plane/PlaneService';
+import { DrillBadges } from './plane/DrillBadges';
+import { PlaneBreadcrumb } from './plane/PlaneBreadcrumb';
+import { BpmnNamespaces } from './xml/BpmnNamespaces';
+import { BpmnModdle } from './meta/BpmnModdle';
+import { BpmnReader } from './xml/BpmnReader';
+import { BpmnWriter } from './xml/BpmnWriter';
+import { DiagramBuilder } from './xml/DiagramBuilder';
+import { BpmnModeling } from './command/BpmnModeling';
+import { BpmnUpdater } from './behavior/BpmnUpdater';
+import { BpmnAutoResize } from './behavior/BpmnAutoResize';
+import { LaneBandBehavior } from './behavior/LaneBandBehavior';
+import { LabelBehavior } from './behavior/LabelBehavior';
+import { AutoPlacementBehavior } from './behavior/AutoPlacementBehavior';
+import { CollaborationBehavior } from './behavior/CollaborationBehavior';
+import { TextAnnotationBehavior } from './behavior/TextAnnotationBehavior';
+import { DropTargetBehavior } from './behavior/DropTargetBehavior';
+import { BlankLassoBehavior } from './behavior/BlankLassoBehavior';
+import { ExternalLabelBehavior } from './behavior/ExternalLabelBehavior';
+import LabelSupport from 'diagram-js/lib/features/label-support/LabelSupport';
+import { BpmnLabelEditingProvider } from './label/LabelEditingProvider';
+import { BpmnPaletteProvider } from './provider/BpmnPaletteProvider';
+import { BpmnContextPadProvider } from './provider/BpmnContextPadProvider';
+import { BpmnPopup } from './provider/BpmnPopup';
+import { BpmnPaletteLayout } from './provider/BpmnPaletteLayout';
+import { BpmnReplaceMenuProvider } from './provider/BpmnReplaceMenuProvider';
+import { BpmnAlignMenuProvider } from './provider/BpmnAlignMenuProvider';
+import { BpmnAppendMenuProvider, BpmnCreateMenuProvider } from './provider/BpmnElementMenuProvider';
+import { AppendPreview } from './behavior/AppendPreview';
+import { LinkCatchBehavior } from './behavior/LinkCatchBehavior';
+import { BpmnOutlineProvider } from './provider/BpmnOutlineProvider';
+import { BpmnI18n } from './i18n/BpmnI18n';
+import { OrientationService } from './meta/Orientation';
+import { BpmnEditorActions } from './provider/BpmnEditorActions';
 
-/** 只读查看平台特性（Viewer 底座）：元素事件 / 鼠标 / 调度 / 悬停修正 / overlays——无选择与编辑 */
+/** 只读查看平台特性（Viewer 底座）：元素事件 / 鼠标 / 调度 / 悬停修正 / overlays（下钻徽标等视图件三形态通用）——无选择与编辑 */
 export const ViewerPlatformModules: ModuleDeclaration[] = [
   InteractionEventsModule,
   OverlaysModule,
@@ -113,14 +127,14 @@ export const ViewerPlatformModules: ModuleDeclaration[] = [
   HoverFixModule
 ];
 
-/** 画布导航特性（Viewer → NavigatedViewer 增量） */
+/** 画布导航特性（Viewer → NavigatedViewer 增量）：滚轮缩放 / 拖拽平移 / 方向键平移 */
 export const NavigationModules: ModuleDeclaration[] = [
   ZoomScrollModule,
   MoveCanvasModule,
   KeyboardMoveModule
 ];
 
-/** 编辑平台特性（Viewer → Modeler 增量：选择/拖放/建连/面板/菜单/直编/键盘） */
+/** 编辑平台特性（Viewer → Modeler 增量）：选择 / 拖放 / 建连 / 面板 / 菜单 / 对齐分布 / 直编 / 键盘多选等 */
 export const EditorPlatformModules: ModuleDeclaration[] = [
   SelectionModule,
   DraggingModule,
@@ -142,238 +156,229 @@ export const EditorPlatformModules: ModuleDeclaration[] = [
   AutoResizeModule,
   AutoScrollModule,
   PopupMenuModule,
+  SearchModule,
   OutlineModule,
   BendpointsModule,
+  AttachSupportModule,
   AlignElementsModule,
   DistributeElementsModule,
   SnappingModule,
   GridSnappingModule,
   ComplexPreviewModule,
   DirectEditingModule,
-  // 键盘通道：Ctrl+A 全选 / Escape 取消选择 / Delete 删除 / 方向键移动选区
+  // 键盘通道（参照工程同款）：Ctrl+A 全选 / Escape 取消选择 / Delete 删除；
+  // 方向键移动整个选区（多选后整体挪动）
   KeyboardModule,
   KeyboardMoveSelectionModule,
   EditorActionsModule
 ];
 
-/** DMN 核心：类型表 / 工厂 / 渲染 / 词典 / 模式（三形态恒装） */
-export const DmnCoreModule: ModuleDeclaration = {
-  // dmnRenderer/dmnMode 急切构造：BaseRenderer 仅构造时注册 eventBus（懒构造
-  // 落 fuchsia 兜底）；初始 preview 的容器标记类须在首帧前挂上
-  __init__: ['dmnElementTypes', 'dmnRenderer', 'dmnMode'],
-  'dmnIds': ['factory', () => new Ids([36, 36, 1])],
-  'dmnElementTypes': ['type', DmnElementTypes],
-  'dmnFactory': ['type', DmnFactory],
-  'dmnMode': ['type', DmnMode],
-  'elementFactory': ['type', DmnElementFactory],
+/** diagram-js 平台特性集（Modeler 全量=查看底座+滚轮缩放+编辑增量；可被宿主裁剪：
+ *  不传我们的默认集、自拼 modules）。**不含 MoveCanvas/KeyboardMove**——画布拖拽
+ *  平移与方向键移视口是导航形态（NavigatedViewer）的交互：MoveCanvas 在 svg
+ *  聚焦后接管元素/空白 mousedown 为画布平移（抓手），编辑形态会与"空白拖拽
+ *  即框选"及元素移动冲突（KeyboardModule 装配后 svg 可聚焦即被引爆）。 */
+export const PlatformModules: ModuleDeclaration[] = [
+  ...ViewerPlatformModules,
+  ZoomScrollModule,
+  ...EditorPlatformModules
+];
+
+/** BPMN 核心：类型表 / 工厂 / 渲染 / 词典（三形态恒装——BPMN 层插件的公共依赖基座） */
+export const BpmnCoreModule: ModuleDeclaration = {
+  // bpmnRenderer 必须急切构造：BaseRenderer 仅在构造时向 eventBus 注册，
+  // 懒构造会导致画布落到 diagram-js 的 fuchsia 兜底渲染（seata 同款 __init__ 模式）。
+  // bpmnMode 同理急切：初始 preview 模式的容器标记类须在首帧前挂上。
+  __init__: ['bpmnElementTypes', 'bpmnRenderer', 'bpmnMode'],
+  'bpmnIds': ['factory', () => new Ids([36, 36, 1])], // 7 位后缀（自有取值：36bit base36 ≈ 7 位，与示例模板统一，可读性）
+  'bpmnElementTypes': ['type', BpmnElementTypes],
+  'bpmnFactory': ['type', BpmnFactory],
+  'bpmnMode': ['type', BpmnMode],
+  'elementFactory': ['type', BpmnElementFactory],
   'textRenderer': ['factory', () => new TextUtil({
     style: { fontFamily: 'system-ui, "PingFang SC", sans-serif', fontSize: 12 },
     size: { width: 100, height: 40 }
   })],
-  'dmnRenderer': ['type', DmnRenderer],
-  'dmnI18n': ['type', DmnI18n],
-  // translate：面板等插件的通用文案服务（词条查 dmnI18n 词典，未命中透传原文）
-  'translate': ['factory', (dmnI18n: DmnI18n) => (text: string, replace?: Record<string, string>) => {
-    let translated = dmnI18n.t(text);
+  'bpmnRenderer': ['type', BpmnRenderer],
+  'bpmnI18n': ['type', BpmnI18n],
+  // translate：面板等插件的通用文案服务（词条查 bpmnI18n 词典，未命中透传原文；
+  // {token} 占位按第二参替换）。工厂注入 bpmnI18n，保持与词典服务同源单实例。
+  'translate': ['factory', (bpmnI18n: BpmnI18n) => (text: string, replace?: Record<string, string>) => {
+    let translated = bpmnI18n.t(text);
     if (replace) {
       translated = translated.replace(/\{(\w+)\}/g, (match, key) => replace[key] ?? match);
     }
     return translated;
-  }]
+  }],
+  'orientationService': ['type', OrientationService]
 };
 
-/** 导入导出 */
-export const DmnIOModule: ModuleDeclaration = {
-  // dmnNamespaces 急切初始化：moddleExtensions 描述符非法在实例化即报错
-  __init__: ['dmnDocumentState', 'dmnNamespaces'],
-  'dmnDocumentState': ['type', DmnDocumentState],
-  'dmnNamespaces': ['type', DmnNamespaces],
-  'dmnModdle': ['type', DmnModdle],
-  // moddle：引擎实例别名服务（生态插件按 moddle 通用名取引擎）
-  'moddle': ['factory', (dmnModdle: DmnModdle) => dmnModdle.moddle()],
-  'dmnReader': ['type', DmnReader],
-  'dmnWriter': ['type', DmnWriter],
-  'diagramBuilder': ['type', DiagramBuilder]
+/**
+ * 折叠子流程下钻平面（内部插件，三形态通用）：平面栈导航 + 右下角徽标 + 面包屑。
+ * 依赖闭包全平台级（overlays/canvas/eventBus/文档状态），Viewer/NavigatedViewer
+ * 恒装（预览只读下钻）；宿主自拼裁剪时可不装（画布单平面，Modeler.reset 对缺失
+ * 服务非严格跳过）。徽标三服务均事件订阅型，急切构造。
+ */
+export const BpmnPlaneModule: ModuleDeclaration = {
+  __depends__: [
+    OverlaysModule
+  ],
+  __init__: ['planeService', 'drillBadges', 'planeBreadcrumb'],
+  'planeService': ['type', PlaneService],
+  'drillBadges': ['type', DrillBadges],
+  'planeBreadcrumb': ['type', PlaneBreadcrumb]
 };
-
-/** 只读查看器模块集（Viewer：渲染 + 导入导出 + 元素事件） */
-export const ViewerModules: ModuleDeclaration[] = [
-  ...ViewerPlatformModules,
-  DmnCoreModule,
-  DmnIOModule
-];
-
-/** 可导航查看器模块集（NavigatedViewer：Viewer + 画布导航） */
-export const NavigatedViewerModules: ModuleDeclaration[] = [
-  ...ViewerModules,
-  ...NavigationModules
-];
 
 /** 规则与布线（__depends__ 自包含：rules 基座服务） */
-export const DmnRulesModule: ModuleDeclaration = {
+export const BpmnRulesModule: ModuleDeclaration = {
   __depends__: [RulesModule],
-  __init__: ['dmnRules'],
-  'dmnRules': ['type', DmnRules],
-  'layouter': ['type', DmnLayouter],
-  // 拖拽连线预览（ConnectionPreview）与航点拖动（BendpointMove）的端点贴边
-  // 裁剪（diagram-js 按可选服务注入 injector.get('connectionDocking', false)，
-  // 须宿主注册）；布线器直线端点同走此裁剪
+  __init__: ['bpmnRules'],
+  'bpmnRules': ['type', BpmnRules],
+  'layouter': ['type', BpmnLayouter],
+  // 拖拽连线预览（ConnectionPreview）与航点拖动（BendpointMove）的端点贴边裁剪
+  // （diagram-js 按可选服务注入 injector.get('connectionDocking', false)，须宿主注册）；
+  // 布线器自身端点走规范锚点吸附（见 BpmnLayouter），不用此服务
   'connectionDocking': ['type', CroppingConnectionDocking]
 };
 
-/** 建模命令与语义同步（__depends__ 自包含：modeling 基座链） */
-export const DmnModelingModule: ModuleDeclaration = {
+/** 建模命令与语义同步（__depends__ 自包含：commandStack/changeSupport 基座链） */
+export const BpmnModelingModule: ModuleDeclaration = {
   __depends__: [ModelingModule],
-  __init__: ['dmnUpdater'],
-  // didi 后注册者胜：覆盖基座 modeling 门面（connect 类型推断 + 四命令）
-  'modeling': ['type', DmnModeling],
-  'dmnUpdater': ['type', DmnUpdater]
+  __init__: ['bpmnUpdater', 'collaborationBehavior', 'laneBandBehavior'],
+  'modeling': ['type', BpmnModeling],
+  'bpmnUpdater': ['type', BpmnUpdater],
+  'collaborationBehavior': ['type', CollaborationBehavior],
+  // 泳道带几何：带 resize=移带界（邻带/池沿跟随）、池直改后带重铺、带最小尺寸下限
+  'laneBandBehavior': ['type', LaneBandBehavior],
+  // 覆盖基座 auto-resize 服务（didi 后注册者胜）：泳道目标重定向到池 + 扩池后泳道带重铺
+  'autoResize': ['type', BpmnAutoResize]
 };
 
-/** 交互行为：直编 Provider / 落地即编 / 编辑动作（自包含：直编/编辑动作/选择基座） */
-export const DmnBehaviorModule: ModuleDeclaration = {
+/** 交互行为：直编 / 自动摆放 / 注记自适应 / 外部标签元素生命周期（自包含：直编/编辑动作/选择基座） */
+export const BpmnBehaviorModule: ModuleDeclaration = {
   __depends__: [DirectEditingModule, EditorActionsModule, SelectionModule],
-  __init__: ['dmnLabelEditingProvider', 'dmnEditingBehavior', 'dmnEditorActions'],
-  'dmnLabelEditingProvider': ['type', DmnLabelEditingProvider],
-  'dmnEditingBehavior': ['type', DmnEditingBehavior],
-  'dmnEditorActions': ['type', DmnEditorActions]
+  __init__: ['bpmnLabelEditingProvider', 'labelBehavior', 'externalLabelBehavior', 'labelSupport', 'autoPlacementBehavior', 'textAnnotationBehavior', 'dropTargetBehavior', 'linkCatchBehavior', 'blankLassoBehavior', 'bpmnEditorActions'],
+  'bpmnLabelEditingProvider': ['type', BpmnLabelEditingProvider],
+  'labelBehavior': ['type', LabelBehavior],
+  'externalLabelBehavior': ['type', ExternalLabelBehavior],
+  'autoPlacementBehavior': ['type', AutoPlacementBehavior],
+  'textAnnotationBehavior': ['type', TextAnnotationBehavior],
+  'dropTargetBehavior': ['type', DropTargetBehavior],
+  'linkCatchBehavior': ['type', LinkCatchBehavior],
+  // 空白拖拽即框选（编辑态无激活工具时；lassoTool 缺席自放弃）
+  'blankLassoBehavior': ['type', BlankLassoBehavior],
+  'bpmnEditorActions': ['type', BpmnEditorActions],
+  // 基座标签随动语义：宿主拖动闭包含标签、删除级联删标签、撤销对称恢复
+  'labelSupport': ['type', LabelSupport]
 };
 
 /**
- * 弹框与菜单（内部插件）：DmnPopup 弹框底座 + 替换菜单 Provider。DmnPopup
- * 注入 contextPad（弹框打开收起 pad），故 __depends__ ContextPadModule；
- * 服务注册名保持插件化（宿主同名覆盖契约）。
+ * 弹框与菜单（内部插件）：BpmnPopup 弹框底座 + 替换/对齐/追加/创建四菜单
+ * Provider。BpmnPopup 注入 contextPad（弹框打开收起 pad），故 __depends__
+ * ContextPadModule。palette/contextPad 插件经 __depends__ 本模块获得弹框能力。
+ * 服务注册名（popupMenuProvider 等）保持拆分前不变——宿主同名覆盖契约延续。
  */
-export const DmnPopupMenuModule: ModuleDeclaration = {
+export const BpmnPopupMenuModule: ModuleDeclaration = {
   __depends__: [
     PopupMenuModule,
+    AutoPlaceModule,
+    AlignElementsModule,
+    DistributeElementsModule,
     ContextPadModule,
-    DmnModelingModule,
-    DmnRulesModule
+    BpmnModelingModule,
+    BpmnRulesModule,
+    // 弹框「创建」放置建形后激活直编（BpmnCreateMenuProvider）：自包含
+    // 声明；无 Provider 注册时 activate 无害返回 false
+    DirectEditingModule
   ],
-  __init__: ['dmnPopup', 'dmnReplaceMenuProvider'],
-  'dmnPopup': ['type', DmnPopup],
-  'dmnReplaceMenuProvider': ['type', DmnReplaceMenuProvider]
+  __init__: ['popupMenuProvider', 'bpmnAlignMenuProvider', 'bpmnAppendMenuProvider', 'bpmnCreateMenuProvider'],
+  'bpmnPopup': ['type', BpmnPopup],
+  'popupMenuProvider': ['type', BpmnReplaceMenuProvider],
+  'bpmnAlignMenuProvider': ['type', BpmnAlignMenuProvider],
+  'bpmnAppendMenuProvider': ['type', BpmnAppendMenuProvider],
+  'bpmnCreateMenuProvider': ['type', BpmnCreateMenuProvider]
 };
 
 /**
- * 元素面板（内部插件）：palette 条目 Provider。自带创建/工具底座（create/
- * 抓手/套索/空间/全局连线），可独立装配到自拼实例（Viewer 底座 + 本模块即
- * 得带创建闭包的面板）。
+ * 元素面板（内部插件）：palette 条目 Provider + 面板布局服务。自带创建/工具
+ * 底座（create/抓手/套索/空间/全局连线，diagram-js 模块自身依赖链拉齐拖放与
+ * 规则），可独立装配到自拼实例。
  */
-export const DmnPaletteModule: ModuleDeclaration = {
+export const BpmnPaletteModule: ModuleDeclaration = {
   __depends__: [
     PaletteModule,
     CreateModule,
     HandToolModule,
     LassoToolModule,
     SpaceToolModule,
-    GlobalConnectModule
+    GlobalConnectModule,
+    BpmnPopupMenuModule
   ],
-  __init__: ['dmnPaletteProvider'],
-  'dmnPaletteProvider': ['type', DmnPaletteProvider]
+  __init__: ['paletteProvider', 'bpmnPaletteLayout'],
+  'paletteProvider': ['type', BpmnPaletteProvider],
+  'bpmnPaletteLayout': ['type', BpmnPaletteLayout]
 };
 
 /**
- * 上下文面板（内部插件）：context pad 条目 Provider。自带 autoPlace/connect/
- * outline 底座与建模/规则/弹框依赖，可独立装配。
+ * 上下文面板（内部插件）：context pad 条目 Provider + 追加悬停预览 + 选中
+ * outline 反馈。自带 autoPlace/connect/complexPreview/outline 底座与建模/规则
+ * 依赖，可独立装配。
  */
-export const DmnContextPadModule: ModuleDeclaration = {
+export const BpmnContextPadModule: ModuleDeclaration = {
   __depends__: [
     ContextPadModule,
     AutoPlaceModule,
     ConnectModule,
+    ComplexPreviewModule,
     OutlineModule,
-    DmnModelingModule,
-    DmnRulesModule,
-    DmnPopupMenuModule
+    BpmnModelingModule,
+    BpmnRulesModule,
+    BpmnPopupMenuModule
   ],
-  __init__: ['dmnContextPadProvider'],
-  'dmnContextPadProvider': ['type', DmnContextPadProvider]
+  __init__: ['contextPadProvider', 'bpmnOutlineProvider'],
+  'contextPadProvider': ['type', BpmnContextPadProvider],
+  // 追加预览（context pad 悬停幽灵；懒构造——首个消费者注入时成型）
+  'bpmnAppendPreview': ['type', AppendPreview],
+  'bpmnOutlineProvider': ['type', BpmnOutlineProvider]
 };
 
-/**
- * 多视图与表达式编辑器（内部插件）：视图管理（DRD + 各决策表达式视图）+
- * 决策表/字面表达式编辑器。命令经 DmnModelingModule（撤销栈共享语义树）。
- */
-export const DmnTableModule: ModuleDeclaration = {
-  __depends__: [DmnModelingModule],
-  __init__: ['dmnViews', 'drillDownBehavior'],
-  'dmnViews': ['type', DmnViews],
-  'drillDownBehavior': ['type', DrillDownBehavior],
-  'decisionTableEditorFactory': [
-    'factory',
-    Object.assign(
-      (modeling: any, eventBus: any, elementRegistry: any, dmnFactory: DmnFactory, dmnMode: any, dmnI18n: any, dmnViews: any) => ({
-        create: (container: HTMLElement, decision: any) =>
-          new DecisionTableEditor(container, decision, {
-            modeling,
-            eventBus,
-            elementRegistry,
-            dmnFactory,
-            dmnMode,
-            i18n: dmnI18n,
-            dmnViews
-          })
-      }),
-      { $inject: ['modeling', 'eventBus', 'elementRegistry', 'dmnFactory', 'dmnMode', 'dmnI18n', 'dmnViews'] }
-    )
-  ],
-  'literalExpressionEditorFactory': [
-    'factory',
-    Object.assign(
-      (modeling: any, eventBus: any, elementRegistry: any, dmnFactory: DmnFactory, dmnMode: any, dmnI18n: any, dmnViews: any) => ({
-        create: (container: HTMLElement, decision: any) =>
-          new LiteralExpressionEditor(container, decision, {
-            modeling,
-            eventBus,
-            elementRegistry,
-            dmnFactory,
-            dmnMode,
-            i18n: dmnI18n,
-            dmnViews
-          })
-      }),
-      { $inject: ['modeling', 'eventBus', 'elementRegistry', 'dmnFactory', 'dmnMode', 'dmnI18n', 'dmnViews'] }
-    )
-  ],
-  'boxedExpressionEditorFactory': [
-    'factory',
-    Object.assign(
-      (modeling: any, eventBus: any, elementRegistry: any, dmnFactory: DmnFactory, dmnMode: any, dmnI18n: any, dmnViews: any) => ({
-        create: (container: HTMLElement, host: any) =>
-          new BoxedExpressionEditor(container, host, {
-            modeling,
-            eventBus,
-            elementRegistry,
-            dmnFactory,
-            dmnMode,
-            i18n: dmnI18n,
-            dmnViews
-          })
-      }),
-      { $inject: ['modeling', 'eventBus', 'elementRegistry', 'dmnFactory', 'dmnMode', 'dmnI18n', 'dmnViews'] }
-    )
-  ]
+/** 导入导出 */
+export const BpmnIOModule: ModuleDeclaration = {
+  // bpmnNamespaces 急切初始化：moddleExtensions 描述符非法（缺 prefix/uri、撞标准命名空间）在实例化即报错
+  __init__: ['bpmnDocumentState', 'bpmnNamespaces'],
+  'bpmnDocumentState': ['type', BpmnDocumentState],
+  'bpmnNamespaces': ['type', BpmnNamespaces],
+  'bpmnModdle': ['type', BpmnModdle],
+  // moddle：引擎实例别名服务（生态插件按 moddle 通用名取 moddle 引擎——
+  // getTypeDescriptor/create 等实例方法；工厂回注同一惰性单例，不产生第二份元模型状态）
+  'moddle': ['factory', (bpmnModdle: BpmnModdle) => bpmnModdle.moddle()],
+  'bpmnReader': ['type', BpmnReader],
+  'bpmnWriter': ['type', BpmnWriter],
+  'diagramBuilder': ['type', DiagramBuilder]
 };
 
-/**
- * Modeler 全量集（= 编辑形态门面默认集）：查看底座 + 滚轮缩放 + 编辑平台
- * + DMN 规则/建模/行为/面板栈。**不含 MoveCanvas/KeyboardMove**——画布拖拽
- * 平移与方向键移视口是导航形态（NavigatedViewer）的交互，编辑形态会与
- * "空白拖拽即框选"及元素移动冲突（bpmn 线同款裁定）。
- */
-export const DmnModules: ModuleDeclaration[] = [
+export const BpmnModules: ModuleDeclaration[] = [
+  BpmnCoreModule,
+  BpmnRulesModule,
+  BpmnModelingModule,
+  BpmnBehaviorModule,
+  BpmnPlaneModule,
+  BpmnPaletteModule,
+  BpmnContextPadModule,
+  BpmnPopupMenuModule,
+  BpmnIOModule
+];
+
+/** 只读查看器模块集（Viewer：渲染 + 导入导出 + 元素事件 + 下钻浏览，无任何编辑模块） */
+export const ViewerModules: ModuleDeclaration[] = [
   ...ViewerPlatformModules,
-  ZoomScrollModule,
-  ...EditorPlatformModules,
-  DmnRulesModule,
-  DmnModelingModule,
-  DmnBehaviorModule,
-  DmnPopupMenuModule,
-  DmnPaletteModule,
-  DmnContextPadModule,
-  DmnTableModule,
-  DmnCoreModule,
-  DmnIOModule
+  BpmnCoreModule,
+  BpmnPlaneModule,
+  BpmnIOModule
+];
+
+/** 可导航查看器模块集（NavigatedViewer：Viewer + 画布导航） */
+export const NavigatedViewerModules: ModuleDeclaration[] = [
+  ...ViewerModules,
+  ...NavigationModules
 ];

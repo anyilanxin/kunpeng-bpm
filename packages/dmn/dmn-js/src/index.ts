@@ -5,7 +5,7 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation. The copyright holder designates
+ * published by the Free Software Foundation.  The copyright holder designates
  * this particular file as subject to the "Classpath" exception as provided
  * in the LICENSE file and licenses/ directory that accompany this code.
  *
@@ -20,41 +20,45 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * DMN 决策建模器 · 公共导出
+ * BPMN 2.0 Web 建模器 · 公共导出
  */
 export { Modeler } from './Modeler';
 export type { ModelerOptions } from './Modeler';
 export { Viewer, NavigatedViewer } from './Viewer';
 export type { ViewerOptions } from './Viewer';
-export type { ModdleExtension, DefinitionsSemantic, RequirementSemantic, AssociationSemantic } from './Types';
-export type { ModelerMode } from './mode/DmnMode';
+export type { ModdleExtension } from './xml/BpmnNamespaces';
+export type { ModelerMode } from './mode/BpmnMode';
 export {
+  PlatformModules,
   ViewerPlatformModules,
   NavigationModules,
   EditorPlatformModules,
   ViewerModules,
   NavigatedViewerModules,
-  DmnModules,
-  DmnCoreModule,
-  DmnIOModule,
-  DmnRulesModule,
-  DmnModelingModule,
-  DmnBehaviorModule,
-  DmnPopupMenuModule,
-  DmnPaletteModule,
-  DmnContextPadModule,
-  DmnTableModule
+  BpmnModules,
+  BpmnCoreModule,
+  BpmnPlaneModule,
+  BpmnRulesModule,
+  BpmnModelingModule,
+  BpmnBehaviorModule,
+  BpmnPaletteModule,
+  BpmnContextPadModule,
+  BpmnPopupMenuModule,
+  BpmnIOModule
 } from './modules';
-export type { DmnView, DmnViewKind } from './views/DmnViews';
-export { DmnElementTypes, SIZES, requirementBetween, metaId } from './meta/ElementTypes';
-export { DmnI18n } from './i18n/DmnI18n';
-export * from './util/ModelUtil';
+export { BpmnElementTypes, SIZES } from './meta/ElementTypes';
+export { BpmnI18n } from './i18n/BpmnI18n';
+export * from './icons';
+export * from './Types';
 export {
-  refIdFromHref,
-  requirementSourceId,
-  requirementSourceField,
-  requirementFieldFor,
-  requirementHostProperty,
-  associationEndpointIds
-} from './util/Requirements';
-export { DEFAULT_NAMESPACE } from './factory/DmnFactory';
+  is,
+  isAny,
+  isEventSubProcess,
+  isExpanded,
+  isInterrupting,
+  getBusinessObject,
+  getLabel,
+  setLabel,
+  isPlane,
+  getShapeIdFromPlane
+} from './util/ModelUtil';
