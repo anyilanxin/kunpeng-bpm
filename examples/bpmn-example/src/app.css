@@ -26,21 +26,26 @@ html, body {
 
 /* 折叠钮 "MAP" 文字 → 自绘折页地图图标（用户定规用图标；剪影自有设计：
    三折页轮廓+两道折缝，stroke 经 mask 通道随 currentColor，hover 变色随上游）。
-   按钮定尺对齐原文字态（"MAP"+内距 ≈52×34）不因文字隐藏而缩小，图标 24px。 */
+   按钮定尺对齐原文字态（"MAP"+内距 ≈52×34）不因文字隐藏而缩小，图标 24px。
+   上游 .toggle 为 block+padding 10（content 区仅 32×14，inline-block 图标挂
+   零字号基线必偏移）——flex 居中须同时清 padding（2026-10-26 用户报未居中） */
 .djs-minimap:not(.open) .toggle {
   font-size: 0;
   letter-spacing: 0;
   width: 52px;
   height: 34px;
   box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 .djs-minimap:not(.open) .toggle::before {
   content: '';
-  display: inline-block;
+  display: block;
   width: 24px;
   height: 24px;
-  vertical-align: middle;
   background-color: currentColor;
   -webkit-mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M2.5,5 L6.8,3.3 L11.2,5 L15.5,3.3 V13 L11.2,14.7 L6.8,13 L2.5,14.7 Z M6.8,3.3 V13 M11.2,5 V14.7' fill='none' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center / contain;
   mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M2.5,5 L6.8,3.3 L11.2,5 L15.5,3.3 V13 L11.2,14.7 L6.8,13 L2.5,14.7 Z M6.8,3.3 V13 M11.2,5 V14.7' fill='none' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center / contain;
