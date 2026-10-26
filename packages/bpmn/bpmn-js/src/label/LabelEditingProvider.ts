@@ -75,9 +75,10 @@ const TRANSPARENT_STYLE = { backgroundColor: 'transparent', border: 'none' };
  * hsl(225,10%,97%)/hsl(225,10%,75%)）；聚焦变色（面板蓝）刻意不带 */
 const PANEL_INPUT_STYLE = { backgroundColor: 'hsl(225, 10%, 97%)', border: '1px solid hsl(225, 10%, 75%)' };
 
-/** 外部标签编辑框高度下限（模型像素，自有取值：11px 单行 + 舒适上下垫，
- * 2026-10-26 用户定规"外部/下方标签输入框再调高一点"） */
-const EXTERNAL_EDIT_MIN_H = 28;
+/** 外部标签编辑框高度下限（模型像素，自有取值：11px 单行 ×1.4 行高 + 上下
+ * 垫 3×2 ≈ 22，恰好包住一行文字、与鼠标光标同高量级——2026-10-26 用户两轮
+ * 定规："再调高一点"后 28 嫌太高，"与鼠标差不多一样高"） */
+const EXTERNAL_EDIT_MIN_H = 22;
 
 /** 外部标签框抬高到下限（位置不变，只增高：上下各扩展一半保持中心） */
 function taller(box: { x: number; y: number; width: number; height: number }): { x: number; y: number; width: number; height: number } {
