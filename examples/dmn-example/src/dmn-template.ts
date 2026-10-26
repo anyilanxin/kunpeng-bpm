@@ -9,6 +9,7 @@ export const sampleDmn = `<?xml version="1.0" encoding="UTF-8"?>
   <dmn:inputData id="InputData_1" name="申请人年龄"/>
   <dmn:inputData id="InputData_2" name="信用分"/>
   <dmn:decision id="Decision_1" name="风险评级" kunpeng:versionTag="v1.2" kunpeng:historyTimeToLive="30">
+    <dmn:variable name="风险等级" typeRef="string"/>
     <dmn:informationRequirement id="InfoReq_1">
       <dmn:requiredInput href="#InputData_1"/>
     </dmn:informationRequirement>
@@ -21,6 +22,58 @@ export const sampleDmn = `<?xml version="1.0" encoding="UTF-8"?>
     <dmn:authorityRequirement id="AuthReq_1">
       <dmn:requiredAuthority href="#KnowledgeSource_1"/>
     </dmn:authorityRequirement>
+    <dmn:decisionTable id="DecisionTable_1" hitPolicy="UNIQUE">
+      <dmn:input id="Input_1">
+        <dmn:inputExpression id="LiteralExpr_1" typeRef="string">
+          <dmn:text>申请人年龄</dmn:text>
+        </dmn:inputExpression>
+      </dmn:input>
+      <dmn:input id="Input_2">
+        <dmn:inputExpression id="LiteralExpr_2" typeRef="integer">
+          <dmn:text>信用分</dmn:text>
+        </dmn:inputExpression>
+      </dmn:input>
+      <dmn:output id="Output_1" name="风险等级" typeRef="string"/>
+      <dmn:annotation id="Annotation_1" name="备注"/>
+      <dmn:rule id="Rule_1">
+        <dmn:inputEntry id="Unary_1">
+          <dmn:text>&lt; 30</dmn:text>
+        </dmn:inputEntry>
+        <dmn:inputEntry id="Unary_2">
+          <dmn:text>&gt;= 700</dmn:text>
+        </dmn:inputEntry>
+        <dmn:outputEntry id="LitExpr_3">
+          <dmn:text>"低风险"</dmn:text>
+        </dmn:outputEntry>
+        <dmn:annotationEntry id="AnnEntry_1">
+          <dmn:text>年轻高分客群</dmn:text>
+        </dmn:annotationEntry>
+      </dmn:rule>
+      <dmn:rule id="Rule_2">
+        <dmn:inputEntry id="Unary_3">
+          <dmn:text>&lt; 30</dmn:text>
+        </dmn:inputEntry>
+        <dmn:inputEntry id="Unary_4">
+          <dmn:text>&lt; 700</dmn:text>
+        </dmn:inputEntry>
+        <dmn:outputEntry id="LitExpr_4">
+          <dmn:text>"中风险"</dmn:text>
+        </dmn:outputEntry>
+        <dmn:annotationEntry id="AnnEntry_2">
+          <dmn:text>人工复核</dmn:text>
+        </dmn:annotationEntry>
+      </dmn:rule>
+      <dmn:rule id="Rule_3">
+        <dmn:inputEntry id="Unary_5">
+          <dmn:text>&gt;= 30</dmn:text>
+        </dmn:inputEntry>
+        <dmn:inputEntry id="Unary_6"/>
+        <dmn:outputEntry id="LitExpr_5">
+          <dmn:text>"待评估"</dmn:text>
+        </dmn:outputEntry>
+        <dmn:annotationEntry id="AnnEntry_3"/>
+      </dmn:rule>
+    </dmn:decisionTable>
   </dmn:decision>
   <dmn:decision id="Decision_2" name="授信额度">
     <dmn:informationRequirement id="InfoReq_3">

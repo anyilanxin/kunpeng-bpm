@@ -87,3 +87,220 @@
 .djs-element.label-editing .djs-visual text {
   visibility: hidden;
 }
+
+/* ── 多视图编辑器层（DmnViews）──
+   挂画布容器兄弟位：DRD 激活时整层 display:none（由 DmnViews 内联控制），
+   此处只定基础布局与滚动；层内组件自带皮肤。 */
+.dmn-editor-layer {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  background: #ffffff;
+  z-index: 10;
+}
+
+/* ── 决策表编辑器（DOM 网格）── */
+.dmn-table-editor {
+  padding: 16px 20px 40px;
+}
+
+.dmn-table-wrap {
+  display: inline-block;
+  min-width: 420px;
+  border: 1px solid #c9c9c9;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.dmn-table-grid {
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+/* 左上角命中策略格 */
+.dmn-table-grid .dmn-table-hit {
+  background: #f4f5f7;
+  border: 1px solid #dfe1e6;
+  padding: 4px;
+  min-width: 120px;
+  vertical-align: top;
+}
+
+.dmn-table-grid .dmn-table-hit select,
+.dmn-clause-type,
+.dmn-table-select {
+  font-size: 12px;
+  border: 1px solid #dfe1e6;
+  border-radius: 3px;
+  padding: 2px 4px;
+  background: #ffffff;
+  color: #172b4d;
+  max-width: 110px;
+}
+
+.dmn-table-agg {
+  margin-top: 4px;
+  max-width: 110px;
+}
+
+/* 子句（列）头 */
+.dmn-table-grid .dmn-table-clause {
+  border: 1px solid #dfe1e6;
+  padding: 4px 6px;
+  min-width: 140px;
+  vertical-align: top;
+  background: #fafbfc;
+}
+
+.dmn-table-grid .dmn-table-input {
+  background: #e8f1ff;
+}
+
+.dmn-table-grid .dmn-table-output {
+  background: #e6f4ea;
+}
+
+.dmn-table-grid .dmn-table-annotation {
+  background: #fff7e6;
+}
+
+.dmn-clause-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.dmn-clause-badge {
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(9, 30, 66, 0.08);
+  color: #42526e;
+  white-space: nowrap;
+}
+
+.dmn-clause-name {
+  flex: 1;
+  min-width: 60px;
+  font-size: 12px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 2px 4px;
+  background: transparent;
+}
+
+.dmn-clause-name:hover,
+.dmn-clause-name:focus {
+  border-color: #dfe1e6;
+  background: #ffffff;
+  outline: none;
+}
+
+.dmn-clause-del {
+  visibility: hidden;
+  border: none;
+  background: transparent;
+  color: #de350b;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 3px;
+}
+
+.dmn-table-clause:hover .dmn-clause-del {
+  visibility: visible;
+}
+
+/* 行号列与行内操作 */
+.dmn-table-grid .dmn-table-rownum {
+  border: 1px solid #dfe1e6;
+  background: #f4f5f7;
+  text-align: center;
+  vertical-align: middle;
+  padding: 2px 6px;
+  font-size: 12px;
+  color: #6b778c;
+  white-space: nowrap;
+}
+
+.dmn-row-ops {
+  display: none;
+  margin-left: 2px;
+}
+
+.dmn-table-rule:hover .dmn-row-ops {
+  display: inline;
+}
+
+.dmn-tiny-btn {
+  border: none;
+  background: transparent;
+  color: #42526e;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.dmn-tiny-btn:hover {
+  color: #0747a6;
+}
+
+/* 单元格 */
+.dmn-table-grid .dmn-table-cell {
+  border: 1px solid #dfe1e6;
+  padding: 0;
+  vertical-align: middle;
+}
+
+.dmn-cell-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  padding: 5px 8px;
+  font-size: 13px;
+  background: transparent;
+}
+
+.dmn-cell-input:focus {
+  outline: 2px solid #4c9aff;
+  outline-offset: -2px;
+  background: #ffffff;
+}
+
+/* 添加行/列 */
+.dmn-table-grid .dmn-table-add-rule {
+  border: 1px dashed #c9c9c9;
+  padding: 2px;
+  text-align: center;
+  background: #fafbfc;
+}
+
+.dmn-table-btn {
+  border: none;
+  background: transparent;
+  color: #0747a6;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 10px;
+}
+
+.dmn-table-btn:hover {
+  text-decoration: underline;
+}
+
+.dmn-table-actions {
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+}
+
+/* 只读（预览形态）：条目输入整体禁用外观 */
+.dmn-editor-layer .dmn-cell-input:disabled,
+.dmn-editor-layer .dmn-clause-name:disabled {
+  color: #172b4d;
+  background: transparent;
+  cursor: default;
+}

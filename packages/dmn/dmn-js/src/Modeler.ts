@@ -150,6 +150,21 @@ export class Modeler {
     return this.get<DmnMode>('dmnMode').get();
   }
 
+  // ---------- 视图（多视图：DRD + 决策表达式编辑视图） ----------
+
+  /** 视图清单（DRD 恒在首位）；装配缺失 DmnTableModule 时显式报错 */
+  getViews(): import('./views/DmnViews').DmnView[] {
+    return this.get<any>('dmnViews').list();
+  }
+
+  openView(id: string): void {
+    this.get<any>('dmnViews').open(id);
+  }
+
+  getActiveView(): import('./views/DmnViews').DmnView {
+    return this.get<any>('dmnViews').getActive();
+  }
+
   // ---------- 文档 ----------
 
   /** 空图初始化：Definitions + DMNDI 单图骨架，画布根承载 Definitions 本体 */

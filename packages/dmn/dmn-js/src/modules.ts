@@ -98,6 +98,8 @@ import { DmnContextPadProvider } from './provider/DmnContextPadProvider';
 import { DmnReplaceMenuProvider } from './provider/DmnReplaceMenuProvider';
 import { DmnEditorActions } from './provider/DmnEditorActions';
 import DirectEditingModule from 'diagram-js-direct-editing';
+import { DmnViews } from './views/DmnViews';
+import { DecisionTableEditor } from './table/DecisionTableEditor';
 
 /** 只读查看平台特性（Viewer 底座）：元素事件 / 鼠标 / 调度 / 悬停修正 / overlays——无选择与编辑 */
 export const ViewerPlatformModules: ModuleDeclaration[] = [
@@ -288,6 +290,33 @@ export const DmnContextPadModule: ModuleDeclaration = {
 };
 
 /**
+ * 多视图与决策表编辑（内部插件）：视图管理（DRD + 各决策表达式视图）+
+ * DOM 网格决策表编辑器。命令经 DmnModelingModule（撤销栈共享语义树）。
+ */
+export const DmnTableModule: ModuleDeclaration = {
+  __depends__: [DmnModelingModule],
+  __init__: ['dmnViews'],
+  'dmnViews': ['type', DmnViews],
+  'decisionTableEditorFactory': [
+    'factory',
+    Object.assign(
+      (modeling: any, eventBus: any, elementRegistry: any, dmnFactory: DmnFactory, dmnMode: any, dmnI18n: any) => ({
+        create: (container: HTMLElement, decision: any) =>
+          new DecisionTableEditor(container, decision, {
+            modeling,
+            eventBus,
+            elementRegistry,
+            dmnFactory,
+            dmnMode,
+            i18n: dmnI18n
+          })
+      }),
+      { $inject: ['modeling', 'eventBus', 'elementRegistry', 'dmnFactory', 'dmnMode', 'dmnI18n'] }
+    )
+  ]
+};
+
+/**
  * Modeler 全量集（= 编辑形态门面默认集）：查看底座 + 滚轮缩放 + 编辑平台
  * + DMN 规则/建模/行为/面板栈。**不含 MoveCanvas/KeyboardMove**——画布拖拽
  * 平移与方向键移视口是导航形态（NavigatedViewer）的交互，编辑形态会与
@@ -303,6 +332,7 @@ export const DmnModules: ModuleDeclaration[] = [
   DmnPopupMenuModule,
   DmnPaletteModule,
   DmnContextPadModule,
+  DmnTableModule,
   DmnCoreModule,
   DmnIOModule
 ];

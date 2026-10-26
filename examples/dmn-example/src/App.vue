@@ -20,6 +20,14 @@
     <div class="example-header example-subheader">
       <span class="example-status" :class="status.kind">{{ status.text }}</span>
     </div>
+    <div v-if="views.length > 1" class="view-tabs">
+      <button
+        v-for="v in views"
+        :key="v.id"
+        :class="{ active: v.id === activeViewId }"
+        @click="openView(v.id)"
+      >{{ v.name }}</button>
+    </div>
     <div class="example-body">
       <div v-show="view === 'drd'" ref="host" class="canvas-host"></div>
       <pre v-if="view === 'xml'" class="xml-view">{{ xmlText }}</pre>
@@ -58,6 +66,8 @@ const view = ref<'drd' | 'xml'>('drd');
 const xmlText = ref('');
 const dark = ref(false);
 const panelOpen = ref(true);
+const views = ref<{ id: string; name: string; kind: string }[]>([]);
+const activeViewId = ref('drd');
 
 onMounted(async () => {
   const instance = new Modeler({
@@ -72,8 +82,20 @@ onMounted(async () => {
   modeler.value = instance;
   // 浏览器验收钩子（真实 UI 路径之外的程序化探针入口）
   (window as any).__dmn = instance;
+  // 视图 tab：清单/激活随视图事件驱动
+  instance.on('views.changed', () => {
+    views.value = instance.getViews();
+  });
+  instance.on('view.changed', ({ view }: { view: { id: string } }) => {
+    activeViewId.value = view.id;
+  });
+  views.value = instance.getViews();
   await reload();
 });
+
+function openView(id: string) {
+  modeler.value!.openView(id);
+}
 
 async function reload() {
   const { warnings } = await modeler.value!.importXML(sampleDmn);
@@ -170,6 +192,27 @@ async function runRoundTrip() {
 .example-subheader {
   padding: 4px 12px;
   min-height: 16px;
+}
+
+.view-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px 12px;
+  border-bottom: 1px solid #d4d4d4;
+  background: #fafbfc;
+}
+
+.example-shell.dark .view-tabs {
+  border-bottom-color: #3c3c3c;
+  background: #252526;
+}
+
+.view-tabs button {
+  font-size: 12px;
+  padding: 3px 12px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
 }
 
 .example-header h1 {

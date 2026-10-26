@@ -35,6 +35,8 @@ import { isObject } from 'min-dash';
 import type { DmnElementTypes } from '../meta/ElementTypes';
 import { UpdatePropertiesHandler, UpdateLabelHandler, UpdateModdlePropertiesHandler } from './UpdateHandlers';
 import { DmnReplaceHandler } from './DmnReplaceHandler';
+import { ListAddHandler, ListRemoveHandler } from './ListHandlers';
+import { ClauseAddHandler, ClauseRemoveHandler } from './ClauseHandlers';
 
 export class DmnModeling extends Modeling {
   static $inject = ['eventBus', 'elementFactory', 'commandStack', 'rules', 'dmnElementTypes'];
@@ -58,6 +60,10 @@ export class DmnModeling extends Modeling {
     commandStack.registerHandler('element.updateModdleProperties', UpdateModdlePropertiesHandler as any);
     commandStack.registerHandler('label.update', UpdateLabelHandler as any);
     commandStack.registerHandler('dmnReplace', DmnReplaceHandler as any);
+    commandStack.registerHandler('dmn.list.add', ListAddHandler as any);
+    commandStack.registerHandler('dmn.list.remove', ListRemoveHandler as any);
+    commandStack.registerHandler('dmn.table.clause.add', ClauseAddHandler as any);
+    commandStack.registerHandler('dmn.table.clause.remove', ClauseRemoveHandler as any);
   }
 
   /** 连线：类型缺省时经规则推断（需求矩阵/注记关联） */
@@ -78,6 +84,24 @@ export class DmnModeling extends Modeling {
   /** 嵌套 moddle 元素属性更新（面板编辑的通用通道） */
   updateModdleProperties(element: any, moddleElement: any, properties: Record<string, any>): void {
     this.stack.execute('element.updateModdleProperties', { element, moddleElement, properties });
+  }
+
+  /** moddle 列表属性增删（决策表子句/规则等；canvasElement 归属画布元素） */
+  listAdd(canvasElement: any, container: any, property: string, item: any, index?: number): void {
+    this.stack.execute('dmn.list.add', { canvasElement, container, property, item, index });
+  }
+
+  listRemove(canvasElement: any, container: any, property: string, item: any): void {
+    this.stack.execute('dmn.list.remove', { canvasElement, container, property, item });
+  }
+
+  /** 决策表子句增删（同步全规则行内条目，单命令原子撤销） */
+  clauseAdd(canvasElement: any, context: Omit<import('./ClauseHandlers').ClauseContext, 'canvasElement'>): void {
+    this.stack.execute('dmn.table.clause.add', { canvasElement, ...context });
+  }
+
+  clauseRemove(canvasElement: any, context: Omit<import('./ClauseHandlers').ClauseContext, 'canvasElement'>): void {
+    this.stack.execute('dmn.table.clause.remove', { canvasElement, ...context });
   }
 
   updateLabel(element: any, text: string): void {

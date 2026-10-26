@@ -42,8 +42,10 @@ export {
   DmnBehaviorModule,
   DmnPopupMenuModule,
   DmnPaletteModule,
-  DmnContextPadModule
+  DmnContextPadModule,
+  DmnTableModule
 } from './modules';
+export type { DmnView, DmnViewKind } from './views/DmnViews';
 export { DmnElementTypes, SIZES, requirementBetween, metaId } from './meta/ElementTypes';
 export { DmnI18n } from './i18n/DmnI18n';
 export * from './util/ModelUtil';

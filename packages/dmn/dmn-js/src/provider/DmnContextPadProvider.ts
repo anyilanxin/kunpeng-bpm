@@ -49,7 +49,8 @@ export class DmnContextPadProvider {
     'modeling',
     'dmnPopup',
     'dmnI18n',
-    'dmnMode'
+    'dmnMode',
+    'injector'
   ];
 
   constructor(
@@ -61,10 +62,17 @@ export class DmnContextPadProvider {
     private readonly modeling: any,
     private readonly dmnPopup: DmnPopup,
     private readonly i18n: any,
-    private readonly dmnMode: DmnMode
+    private readonly dmnMode: DmnMode,
+    injector: any
   ) {
     contextPad.registerProvider(this);
+    // 视图服务经 injector 可选取（自拼底座未装 DmnTableModule 时无表入口）
+    this.dmnViews = injector.get('dmnViews', false);
+    this.dmnFactory = injector.get('dmnFactory', false);
   }
+
+  private readonly dmnViews: any;
+  private readonly dmnFactory: any;
 
   getContextPadEntries(element: any): Record<string, any> {
     // 预览模式无编辑入口（选择保留——供属性面板等宿主读取当前元素）
@@ -94,6 +102,33 @@ export class DmnContextPadProvider {
       if (type !== ANNOTATION) {
         const annotationMeta = this.elementTypes.shapeMeta(ANNOTATION)!;
         entries['annotate'] = this.appendEntry(element, annotationMeta, ASSOCIATION);
+      }
+    }
+
+    // ---- 决策表入口（Decision 专属）：无表达式=建表，有表=开表进编辑视图 ----
+    if (type === 'dmn:Decision' && this.dmnViews && this.dmnFactory && !element.waypoints) {
+      if (bo.decisionLogic?.$type === 'dmn:DecisionTable') {
+        entries['open-table'] = {
+          group: 'edit',
+          html: toolEntryHtml('grid'),
+          title: this.i18n.t('打开决策表'),
+          action: {
+            click: () => this.dmnViews.open(bo.id)
+          }
+        };
+      } else if (!bo.decisionLogic) {
+        entries['add-table'] = {
+          group: 'edit',
+          html: toolEntryHtml('grid'),
+          title: this.i18n.t('添加决策表'),
+          action: {
+            click: () => {
+              const table = this.dmnFactory.create({ $type: 'dmn:DecisionTable', hitPolicy: 'UNIQUE' });
+              this.modeling.updateModdleProperties(element, bo, { decisionLogic: table });
+              this.dmnViews.open(bo.id);
+            }
+          }
+        };
       }
     }
 
