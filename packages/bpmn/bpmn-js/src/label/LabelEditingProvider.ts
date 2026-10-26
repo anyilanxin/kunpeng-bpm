@@ -22,9 +22,9 @@
 /**
  * 标签直编 Provider（diagram-js-direct-editing 契约 {activate, update}）。
  *
- * 编辑带位置：任务族=形内（垂直居中）；外部标签元素=标签框；连线=中点
- * （可拖角调整）；注记=形内（text 字段）；池/泳道=头带（水平=左侧竖排区、
- * 垂直=顶部横带）。
+ * 编辑带位置：任务族=形内居中卡片（内缩露边，高度随文字，见 internalCard）；
+ * 外部标签元素=标签框；连线=中点（可拖角调整）；注记=形内（text 字段）；
+ * 池/泳道=头带（水平=左侧竖排区、垂直=顶部横带）。
  *
  * 坐标契约：TextBox 把 bounds 直接当画布容器 CSS 像素（不做视口变换），
  * 故本 Provider 先按模型坐标算框，出口统一经 canvas.getAbsoluteBBox 仿射
@@ -54,6 +54,43 @@ const MIN_EDIT_FONT = 8;
 /** 池/泳道头带半宽/半高（模型像素）：编辑框罩住头带可视区 */
 const BAND_HALF_W = 60;
 const BAND_HALF_H = 14;
+
+/** 形内编辑卡片参数（自有取值）：内缩 6 让元素边缘可见（编辑白盒不再与
+ * 元素边界/选中轮廓重合成"套娃双框"，2026-10-26 用户报不美观）；卡片宽=
+ * 元素宽−12、内容左右垫 4×2 → 换行宽=元素宽−20，与渲染排版宽严格同宽
+ * （internalLabelBox padX 8×2 + 渲染 padding 2×2 = 元素宽−20），换行点
+ * 所见即所得；高度按文本测量自适应（行高 1.4 与皮肤 CSS 同参数），单行
+ * 保底 24；垂直中心=元素中心=渲染 center-middle 锚。 */
+const CARD_INSET = 6;
+const CARD_PAD_V = 3;
+const CARD_MIN_H = 24;
+const CARD_LINE_HEIGHT = 1.4;
+/** 内容左右垫（与皮肤 .djs-direct-editing-content padding 同源） */
+const CARD_PAD_H = 4;
+
+/** 形内标签编辑卡片框：宽度=元素宽−2×内缩，高度=max(保底, 文本高+上下垫) */
+function internalCard(
+  textUtil: TextUtil,
+  element: { x: number; y: number; width: number; height: number },
+  text: string
+): { x: number; y: number; width: number; height: number } {
+  const width = Math.max(element.width - CARD_INSET * 2, 10);
+  // 测量排版宽=换行宽（卡片宽−内容垫），与渲染排版宽同源；无名/空名免测
+  const measured = text
+    ? textUtil.getDimensions(text, {
+        box: { width: width - CARD_PAD_H * 2, height: 400 },
+        style: { ...INTERNAL_FONT, lineHeight: CARD_LINE_HEIGHT },
+        padding: 0
+      })
+    : { height: 0 };
+  const height = Math.max(CARD_MIN_H, Math.ceil(measured.height) + CARD_PAD_V * 2);
+  return {
+    x: element.x + CARD_INSET,
+    y: element.y + element.height / 2 - height / 2,
+    width,
+    height
+  };
+}
 
 interface ActivateContext {
   bounds: { x: number; y: number; width: number; height: number };
@@ -126,7 +163,7 @@ export class BpmnLabelEditingProvider {
     }
 
     if (INTERNAL_TYPES.test(bo.$type)) {
-      return this.toViewport({ ...element }, text, { ...INTERNAL_FONT }, { centerVertically: true });
+      return this.toViewport(internalCard(this.textUtil, element, text ?? ''), text, { ...INTERNAL_FONT }, { centerVertically: true });
     }
 
     // 事件/网关/分组/数据：外部标签元素（已有标签用其位置，未建/隐藏走派生默认）

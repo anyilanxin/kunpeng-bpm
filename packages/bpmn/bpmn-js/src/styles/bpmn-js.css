@@ -184,23 +184,24 @@
 /* ── 直编输入框外观 ──
    diagram-js-direct-editing 的 TextBox 默认为内联「白底 + 1px #ccc 边」裸框
    （该包不附任何 CSS），调整手柄更是无样式空 div——与弹框家族不配。
-   取值为自有设计，与弹框同语言：白底、轻圆角、无边框线（柔和投影 + 一圈
-   发丝影界定边界）、聚焦时发丝影加深为主题蓝描边感。内联样式为 normal
-   优先级，author 样式表 !important 可覆写。 */
+   形内标签的编辑框由 Provider 以「居中卡片」几何给出（略窄于元素、高度随
+   文字），这里负责皮肤：白底卡片 + 悬浮投影 + 中性发丝线界定边界。
+   不做蓝色聚焦描边——编辑中的元素自带选中蓝轮廓，卡片若再描蓝会在近重合
+   位置套成双层蓝框（2026-10-26 用户报"输入框不美观"的主因），聚焦反馈
+   由悬浮投影与文字光标承担。取值为自有设计。内联样式为 normal 优先级，
+   author 样式表 !important 可覆写。 */
 
 .djs-direct-editing-parent {
   border: none !important;
-  border-radius: 3px !important;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  border-radius: 4px !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
-.djs-direct-editing-parent:focus-within {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2), 0 0 0 1.5px rgba(28, 110, 224, 0.65);
-}
-
-/* 文字区：给行距与左右呼吸感（引擎默认紧贴边框），居中排版沿用内联设置 */
+/* 文字区：行距与左右呼吸感——行高 1.4 与卡片高度测量（internalCard）同
+   参数；左右垫 4 使换行宽=元素宽−20，与渲染排版宽（internalLabelBox
+   padX 8×2 + 渲染 padding 2×2）严格同宽，换行点所见即所得，勿单独改 */
 .djs-direct-editing-parent .djs-direct-editing-content {
-  padding: 2px 6px;
+  padding: 3px 4px;
   line-height: 1.4;
 }
 
