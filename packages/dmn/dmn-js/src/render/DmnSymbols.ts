@@ -20,12 +20,9 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * DMN 记法符号库（规范 §6.2 DRD 记法；轮廓几何对齐用户资产 dmnicons
- * ——2026-10-26 定规「画布图形基于这些图标」）：
- * - Decision：直角矩形（资产 dmn-icon-decision 平边矩形）；
- * - BusinessKnowledgeModel：左上+右下双切角罐形（资产 dmn-icon-business-knowledge）；
- * - InputData：两端半圆胶囊（资产 dmn-icon-input-data）；
- * - KnowledgeSource：底边三扇波浪开底（资产 dmn-icon-knowledge-source 扇贝节奏）；
+ * DMN 记法符号库（四 DRG 形状轮廓已资产化——画布=图标同形，见
+ * DmnIconSet.SHAPE_OUTLINES + DmnRenderer.drawAssetShape；本库只保留
+ * 无资产对应的记法绘制）：
  * - DecisionService：粗框矩形+顶带+分割线（§6.2.5）；
  * - TextAnnotation：左界线+开放框（§6.2.6）；
  * - 连线端头：信息需求=实心箭头（§6.2.7）、知识需求=虚线空心箭头、
@@ -52,34 +49,6 @@ function drawRectPath(visuals: SVGElement, d: string, theme: StyleTheme, strokeW
     'stroke-linejoin': 'round'
   });
   append(visuals, path);
-}
-
-/** Decision：直角矩形（资产 dmn-icon-decision 平边矩形，无圆角） */
-export function drawDecisionShape(visuals: SVGElement, w: number, h: number, theme: StyleTheme): void {
-  drawRectPath(visuals, `M0,0 H${w} V${h} H0 Z`, theme);
-}
-
-/** BKM：左上+右下双切角罐形（资产 dmn-icon-business-knowledge；切角腿 BKM_CUT） */
-export function drawBkmShape(visuals: SVGElement, w: number, h: number, cut: number, theme: StyleTheme): void {
-  drawRectPath(visuals, `M${cut},0 H${w} V${h - cut} L${w - cut},${h} H0 V${cut} Z`, theme);
-}
-
-/** InputData：两端半圆胶囊（半径=高半） */
-export function drawInputDataShape(visuals: SVGElement, w: number, h: number, theme: StyleTheme): void {
-  const r = h / 2;
-  drawRectPath(visuals, `M${r},0 H${w - r} A${r},${r} 0 0 1 ${w - r},${h} H${r} A${r},${r} 0 0 1 ${r},0 Z`, theme);
-}
-
-/** KnowledgeSource：底边三扇波浪（资产扇贝节奏；波幅 wave，开底为记法本义——底边波浪线示意文档源） */
-export function drawKnowledgeSourceShape(visuals: SVGElement, w: number, h: number, wave: number, theme: StyleTheme): void {
-  const seg = w / 3;
-  let d = `M0,0 H${w} V${h - wave}`;
-  for (let i = 0; i < 3; i++) {
-    const x1 = w - i * seg;
-    const x0 = x1 - seg;
-    d += ` C${x1 - seg * 0.25},${h + wave} ${x0 + seg * 0.25},${h + wave} ${x0},${h - wave}`;
-  }
-  drawRectPath(visuals, d + ' Z', theme);
 }
 
 /** DecisionService：粗框（宽 3）+顶带着色+分割线（dividerY 相对值） */

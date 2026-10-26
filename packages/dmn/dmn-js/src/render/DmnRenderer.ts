@@ -20,20 +20,19 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * DMN 渲染器：形状按 DmnSymbols 记法绘制，名字形内居中（规范 §6.2.1
- * "Name MUST be displayed inside the shape"）；可下钻元素（Decision/BKM，
- * 注册表 drillable）左上角绘制下钻图标（点击语义由 plane 层接）。
+ * DMN 渲染器（用户定规 2026-10-26：**画布图形由资产 SVG 生成**）：四 DRG
+ * 形状轮廓=dmnicons 资产外圈子路径（逐字节）拉伸进元素边界（bpmn 线
+ * marker 同法——不改写控制点，只变换定位）；DS/注记保持记法参数绘制
+ * （无对应资产）；名字形内居中（规范 §6.2.1）；可下钻元素左上角角标由
+ * DrillBadge 的 overlays 承担（渲染层零下钻逻辑）。
  */
 import BaseRenderer from 'diagram-js/lib/draw/BaseRenderer';
 import type EventBus from 'diagram-js/lib/core/EventBus';
 import type TextUtil from 'diagram-js/lib/util/Text';
 import { append, attr, create } from 'tiny-svg';
 import { SIZES } from '../meta/ElementTypes';
+import { SHAPE_OUTLINES, type ShapeOutlineName } from '../icons/DmnIconSet';
 import {
-  drawDecisionShape,
-  drawBkmShape,
-  drawInputDataShape,
-  drawKnowledgeSourceShape,
   drawDecisionServiceShape,
   drawTextAnnotationShape,
   appendFilledArrow,
@@ -90,16 +89,16 @@ export class DmnRenderer extends BaseRenderer {
     const theme = this.theme();
     switch (type) {
       case 'dmn:Decision':
-        drawDecisionShape(visuals, shape.width, shape.height, theme);
+        this.drawAssetShape(visuals, 'decision', shape.width, shape.height, theme);
         break;
       case 'dmn:BusinessKnowledgeModel':
-        drawBkmShape(visuals, shape.width, shape.height, SIZES.BKM_CUT, theme);
+        this.drawAssetShape(visuals, 'business-knowledge', shape.width, shape.height, theme);
         break;
       case 'dmn:InputData':
-        drawInputDataShape(visuals, shape.width, shape.height, theme);
+        this.drawAssetShape(visuals, 'input-data', shape.width, shape.height, theme);
         break;
       case 'dmn:KnowledgeSource':
-        drawKnowledgeSourceShape(visuals, shape.width, shape.height, SIZES.KS_WAVE, theme);
+        this.drawAssetShape(visuals, 'knowledge-source', shape.width, shape.height, theme);
         break;
       case 'dmn:DecisionService':
         drawDecisionServiceShape(
@@ -113,12 +112,51 @@ export class DmnRenderer extends BaseRenderer {
       case 'dmn:TextAnnotation':
         drawTextAnnotationShape(visuals, shape.width, shape.height, theme);
         break;
-      default:
-        // 未登记形状按圆角矩形兜位（不 fuchsia：未知类型至少可见可选中）
-        drawDecisionShape(visuals, shape.width, shape.height, theme);
+      default: {
+        // 未登记形状按平边矩形兜位（不 fuchsia：未知类型至少可见可选中）
+        const rect = create('rect');
+        attr(rect, {
+          x: 0,
+          y: 0,
+          width: shape.width,
+          height: shape.height,
+          fill: theme.fill,
+          stroke: theme.stroke,
+          'stroke-width': LINE_WIDTH
+        });
+        append(visuals, rect);
+      }
     }
     this.drawName(visuals, shape, type);
     return visuals;
+  }
+
+  /**
+   * 资产外轮廓直生（画布=图标同形）：内容盒等比映射进元素边界——
+   * transform 链右起：内容盒平移到原点 → 非等比缩放到 (w,h)。描边取
+   * 平均尺度补偿（横/纵回归基准厚；残差=元素宽高比偏离资产比的度，
+   * 默认尺寸 ±20% 内不可辨），随画布缩放语义与其余图形一致。
+   */
+  private drawAssetShape(
+    visuals: SVGElement,
+    name: ShapeOutlineName,
+    w: number,
+    h: number,
+    theme: StyleTheme
+  ): void {
+    const o = SHAPE_OUTLINES[name];
+    const sx = w / o.w;
+    const sy = h / o.h;
+    const path = create('path');
+    attr(path, {
+      d: o.d,
+      fill: theme.fill,
+      stroke: theme.stroke,
+      'stroke-width': (LINE_WIDTH * 2) / (sx + sy),
+      'stroke-linejoin': 'round',
+      transform: `scale(${sx} ${sy}) translate(${-o.x} ${-o.y})`
+    });
+    append(visuals, path);
   }
 
   override drawConnection(visuals: SVGElement, connection: any): SVGElement {
