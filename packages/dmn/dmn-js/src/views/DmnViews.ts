@@ -46,9 +46,10 @@ export interface DmnView {
   element: any | null;
 }
 
-/** 表达式 $type → 视图类型（P6 起字面表达式入列；未识别表达式暂无编辑视图） */
+/** 表达式 $type → 视图类型（P7 起 Boxed 族入列；未识别表达式暂无编辑视图） */
 const EXPRESSION_VIEWS: Record<string, DmnViewKind> = {
-  'dmn:DecisionTable': 'decisionTable'
+  'dmn:DecisionTable': 'decisionTable',
+  'dmn:LiteralExpression': 'literalExpression'
 };
 
 export class DmnViews {
@@ -137,10 +138,9 @@ export class DmnViews {
     this.destroyEditor();
     layer.style.display = '';
     this.canvas.getContainer().style.display = 'none';
-    // 决策表编辑器经 injector 取（模块未装配则显式失败，不做兜底）
-    const editorFactory = this.injector.get<{ create(c: HTMLElement, bo: any): { destroy(): void } }>(
-      'decisionTableEditorFactory'
-    );
+    // 视图类型对应编辑器工厂经 injector 取（模块未装配则显式失败，不做兜底）
+    const factoryName = view.kind === 'decisionTable' ? 'decisionTableEditorFactory' : 'literalExpressionEditorFactory';
+    const editorFactory = this.injector.get<{ create(c: HTMLElement, bo: any): { destroy(): void } }>(factoryName);
     this.currentEditor = editorFactory.create(layer, view.element);
   }
 

@@ -105,13 +105,14 @@ export class DmnContextPadProvider {
       }
     }
 
-    // ---- 决策表入口（Decision 专属）：无表达式=建表，有表=开表进编辑视图 ----
+    // ---- 表达式入口（Decision 专属）：无表达式=建表/建字面表达式，有则开对应编辑视图 ----
     if (type === 'dmn:Decision' && this.dmnViews && this.dmnFactory && !element.waypoints) {
-      if (bo.decisionLogic?.$type === 'dmn:DecisionTable') {
-        entries['open-table'] = {
+      const logicType = bo.decisionLogic?.$type;
+      if (logicType === 'dmn:DecisionTable' || logicType === 'dmn:LiteralExpression') {
+        entries['open-logic'] = {
           group: 'edit',
-          html: toolEntryHtml('grid'),
-          title: this.i18n.t('打开决策表'),
+          html: toolEntryHtml(logicType === 'dmn:DecisionTable' ? 'grid' : 'literal'),
+          title: logicType === 'dmn:DecisionTable' ? this.i18n.t('打开决策表') : this.i18n.t('打开表达式'),
           action: {
             click: () => this.dmnViews.open(bo.id)
           }
@@ -125,6 +126,18 @@ export class DmnContextPadProvider {
             click: () => {
               const table = this.dmnFactory.create({ $type: 'dmn:DecisionTable', hitPolicy: 'UNIQUE' });
               this.modeling.updateModdleProperties(element, bo, { decisionLogic: table });
+              this.dmnViews.open(bo.id);
+            }
+          }
+        };
+        entries['add-literal'] = {
+          group: 'edit',
+          html: toolEntryHtml('literal'),
+          title: this.i18n.t('添加字面表达式'),
+          action: {
+            click: () => {
+              const literal = this.dmnFactory.create({ $type: 'dmn:LiteralExpression' });
+              this.modeling.updateModdleProperties(element, bo, { decisionLogic: literal });
               this.dmnViews.open(bo.id);
             }
           }

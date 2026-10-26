@@ -100,6 +100,7 @@ import { DmnEditorActions } from './provider/DmnEditorActions';
 import DirectEditingModule from 'diagram-js-direct-editing';
 import { DmnViews } from './views/DmnViews';
 import { DecisionTableEditor } from './table/DecisionTableEditor';
+import { LiteralExpressionEditor } from './literal/LiteralExpressionEditor';
 
 /** 只读查看平台特性（Viewer 底座）：元素事件 / 鼠标 / 调度 / 悬停修正 / overlays——无选择与编辑 */
 export const ViewerPlatformModules: ModuleDeclaration[] = [
@@ -290,8 +291,8 @@ export const DmnContextPadModule: ModuleDeclaration = {
 };
 
 /**
- * 多视图与决策表编辑（内部插件）：视图管理（DRD + 各决策表达式视图）+
- * DOM 网格决策表编辑器。命令经 DmnModelingModule（撤销栈共享语义树）。
+ * 多视图与表达式编辑器（内部插件）：视图管理（DRD + 各决策表达式视图）+
+ * 决策表/字面表达式编辑器。命令经 DmnModelingModule（撤销栈共享语义树）。
  */
 export const DmnTableModule: ModuleDeclaration = {
   __depends__: [DmnModelingModule],
@@ -303,6 +304,23 @@ export const DmnTableModule: ModuleDeclaration = {
       (modeling: any, eventBus: any, elementRegistry: any, dmnFactory: DmnFactory, dmnMode: any, dmnI18n: any) => ({
         create: (container: HTMLElement, decision: any) =>
           new DecisionTableEditor(container, decision, {
+            modeling,
+            eventBus,
+            elementRegistry,
+            dmnFactory,
+            dmnMode,
+            i18n: dmnI18n
+          })
+      }),
+      { $inject: ['modeling', 'eventBus', 'elementRegistry', 'dmnFactory', 'dmnMode', 'dmnI18n'] }
+    )
+  ],
+  'literalExpressionEditorFactory': [
+    'factory',
+    Object.assign(
+      (modeling: any, eventBus: any, elementRegistry: any, dmnFactory: DmnFactory, dmnMode: any, dmnI18n: any) => ({
+        create: (container: HTMLElement, decision: any) =>
+          new LiteralExpressionEditor(container, decision, {
             modeling,
             eventBus,
             elementRegistry,
