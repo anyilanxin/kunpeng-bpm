@@ -65,15 +65,10 @@ function bandBox(element: { x: number; y: number; width: number }): { x: number;
 }
 
 /** 隐形编辑框样式（透明背景+无边框——TextBox 默认内联白底/#ccc 边须显式
- * 覆盖；CSS 无 !important 时压不过内联，皮肤全靠此处内联下发）：池/道/
- * 展开子流程/注记/任务族等形内标签族专用 */
+ * 覆盖；CSS 无 !important 时压不过内联，皮肤全靠此处内联下发）：全族统一
+ * 隐形（2026-10-26 用户定稿：形内族与外部标签同观感，只见表内文字与光标；
+ * 外部标签曾试"属性面板输入框同款浮卡"后废弃） */
 const TRANSPARENT_STYLE = { backgroundColor: 'transparent', border: 'none' };
-
-/** 外部标签浮卡样式=属性面板输入框同款（2026-10-26 用户定规"样式与属性
- * 面板输入框一样，只是聚焦不变蓝"）：浅灰底 + 1px 灰边，取值对齐面板
- * properties-panel.css 设计变量（--input-background/border-color，
- * hsl(225,10%,97%)/hsl(225,10%,75%)）；聚焦变色（面板蓝）刻意不带 */
-const PANEL_INPUT_STYLE = { backgroundColor: 'hsl(225, 10%, 97%)', border: '1px solid hsl(225, 10%, 75%)' };
 
 /** 外部标签编辑框高度下限（模型像素，自有取值：11px 单行 ×1.4 行高 + 上下
  * 垫 3×2 ≈ 22，恰好包住一行文字、与鼠标光标同高量级——2026-10-26 用户两轮
@@ -158,7 +153,7 @@ export class BpmnLabelEditingProvider {
     // 高度下限抬高——外部标签框原本紧贴文字只有十几像素高，输入局促）
     if (element.labelTarget) {
       const text = element.businessObject?.name ?? '';
-      return this.toViewport(widen(taller({ ...element })), text, { ...EXTERNAL_FONT, ...PANEL_INPUT_STYLE }, { resizable: true });
+      return this.toViewport(widen(taller({ ...element })), text, { ...EXTERNAL_FONT, ...TRANSPARENT_STYLE }, {});
     }
     const bo = element.businessObject;
     if (!bo?.$type?.startsWith('bpmn:')) {
@@ -173,7 +168,7 @@ export class BpmnLabelEditingProvider {
       const box = labelEl && !labelEl.hidden
         ? { ...labelEl }
         : connectionLabelBox(this.textUtil, text || ' ', element.waypoints) ?? midBox(element);
-      return this.toViewport(widen(taller(box)), text, { ...EXTERNAL_FONT, ...PANEL_INPUT_STYLE }, { resizable: true });
+      return this.toViewport(widen(taller(box)), text, { ...EXTERNAL_FONT, ...TRANSPARENT_STYLE }, {});
     }
 
     if (bo.$type === 'bpmn:Participant' || bo.$type === 'bpmn:Lane') {
@@ -228,7 +223,7 @@ export class BpmnLabelEditingProvider {
     // 事件/网关/分组/数据：外部标签元素（已有标签用其位置，未建/隐藏走派生默认）
     const labelEl = element.labels?.[0];
     if (labelEl && !labelEl.hidden) {
-      return this.toViewport(widen(taller({ ...labelEl })), text, { ...EXTERNAL_FONT, ...PANEL_INPUT_STYLE }, { resizable: true });
+      return this.toViewport(widen(taller({ ...labelEl })), text, { ...EXTERNAL_FONT, ...TRANSPARENT_STYLE }, {});
     }
     const local = externalLabelBox(this.textUtil, text || ' ', element);
     const box = local
@@ -239,7 +234,7 @@ export class BpmnLabelEditingProvider {
           width: EDIT_MIN_WIDTH * 2,
           height: 24
         };
-    return this.toViewport(widen(taller(box)), text, { ...EXTERNAL_FONT, ...PANEL_INPUT_STYLE }, {});
+    return this.toViewport(widen(taller(box)), text, { ...EXTERNAL_FONT, ...TRANSPARENT_STYLE }, {});
   }
 
   update(element: any, newText: string): void {

@@ -37,6 +37,10 @@ import { isEventFamily, isGatewayFamily } from '../meta/ElementTypes';
 /** 描边与本体的留白，取 diagram-js Outline 默认 outlineOffset 同值（5px） */
 const OUTLINE_OFFSET = 5;
 
+/** 标签轮廓圆角（2026-10-26 用户四轮定值：宿主族 14 太大→0 全直角→
+ * 2 微圆角→终值 4，与基座 Outline 默认圆角同量级） */
+const LABEL_OUTLINE_RADIUS = 4;
+
 export class BpmnOutlineProvider {
   static $inject = ['outline'];
 
@@ -74,6 +78,10 @@ export class BpmnOutlineProvider {
     const w: number = element.width;
     const h: number = element.height;
     const off = OUTLINE_OFFSET;
+    // 标签（外部标签/连线标签，labelTarget 判定）：微圆角矩形——标签共享
+    // 宿主 bo，按宿主族取圆角会给文字套上任务族 14px 圆角框（2026-10-26
+    // 用户报"label 文字选中样式圆角太大"）
+    const isLabel = !!element.labelTarget;
 
     switch (outline.nodeName) {
       case 'circle':
@@ -92,7 +100,7 @@ export class BpmnOutlineProvider {
           y: -off,
           width: w + off * 2,
           height: h + off * 2,
-          rx: rectOutlineRadius(type)
+          rx: isLabel ? LABEL_OUTLINE_RADIUS : rectOutlineRadius(type)
         });
         return true;
       default:

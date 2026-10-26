@@ -183,18 +183,12 @@
 
 /* ── 直编输入框外观 ──
    diagram-js-direct-editing 的 TextBox 默认内联「白底 + 1px #ccc 边」，且
-   内联样式压过普通 CSS——边框/底色全部由 Provider 按族内联下发（LabelEditing
-   Provider TRANSPARENT_STYLE/PANEL_INPUT_STYLE），本表只管公共几何：
-   圆角 2px 对齐属性面板输入框。两族形态（2026-10-26 用户定规）：
-   ① 形内标签族（任务/池/道/展开子流程/注记）= 隐形框（透明+无边框），
-     编辑期已渲染标签由 LabelBehavior 加 label-editing marker 藏去——画布
-     上只见光标闪烁，看不出输入框；
-   ② 外部标签（事件/网关/数据/连线）= 属性面板输入框同款浮卡（浅灰底+
-     1px 灰边；面板的聚焦变蓝刻意不带）。 */
-
-.djs-direct-editing-parent {
-  border-radius: 2px !important;
-}
+   内联样式压过普通 CSS——边框/底色全部由 Provider 按族内联下发
+   （LabelEditingProvider TRANSPARENT_STYLE），本表零皮肤干预（无边框、
+   无底色、**无圆角**——2026-10-26 用户定规方形直角）。全族隐形框
+   （2026-10-26 用户定稿）：编辑期已渲染标签由 LabelBehavior 加
+   label-editing marker 藏去——画布上只见光标闪烁，看不出输入框；
+   调宽手柄（resizable）已按用户定规去掉，勿回加。 */
 
 .djs-element.label-editing text {
   visibility: hidden;
@@ -206,22 +200,6 @@
 .djs-direct-editing-parent .djs-direct-editing-content {
   padding: 3px 4px;
   line-height: 1.4;
-}
-
-/* 右下角拖拽调宽手柄（引擎空 div 无任何样式）：9px 可抓取热区 + 圆点
-   视觉记号，hover 加深提示可拖 */
-.djs-direct-editing-resize-handle {
-  position: absolute;
-  right: -4px;
-  bottom: -4px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.25);
-  cursor: nwse-resize;
-}
-.djs-direct-editing-resize-handle:hover {
-  background: rgba(28, 110, 224, 0.8);
 }
 
 /* ── 下钻徽标（折叠子流程右下角外侧，plane/DrillBadges）──
