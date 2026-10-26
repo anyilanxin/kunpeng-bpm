@@ -26,13 +26,14 @@ html, body {
 
 /* 折叠钮 "MAP" 文字 → 自绘折页地图图标（用户定规用图标；剪影自有设计：
    三折页轮廓+两道折缝，stroke 经 mask 通道随 currentColor，hover 变色随上游）。
-   按钮定尺对齐原文字态（"MAP"+内距 ≈52×34）不因文字隐藏而缩小，图标 24px。
+   按钮定尺=图标 24 + 四边等留白 5 → 34×34 方钮（2026-10-26 用户定规
+   "左右间距与上下一样"；原 52 宽对齐文字态的取值废弃）。
    上游 .toggle 为 block+padding 10（content 区仅 32×14，inline-block 图标挂
    零字号基线必偏移）——flex 居中须同时清 padding（2026-10-26 用户报未居中） */
 .djs-minimap:not(.open) .toggle {
   font-size: 0;
   letter-spacing: 0;
-  width: 52px;
+  width: 34px;
   height: 34px;
   box-sizing: border-box;
   display: flex;
