@@ -347,3 +347,281 @@
   min-height: 0;
   overflow: auto;
 }
+
+/* ===================== G5：表达式编辑器视图（决策表/字面/BKM boxed，用户截图版式） ===================== */
+
+/* 编辑器层（整面覆盖画布区；画布 DOM 保持挂载） */
+.dmn-editor-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+.dmn-view-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-bottom: 1px solid #e0e3e8;
+  flex-shrink: 0;
+}
+.dmn-view-back {
+  padding: 4px 12px;
+  border: 1px solid #c8ccd4;
+  border-radius: 4px;
+  background: #fff;
+  font: 600 13px/1.4 system-ui, "PingFang SC", sans-serif;
+  color: #1a1f2b;
+  cursor: pointer;
+}
+.dmn-view-back:hover {
+  border-color: #4d8fff;
+  color: #1461c9;
+}
+.dmn-view-title {
+  font: 600 15px/1.4 system-ui, "PingFang SC", sans-serif;
+  color: #1a1f2b;
+}
+.dmn-editor-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 16px;
+}
+
+/* 头部行（命中策略/变量名/类型/表达式语言/形态标签） */
+.dmn-editor-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border: 1px solid #e0e3e8;
+  border-radius: 4px;
+  background: #fafbfc;
+}
+.dmn-editor-name {
+  font: 600 14px/1.4 system-ui, "PingFang SC", sans-serif;
+  color: #1a1f2b;
+  margin-right: 2px;
+}
+.dmn-editor-sep {
+  width: 1px;
+  height: 16px;
+  background: #d4d8de;
+  margin: 0 4px;
+}
+.dmn-editor-label {
+  font: 600 12px/1.4 system-ui, "PingFang SC", sans-serif;
+  color: #5a6270;
+}
+.dmn-editor-input,
+.dmn-editor-select {
+  padding: 3px 8px;
+  border: 1px solid #c8ccd4;
+  border-radius: 3px;
+  font: 13px/1.4 system-ui, "PingFang SC", sans-serif;
+  color: #1a1f2b;
+  background: #fff;
+  min-width: 120px;
+}
+.dmn-editor-input:focus,
+.dmn-editor-select:focus,
+.dmn-editor-textarea:focus {
+  outline: none;
+  border-color: #4d8fff;
+  box-shadow: 0 0 0 2px rgb(77 143 255 / 18%);
+}
+.dmn-editor-select {
+  min-width: 90px;
+  padding-right: 20px;
+}
+.dmn-editor-textarea {
+  width: 100%;
+  min-height: 180px;
+  padding: 10px 12px;
+  border: 1px solid #c8ccd4;
+  border-radius: 4px;
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #1a1f2b;
+  background: #fff;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.dmn-editor-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.dmn-kind-tag {
+  padding: 3px 10px;
+  border: 1px solid #c8ccd4;
+  border-radius: 3px;
+  background: #fff;
+  font: 600 12px/1.4 system-ui, "PingFang SC", sans-serif;
+  color: #1a1f2b;
+  cursor: pointer;
+  margin-left: auto;
+}
+.dmn-kind-tag:hover {
+  border-color: #4d8fff;
+}
+.dmn-kind-menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: 4px;
+  border: 1px solid #d4d8de;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 6px 20px rgb(16 24 40 / 14%);
+  z-index: 900;
+}
+.dmn-kind-item {
+  text-align: left;
+  padding: 6px 10px;
+  border: none;
+  background: none;
+  font: 13px/1.4 system-ui, "PingFang SC", sans-serif;
+  color: #1a1f2b;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.dmn-kind-item:hover:not([disabled]) {
+  background: #eef3ff;
+}
+.dmn-kind-item[disabled] {
+  color: #9aa2b0;
+  cursor: default;
+}
+.dmn-editor-empty {
+  padding: 40px;
+  text-align: center;
+  color: #7c8595;
+  font: 13px/1.5 system-ui, "PingFang SC", sans-serif;
+  border: 1px dashed #d4d8de;
+  border-radius: 4px;
+}
+
+/* 决策表（截图版式：双行表头 When/And|Then/And|Annotations、族界⊕、行号列蓝+） */
+.dmn-table {
+  border-collapse: collapse;
+  width: 100%;
+  font: 13px/1.4 system-ui, "PingFang SC", sans-serif;
+  color: #1a1f2b;
+  background: #fff;
+}
+.dmn-table th,
+.dmn-table td {
+  border: 1px solid #d4d8de;
+  padding: 4px 8px;
+  vertical-align: top;
+}
+.dmn-table-grouprow .dmn-table-grouphead {
+  background: #f4f6f9;
+  font-weight: 600;
+  text-align: center;
+}
+.dmn-table-colrow .dmn-table-colhead {
+  background: #fff;
+  font-weight: 600;
+  min-width: 140px;
+}
+.dmn-table-colhead .dmn-editor-input {
+  width: 100%;
+  margin-bottom: 4px;
+}
+.dmn-table-colhead .dmn-editor-select {
+  width: 100%;
+}
+.dmn-table-addclause {
+  background: #eef3ff;
+  color: #1461c9;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  min-width: 40px;
+}
+.dmn-table-addclause:hover {
+  background: #dfeaff;
+}
+.dmn-table-rownum {
+  width: 36px;
+  min-width: 36px;
+  text-align: center;
+  color: #7c8595;
+  background: #f4f6f9;
+}
+.dmn-table-cell .dmn-editor-input {
+  width: 100%;
+  border-color: transparent;
+  background: transparent;
+}
+.dmn-table-cell .dmn-editor-input:focus {
+  background: #fff;
+  border-color: #4d8fff;
+}
+.dmn-table-add {
+  width: 22px;
+  height: 22px;
+  border: 1px solid #c8ccd4;
+  border-radius: 50%;
+  background: #fff;
+  color: #1461c9;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+}
+.dmn-table-add:hover {
+  background: #eef3ff;
+  border-color: #4d8fff;
+}
+
+/* BKM boxed：参数区（F 行）/体区/结果区 */
+.dmn-bkm-editor .dmn-editor-head {
+  margin-bottom: 0;
+}
+.dmn-bkm-params {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e0e3e8;
+  border-top: none;
+  background: #fff;
+}
+.dmn-bkm-f {
+  font: 700 16px/1.4 system-ui, "PingFang SC", sans-serif;
+  color: #1a1f2b;
+  min-width: 20px;
+  text-align: center;
+  padding-top: 4px;
+}
+.dmn-bkm-paramlist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.dmn-bkm-param {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dmn-bkm-body {
+  padding: 10px 12px;
+  border: 1px solid #e0e3e8;
+  border-top: none;
+  background: #fff;
+}
+.dmn-bkm-result {
+  padding: 10px 12px;
+  border: 1px solid #e0e3e8;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  background: #fafbfc;
+}

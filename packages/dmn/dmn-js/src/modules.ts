@@ -83,6 +83,7 @@ import { DmnContextPadProvider } from './provider/DmnContextPadProvider';
 import { DmnExpressionMenuProvider } from './provider/DmnExpressionMenuProvider';
 import { DrillViewService } from './drill/DrillView';
 import { DrillBadgeBehavior } from './drill/DrillBadge';
+import { DmnViews } from './views/DmnViews';
 
 /** 只读查看平台特性（Viewer 底座） */
 export const ViewerPlatformModules: ModuleDeclaration[] = [
@@ -137,7 +138,7 @@ export const DmnCoreModule: ModuleDeclaration = {
   // dmnRenderer 必须急切构造：BaseRenderer 仅在构造时向 eventBus 注册，
   // 懒构造会落到 diagram-js 的 fuchsia 兜底渲染；dmnMode 同理（首帧容器标记）；
   // drillView/drillBadge 急切（监听导入/创建时机挂角标）
-  __init__: ['dmnRenderer', 'dmnMode', 'drillView', 'drillBadge'],
+  __init__: ['dmnRenderer', 'dmnMode', 'drillView', 'drillBadge', 'dmnViews'],
   'dmnIds': ['factory', () => new Ids([36, 36, 1])],
   'dmnElementTypes': ['type', ElementTypesClass],
   'dmnFactory': ['type', DmnFactory],
@@ -151,6 +152,7 @@ export const DmnCoreModule: ModuleDeclaration = {
   'dmnI18n': ['type', DmnI18n],
   'translate': ['factory', (dmnI18n: { t(s: string): string }) => (text: string) => dmnI18n.t(text)],
   'drillView': ['type', DrillViewService],
+  'dmnViews': ['type', DmnViews],
   'drillBadge': ['type', DrillBadgeBehavior]
 };
 
