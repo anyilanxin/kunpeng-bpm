@@ -548,12 +548,14 @@ export class BpmnRenderer extends BaseRenderer {
     if (!text) {
       return;
     }
+    // 'top'=容器类（展开子流程族）顶部标签带：水平居中（2026-10-26 用户定规
+    // "顶部居中"取代 left-top；高度 26 为单行带，多行向下生长不裁剪）
     const box = mode === 'top'
       ? { x: 8, y: 6, width: shape.width - 16, height: 26 }
       : internalLabelBox(shape);
     const el = this.textUtil.createText(text, {
       box: { width: box.width, height: box.height } as any,
-      align: (mode === 'top' ? 'left-top' : 'center-middle') as any,
+      align: (mode === 'top' ? 'center-top' : 'center-middle') as any,
       style: { ...INTERNAL_FONT, fill: this.config.labelColor },
       padding: 2
     });

@@ -60,19 +60,26 @@ const BAND_HALF_H = 14;
  * 元素宽−12、内容左右垫 4×2 → 换行宽=元素宽−20，与渲染排版宽严格同宽
  * （internalLabelBox padX 8×2 + 渲染 padding 2×2 = 元素宽−20），换行点
  * 所见即所得；高度按文本测量自适应（行高 1.4 与皮肤 CSS 同参数），单行
- * 保底 24；垂直中心=元素中心=渲染 center-middle 锚。 */
+ * 保底 24；垂直锚定分两式（2026-10-26 用户定规）：任务族=元素中心
+ * （=渲染 center-middle 锚），展开子流程族=顶带（=渲染 center-top 带，
+ * 顶距与渲染标签带 y 同源）。 */
 const CARD_INSET = 6;
 const CARD_PAD_V = 3;
 const CARD_MIN_H = 24;
 const CARD_LINE_HEIGHT = 1.4;
 /** 内容左右垫（与皮肤 .djs-direct-editing-content padding 同源） */
 const CARD_PAD_H = 4;
+/** 顶锚卡片顶距：对齐渲染 'top' 标签带文本顶（带 y6+padding2−基线魔法 ≈8，
+ * 减卡片内容垫 3 → 5，实测单行文本顶逐像素对齐 drawInternalLabel） */
+const CARD_TOP_INSET = 5;
 
-/** 形内标签编辑卡片框：宽度=元素宽−2×内缩，高度=max(保底, 文本高+上下垫) */
+/** 形内标签编辑卡片框：宽度=元素宽−2×内缩，高度=max(保底, 文本高+上下垫)；
+ * anchor 'top'=展开子流程族顶带（换行宽与居中式同约，仅垂直位置不同） */
 function internalCard(
   textUtil: TextUtil,
   element: { x: number; y: number; width: number; height: number },
-  text: string
+  text: string,
+  anchor: 'middle' | 'top' = 'middle'
 ): { x: number; y: number; width: number; height: number } {
   const width = Math.max(element.width - CARD_INSET * 2, 10);
   // 测量排版宽=换行宽（卡片宽−内容垫），与渲染排版宽同源；无名/空名免测
@@ -86,7 +93,9 @@ function internalCard(
   const height = Math.max(CARD_MIN_H, Math.ceil(measured.height) + CARD_PAD_V * 2);
   return {
     x: element.x + CARD_INSET,
-    y: element.y + element.height / 2 - height / 2,
+    y: anchor === 'top'
+      ? element.y + CARD_TOP_INSET
+      : element.y + element.height / 2 - height / 2,
     width,
     height
   };
@@ -163,7 +172,16 @@ export class BpmnLabelEditingProvider {
     }
 
     if (INTERNAL_TYPES.test(bo.$type)) {
-      return this.toViewport(internalCard(this.textUtil, element, text ?? ''), text, { ...INTERNAL_FONT }, { centerVertically: true });
+      // 展开子流程族=顶带锚（与渲染 'top' 标签带同位；折叠态/任务族=居中）。
+      // 顶锚不启用 centerVertically：内容顶流与渲染 center-top 同构（多行逐行
+      // 对齐），居中式垂直居中与 center-middle 同构
+      const topAnchor =
+        (element.isExpanded !== false && (bo.$type === 'bpmn:SubProcess' || bo.$type === 'bpmn:AdHocSubProcess')) ||
+        bo.$type === 'bpmn:Transaction';
+      return this.toViewport(
+        internalCard(this.textUtil, element, text ?? '', topAnchor ? 'top' : 'middle'),
+        text, { ...INTERNAL_FONT }, topAnchor ? {} : { centerVertically: true }
+      );
     }
 
     // 事件/网关/分组/数据：外部标签元素（已有标签用其位置，未建/隐藏走派生默认）
