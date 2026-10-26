@@ -63,11 +63,16 @@ function pickerDefault(kind: 'fill' | 'stroke'): string {
 
 const fillColor = ref('#ffffff');
 const strokeColor = ref('#000000');
-/** 单选中的可着色元素（标签元素着色其宿主）。
- *  必须 shallowRef：深层 ref 读出的是 reactive 代理，传给 modeling.setColor 后
+/** 选中中的可着色元素集（标签元素归一到宿主并去重；单选=1 项，框选=多项，
+ *  2026-10-26 用户定规工具栏设置/清除颜色支持多选）。必须 shallowRef：
+ *  深层 ref 读出的是 reactive 代理，传给 modeling.setColor 后
  *  elements.changed 链上 GraphicsFactory 迭代代理的 children 会触发 JS 代理
  *  不变量错误（object-refs 把 children 定义为只读非配置数据属性，代理 get
  *  不得换值）→ DI 同步监听器被跳过、bioc 色落不了 XML、命令栈事件链断 */
+const colorTargets = shallowRef<any[]>([]);
+/** 回显代表 = 首个选中（弹框两行取其现状，主题缺省兜底）；确定时表单值
+ *  应用到 colorTargets 全体（ColorHandler 整替语义，多选混合色被代表值
+ *  统一是预期行为） */
 const colorTarget = shallowRef<any>(null);
 
 /** 「设置颜色」控件持有（插件 render() 一次性建 DOM：按钮+弹框输入，
@@ -82,15 +87,19 @@ function bindSelectionEvents(): void {
     return;
   }
   modeler.on('selection.changed', (event: any) => {
-    const picked = event.newSelection.length === 1 ? event.newSelection[0] : null;
-    colorTarget.value = picked?.labelTarget ?? picked;
+    // 标签归一宿主并按 id 去重（同宿主多标签不可能但廉价防御一层）
+    const hosts = [...new Map(
+      event.newSelection.map((e: any) => [(e.labelTarget ?? e).id, e.labelTarget ?? e])
+    ).values()];
+    colorTargets.value = hosts;
+    colorTarget.value = hosts[0] ?? null;
     syncColorInputs();
     // 「设置颜色」可用态随选择变化（按钮 disabled 由回显统一写）
     refreshToolbar();
   });
   // 撤销/重做/面板改色都可能改 colors，跟随受影响元素回显
   modeler.on('elements.changed', (event: any) => {
-    if (colorTarget.value && event.elements?.includes(colorTarget.value)) {
+    if (colorTarget.value && event.elements?.some((e: any) => colorTargets.value.includes(e))) {
       syncColorInputs();
     }
   });
@@ -109,18 +118,19 @@ function syncColorInputs(): void {
     strokeColorInput.value = strokeColor.value;
   }
   if (colorButton) {
-    colorButton.disabled = !colorTarget.value;
+    colorButton.disabled = !colorTargets.value.length;
   }
 }
 
-/** 确定：只提交被改字段；未改字段仅在元素已有显式色时回传保留。ColorHandler 是
-    colors 整替语义（未传字段=清除回落主题缺省）——与回显缺省相同的值不提交，
-    既不把"回显用的缺省值"误写成显式色，也不为无变化生成空命令 */
+/** 确定：只提交被改字段；未改字段仅在代表元素已有显式色时回传保留（多选
+    时按代表现状统一落到全体）。ColorHandler 是 colors 整替语义（未传字段=
+    清除回落主题缺省）——与回显缺省相同的值不提交，既不把"回显用的缺省值"
+    误写成显式色，也不为无变化生成空命令 */
 function commitColors(): void {
-  if (!colorTarget.value || !modeler || form.value !== 'edit') {
+  if (!colorTargets.value.length || !modeler || form.value !== 'edit') {
     return;
   }
-  const explicit = colorTarget.value.colors ?? {};
+  const explicit = colorTarget.value?.colors ?? {};
   const colors: { fill?: string; stroke?: string } = {};
   let changed = false;
   for (const kind of ['fill', 'stroke'] as const) {
@@ -133,15 +143,15 @@ function commitColors(): void {
     }
   }
   if (changed) {
-    modeler.get<any>('modeling').setColor(colorTarget.value, colors);
+    modeler.get<any>('modeling').setColor(colorTargets.value, colors);
   }
 }
 
 function clearColors(): void {
-  if (!colorTarget.value || !modeler || form.value !== 'edit') {
+  if (!colorTargets.value.length || !modeler || form.value !== 'edit') {
     return;
   }
-  modeler.get<any>('modeling').setColor(colorTarget.value, {});
+  modeler.get<any>('modeling').setColor(colorTargets.value, {});
 }
 
 // ---------- 流程图 / XML 视图切换（示例自有卡片组件，App 只保留视图状态做联动） ----------
@@ -247,6 +257,7 @@ async function switchForm(next: 'edit' | 'navigated' | 'view'): Promise<void> {
   }
   const { xml } = await modeler.saveXML();
   modeler.destroy();
+  colorTargets.value = [];
   colorTarget.value = null;
   syncColorInputs();
   bindInstance(createInstance(next), next);
@@ -322,7 +333,7 @@ function colorControl(): ToolbarActionSpec {
       button.className = 'bpmn-color-btn';
       button.title = '设置颜色';
       button.innerHTML = ICON_SET_COLOR;
-      button.disabled = !colorTarget.value;
+      button.disabled = !colorTargets.value.length;
 
       const popup = document.createElement('div');
       popup.className = 'bpmn-color-pop';
@@ -403,7 +414,7 @@ function buildToolbarActions(): ToolbarActionSpec[] {
     { id: 'import', title: '导入 BPMN 文件', group: 'file', svg: ICON_IMPORT, onClick: pickFile, showInPreview: true },
     { id: 'export', title: '导出 BPMN 文件', group: 'file', svg: ICON_EXPORT, onClick: () => void exportBpmnFile(), showInPreview: true },
     colorControl(),
-    { id: 'clear-colors', title: '清除选中元素颜色', group: 'colors', svg: ICON_CLEAR_COLOR, onClick: clearColors, isEnabled: () => !!colorTarget.value }
+    { id: 'clear-colors', title: '清除选中元素颜色', group: 'colors', svg: ICON_CLEAR_COLOR, onClick: clearColors, isEnabled: () => colorTargets.value.length > 0 }
   ];
 }
 
