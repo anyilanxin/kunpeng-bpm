@@ -1,22 +1,37 @@
 <template>
-  <div class="example-shell">
+  <div class="example-shell" :class="{ dark }">
     <div class="example-header">
       <h1>@kunpeng-io/dmn-js · DRD 决策需求图</h1>
-      <button @click="reload">重新导入样例</button>
-      <button @click="exportXml">导出 XML</button>
-      <button @click="runRoundTrip">字节级往返自检</button>
+      <div class="mode-menu">
+        <button v-for="m in MODES" :key="m.id" :class="{ active: mode === m.id }" @click="switchMode(m.id)">{{ m.label }}</button>
+      </div>
+      <div class="header-actions">
+        <label class="action-like">
+          导入 XML
+          <input ref="fileInput" type="file" accept=".xml,.dmn" hidden @change="importFile" />
+        </label>
+        <button @click="exportXml">导出 XML</button>
+        <button @click="runRoundTrip">字节级往返自检</button>
+        <button v-if="withPanel" :class="{ active: panelOpen }" @click="panelOpen = !panelOpen">面板</button>
+        <button :class="{ active: view === 'xml' }" @click="toggleView">{{ view === 'drd' ? 'XML 视图' : 'DRD 视图' }}</button>
+        <button :class="{ active: dark }" @click="dark = !dark">暗色</button>
+      </div>
+    </div>
+    <div class="example-header example-subheader">
       <span class="example-status" :class="status.kind">{{ status.text }}</span>
     </div>
     <div class="example-body">
-      <div ref="host" class="canvas-host"></div>
-      <div v-if="withPanel" ref="panelHost" class="properties-host"></div>
+      <div v-show="view === 'drd'" ref="host" class="canvas-host"></div>
+      <pre v-if="view === 'xml'" class="xml-view">{{ xmlText }}</pre>
+      <div v-show="panelOpen && view === 'drd'" ref="panelHost" class="properties-host"></div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, shallowRef } from 'vue';
+import { nextTick, onMounted, ref, shallowRef } from 'vue';
 import { Modeler } from '@kunpeng-io/dmn-js';
+import type { ModelerMode } from '@kunpeng-io/dmn-js';
 import {
   DmnPropertiesPanelModule,
   DmnPropertiesProviderModule,
@@ -27,16 +42,27 @@ import { sampleDmn } from './dmn-template';
 // ?plugin=0：干净页对照（不装属性面板插件，验证插件无关路径）
 const withPanel = new URLSearchParams(location.search).get('plugin') !== '0';
 
+const MODES: { id: ModelerMode; label: string }[] = [
+  { id: 'edit', label: '编辑' },
+  { id: 'preview', label: '预览' }
+];
+
 const host = ref<HTMLElement | null>(null);
 const panelHost = ref<HTMLElement | null>(null);
+const fileInput = ref<HTMLInputElement | null>(null);
 // 画布元素对象不入 Vue 深层响应式（bpmn 线契约：代理会冻结 children 属性）
 const modeler = shallowRef<Modeler | null>(null);
 const status = ref<{ kind: '' | 'ok' | 'fail'; text: string }>({ kind: '', text: '未运行' });
+const mode = ref<ModelerMode>('edit');
+const view = ref<'drd' | 'xml'>('drd');
+const xmlText = ref('');
+const dark = ref(false);
+const panelOpen = ref(true);
 
 onMounted(async () => {
   const instance = new Modeler({
     container: host.value!,
-    ...(withPanel
+    ...(withPanel && panelHost.value
       ? {
           additionalModules: [DmnPropertiesPanelModule, DmnPropertiesProviderModule, KunpengPropertiesProviderModule],
           propertiesPanel: { parent: panelHost.value }
@@ -52,6 +78,38 @@ onMounted(async () => {
 async function reload() {
   const { warnings } = await modeler.value!.importXML(sampleDmn);
   status.value = { kind: warnings.length ? 'fail' : 'ok', text: warnings.length ? `导入告警 ${warnings.length} 条` : '样例导入成功' };
+}
+
+function switchMode(next: ModelerMode) {
+  if (mode.value === next) return;
+  mode.value = next;
+  modeler.value!.setMode(next);
+}
+
+async function toggleView() {
+  if (view.value === 'drd') {
+    xmlText.value = (await modeler.value!.saveXML()).xml;
+    view.value = 'xml';
+  } else {
+    view.value = 'drd';
+    await nextTick();
+    // 画布在 display:none 下尺寸为 0，恢复显示后重适配视口
+    modeler.value!.get<any>('canvas').zoom('fit-viewport');
+  }
+}
+
+async function importFile(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  try {
+    const xml = await file.text();
+    await modeler.value!.importXML(xml);
+    status.value = { kind: 'ok', text: `已导入 ${file.name}（${xml.length} 字符）` };
+  } catch (error) {
+    status.value = { kind: 'fail', text: `导入失败：${(error as Error).message}` };
+  } finally {
+    fileInput.value!.value = '';
+  }
 }
 
 async function exportXml() {
@@ -88,6 +146,13 @@ async function runRoundTrip() {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  color: #1f2328;
+  background: #ffffff;
+}
+
+.example-shell.dark {
+  color: #e6e6e6;
+  background: #1e1e1e;
 }
 
 .example-header {
@@ -98,22 +163,80 @@ async function runRoundTrip() {
   border-bottom: 1px solid #d4d4d4;
 }
 
+.example-shell.dark .example-header {
+  border-bottom-color: #3c3c3c;
+}
+
+.example-subheader {
+  padding: 4px 12px;
+  min-height: 16px;
+}
+
 .example-header h1 {
   font-size: 14px;
-  margin: 0 16px 0 0;
+  margin: 0 12px 0 0;
+  white-space: nowrap;
+}
+
+.mode-menu {
+  display: flex;
+  border: 1px solid #d4d4d4;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.example-shell.dark .mode-menu {
+  border-color: #3c3c3c;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+button,
+.action-like {
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid #d4d4d4;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.example-shell.dark button,
+.example-shell.dark .action-like {
+  border-color: #3c3c3c;
+}
+
+button.active,
+.action-like.active {
+  background: #0969da;
+  border-color: #0969da;
+  color: #ffffff;
 }
 
 .example-status {
-  margin-left: auto;
   font-size: 12px;
 }
 
 .example-status.ok {
-  color: #16a34a;
+  color: #1a7f37;
 }
 
 .example-status.fail {
-  color: #dc2626;
+  color: #cf222e;
+}
+
+.example-shell.dark .example-status.ok {
+  color: #3fb950;
+}
+
+.example-shell.dark .example-status.fail {
+  color: #f85149;
 }
 
 .example-body {
@@ -128,10 +251,26 @@ async function runRoundTrip() {
   position: relative;
 }
 
+.xml-view {
+  flex: 1;
+  margin: 0;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow: auto;
+  font-family: ui-monospace, Menlo, monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 .properties-host {
   width: 300px;
   flex-shrink: 0;
   overflow-y: auto;
   border-left: 1px solid #d4d4d4;
+}
+
+.example-shell.dark .properties-host {
+  border-left-color: #3c3c3c;
 }
 </style>
