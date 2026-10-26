@@ -87,6 +87,16 @@ export class DmnFactory {
   }
 
   /**
+   * 引用盒（dmn:DMNElementReference，href='#id'）：DMN 1.3 全部引用属性
+   * （requiredXxx、sourceRef、targetRef、outputDecision、encapsulatedDecision）
+   * 的值形态——描述符声明 type=DMNElementReference 且 href 是 String（引擎不
+   * 做对象解析），直接塞业务对象会序列化出无 href 的空引用元素。
+   */
+  createReference(target: any): any {
+    return this.create<any>({ $type: 'dmn:DMNElementReference', href: `#${target.id}` });
+  }
+
+  /**
    * 需求连线（target 侧持有、引用指 source，见 DmnUpdater 挂接不变量）。
    * 引用字段按连线类型与源端类型裁决（描述符属性全集）：
    * - InformationRequirement：requiredDecision | requiredInput
@@ -94,14 +104,15 @@ export class DmnFactory {
    * - AuthorityRequirement：requiredAuthority（规则层约束源端为 KnowledgeSource/DS）
    */
   createRequirement(type: string, source: any): any {
+    const ref = this.createReference(source);
     const attrs: Record<string, unknown> =
       type === 'dmn:InformationRequirement'
         ? source?.$type === 'dmn:InputData'
-          ? { requiredInput: source }
-          : { requiredDecision: source }
+          ? { requiredInput: ref }
+          : { requiredDecision: ref }
         : type === 'dmn:KnowledgeRequirement'
-          ? { requiredKnowledge: source }
-          : { requiredAuthority: source };
+          ? { requiredKnowledge: ref }
+          : { requiredAuthority: ref };
     return this.create<any>({ $type: type, ...attrs });
   }
 
@@ -111,11 +122,15 @@ export class DmnFactory {
 
   /** 语义注销（删除元素时释放 id；树引用由 DmnUpdater 摘除） */
   destroy(bo: any): void {
-    this.ids.unclaim(bo.id);
+    if (bo?.id) {
+      this.ids.unclaim(bo.id);
+    }
   }
 
   /** 删除撤销后重新登记既有 id（对象复用，幂等；带持有者与 create 路径同约定） */
   reclaim(bo: any): void {
-    this.ids.claim(bo.id, bo);
+    if (bo?.id) {
+      this.ids.claim(bo.id, bo);
+    }
   }
 }

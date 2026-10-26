@@ -34,7 +34,7 @@ export const sampleDmn = `<?xml version="1.0" encoding="UTF-8"?>
         </dmn:inputExpression>
       </dmn:input>
       <dmn:output id="Output_1" name="风险等级" typeRef="string"/>
-      <dmn:annotation id="Annotation_1" name="备注"/>
+      <dmn:annotation name="备注"/>
       <dmn:rule id="Rule_1">
         <dmn:inputEntry id="Unary_1">
           <dmn:text>&lt; 30</dmn:text>
@@ -45,7 +45,7 @@ export const sampleDmn = `<?xml version="1.0" encoding="UTF-8"?>
         <dmn:outputEntry id="LitExpr_3">
           <dmn:text>"低风险"</dmn:text>
         </dmn:outputEntry>
-        <dmn:annotationEntry id="AnnEntry_1">
+        <dmn:annotationEntry>
           <dmn:text>年轻高分客群</dmn:text>
         </dmn:annotationEntry>
       </dmn:rule>
@@ -59,7 +59,7 @@ export const sampleDmn = `<?xml version="1.0" encoding="UTF-8"?>
         <dmn:outputEntry id="LitExpr_4">
           <dmn:text>"中风险"</dmn:text>
         </dmn:outputEntry>
-        <dmn:annotationEntry id="AnnEntry_2">
+        <dmn:annotationEntry>
           <dmn:text>人工复核</dmn:text>
         </dmn:annotationEntry>
       </dmn:rule>
@@ -71,7 +71,7 @@ export const sampleDmn = `<?xml version="1.0" encoding="UTF-8"?>
         <dmn:outputEntry id="LitExpr_5">
           <dmn:text>"待评估"</dmn:text>
         </dmn:outputEntry>
-        <dmn:annotationEntry id="AnnEntry_3"/>
+        <dmn:annotationEntry/>
       </dmn:rule>
     </dmn:decisionTable>
   </dmn:decision>

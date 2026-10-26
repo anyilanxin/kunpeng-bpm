@@ -23,7 +23,8 @@
  * DMN 交互规则（规范 §11.3 需求方向矩阵）：
  * - 信息需求（实线箭头）：InputData/Decision/DecisionService → Decision
  * - 知识需求（虚线空心箭头）：BusinessKnowledgeModel → Decision/BKM/DS
- * - 权威需求（虚线圆头）：KnowledgeSource/DS → Decision/BKM/KS
+ * - 权威需求（虚线圆头）：KS/DS → Decision/BKM/KS（授权向）+
+ *   Decision/InputData → KS（分析派生向，规范 tKnowledgeSource.authorityRequirement）
  * - 关联：任意 DRG 形状/制品 → 任意（含注记）
  * 形状可自由移动（无 BPMN 池道容器约束）；DS 容器收 Decision 且整体落入
  * 单一分区（分割线上=输出带/下=封装区）；无元素重叠强约束（DRD 布局自由）。
@@ -31,34 +32,59 @@
 import RuleProvider from 'diagram-js/lib/features/rules/RuleProvider';
 import { isDrgShapeType } from '../meta/ElementTypes';
 
-/** 各连线类型的合法 source $type 全集 */
-const CONNECTION_SOURCES: Record<string, readonly string[]> = {
-  'dmn:InformationRequirement': ['dmn:InputData', 'dmn:Decision', 'dmn:DecisionService'],
-  'dmn:KnowledgeRequirement': ['dmn:BusinessKnowledgeModel'],
-  'dmn:AuthorityRequirement': ['dmn:KnowledgeSource', 'dmn:DecisionService'],
-  'dmn:Association': ['dmn:Decision', 'dmn:InputData', 'dmn:BusinessKnowledgeModel', 'dmn:KnowledgeSource', 'dmn:DecisionService', 'dmn:TextAnnotation']
-};
+/**
+ * 需求连线合法端点对 [连线类型, source $type, target $type]（判定为对级精确：
+ * source/target 集合的笛卡尔积会放过非法组合，如 Decision→BKM 权威需求）。
+ * 顺序=裁决优先级：connectionTypeFor 取首个命中（Decision→Decision 恒信息需求）。
+ */
+const REQUIREMENT_PAIRS: ReadonlyArray<readonly [string, string, string]> = [
+  ['dmn:InformationRequirement', 'dmn:InputData', 'dmn:Decision'],
+  ['dmn:InformationRequirement', 'dmn:Decision', 'dmn:Decision'],
+  ['dmn:InformationRequirement', 'dmn:DecisionService', 'dmn:Decision'],
+  ['dmn:KnowledgeRequirement', 'dmn:BusinessKnowledgeModel', 'dmn:Decision'],
+  ['dmn:KnowledgeRequirement', 'dmn:BusinessKnowledgeModel', 'dmn:BusinessKnowledgeModel'],
+  ['dmn:KnowledgeRequirement', 'dmn:BusinessKnowledgeModel', 'dmn:DecisionService'],
+  ['dmn:AuthorityRequirement', 'dmn:KnowledgeSource', 'dmn:Decision'],
+  ['dmn:AuthorityRequirement', 'dmn:KnowledgeSource', 'dmn:BusinessKnowledgeModel'],
+  ['dmn:AuthorityRequirement', 'dmn:KnowledgeSource', 'dmn:KnowledgeSource'],
+  ['dmn:AuthorityRequirement', 'dmn:DecisionService', 'dmn:Decision'],
+  ['dmn:AuthorityRequirement', 'dmn:DecisionService', 'dmn:BusinessKnowledgeModel'],
+  ['dmn:AuthorityRequirement', 'dmn:DecisionService', 'dmn:KnowledgeSource'],
+  ['dmn:AuthorityRequirement', 'dmn:Decision', 'dmn:KnowledgeSource'],
+  ['dmn:AuthorityRequirement', 'dmn:InputData', 'dmn:KnowledgeSource']
+];
 
-/** 各连线类型的合法 target $type 全集 */
-const CONNECTION_TARGETS: Record<string, readonly string[]> = {
-  'dmn:InformationRequirement': ['dmn:Decision'],
-  'dmn:KnowledgeRequirement': ['dmn:Decision', 'dmn:BusinessKnowledgeModel', 'dmn:DecisionService'],
-  'dmn:AuthorityRequirement': ['dmn:Decision', 'dmn:BusinessKnowledgeModel', 'dmn:KnowledgeSource'],
-  'dmn:Association': ['dmn:Decision', 'dmn:InputData', 'dmn:BusinessKnowledgeModel', 'dmn:KnowledgeSource', 'dmn:DecisionService', 'dmn:TextAnnotation']
-};
+/** 关联的合法端点类型（DRG 五形状 + 注记，双向） */
+const ASSOCIATION_TYPES = [
+  'dmn:Decision', 'dmn:InputData', 'dmn:BusinessKnowledgeModel',
+  'dmn:KnowledgeSource', 'dmn:DecisionService', 'dmn:TextAnnotation'
+];
 
 /** 按端点现型推导连线类型（palette 全局连线工具：拖出时按 source/target 裁决） */
 export function connectionTypeFor(sourceType: string, targetType: string): string | null {
-  for (const [type, sources] of Object.entries(CONNECTION_SOURCES)) {
-    if (sources.includes(sourceType) && CONNECTION_TARGETS[type].includes(targetType)) {
+  for (const [type, source, target] of REQUIREMENT_PAIRS) {
+    if (source === sourceType && target === targetType) {
       return type;
     }
+  }
+  // 关联仅当端点含注记（业务语义：注记的附着线；DRG 互连一律需求体系）
+  if (
+    (sourceType === 'dmn:TextAnnotation' || targetType === 'dmn:TextAnnotation') &&
+    ASSOCIATION_TYPES.includes(sourceType) &&
+    ASSOCIATION_TYPES.includes(targetType)
+  ) {
+    return 'dmn:Association';
   }
   return null;
 }
 
 export class DmnRules extends RuleProvider {
-  static $inject = [];
+  // RuleProvider 基座构造需 eventBus（CommandInterceptor 挂监听 + init() 注册规则）
+  static $inject = ['eventBus'];
+
+  constructor(eventBus: any) {
+    super(eventBus);
+  }
 
   override init(): void {
     this.addRule('connection.create', (context: any) => this.canCreateConnection(context));
@@ -69,7 +95,7 @@ export class DmnRules extends RuleProvider {
   }
 
   private canCreateConnection(context: any): boolean | Record<string, unknown> {
-    const { source, target, type } = context;
+    const { source, target } = context;
     if (source === target) {
       return false;
     }
@@ -78,8 +104,8 @@ export class DmnRules extends RuleProvider {
     if (!sourceType || !targetType) {
       return false;
     }
-    // 全局连线工具：按端点现型裁决实际类型（connectionType 空则拒）
-    const effectiveType = type === 'dmn:Association' ? type : connectionTypeFor(sourceType, targetType);
+    // 全局连线工具：按端点现型裁决实际类型（含关联——对级矩阵唯一裁决源）
+    const effectiveType = connectionTypeFor(sourceType, targetType);
     if (!effectiveType) {
       return false;
     }

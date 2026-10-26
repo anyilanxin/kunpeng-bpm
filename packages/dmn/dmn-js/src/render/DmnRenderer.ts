@@ -167,9 +167,10 @@ export class DmnRenderer extends BaseRenderer {
     return visuals;
   }
 
-  /** 形内名字：内容盒居中；注记左上（括号线右侧起排）；DS 名字=分割线下左上 */
+  /** 形内名字：内容盒居中；注记左上（括号线右侧起排，文本取 bo.text 而非 name）；DS 名字=分割线下左上 */
   private drawName(visuals: SVGElement, shape: any, type: string): void {
-    const text = shape.businessObject?.name;
+    const text =
+      type === 'dmn:TextAnnotation' ? shape.businessObject?.text : shape.businessObject?.name;
     if (!text) {
       return;
     }

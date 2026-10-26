@@ -75,7 +75,20 @@ const ICON_BODIES: Record<string, string> = {
   plus:
     `<path d="M9,3.5 V14.5 M3.5,9 H14.5" ${S} stroke-linecap="round"/>`,
   // 删除：垃圾桶（图标集 toolTrash——带盖提手 + 竖刻筋剪影）
-  trash: setScaled18('toolTrash')
+  trash: setScaled18('toolTrash'),
+  // —— DMN DRG 形状记法缩样（palette 创建条目，与画布 DmnSymbols 同源语言）——
+  // 决策：方框内表格刻线（决策承载决策表，网格=决策表语义）
+  grid:
+    `<rect x="2.5" y="3.5" width="13" height="11" rx="1.5" ${S}/>` +
+    `<path d="M2.5,7.2 H15.5 M7.8,7.2 V14.5" ${S}/>`,
+  // 输入数据：胶囊（圆角全倒边）
+  input: `<rect x="2.5" y="5" width="13" height="8" rx="4" ${S}/>`,
+  // 知识源：方框底边波浪
+  source: `<path d="M2.5,4 H15.5 V12.4 C13,11 10.5,13.8 8,12.4 C5.5,11 4,13.4 2.5,12.4 Z" ${S}/>`,
+  // 业务知识模型：方框右上切角（承载函数字面表达式）
+  literal: `<path d="M2.5,4 H11 L15.5,8.5 V14.5 H2.5 Z" ${S}/>`,
+  // 注记：左括号形（DMN/BPMN 注记记法缩样——左界线+上下短横）
+  note: `<path d="M12.5,3.5 H5.5 V14.5 H12.5" ${S} stroke-linecap="round"/>`
 };
 
 /** 工具/动作图标名：palette 工具区与 context pad 动作钮的合法取值 */

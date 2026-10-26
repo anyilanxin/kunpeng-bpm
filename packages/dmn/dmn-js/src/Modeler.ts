@@ -48,13 +48,13 @@ export class Modeler {
 
     this.diagram = new Diagram({
       ...pluginConfig,
-      // 键盘通道缺省绑 document；宿主传了 keyboard 配置则以宿主为准
-      keyboard: pluginConfig.keyboard ?? { bindTo: document },
+      // 键盘通道：diagram-js 15 隐式绑画布 svg（canvas.init 后生效，获焦即
+      // 可用）——勿传 keyboard.bindTo（v15 已移除该配置，传了只打 console 错误）
       canvas: { container, width, height },
       modules: effectiveModules
     });
 
-    this.get<any>('dmnMode').setMode(options.mode ?? 'edit');
+    this.get<any>('dmnMode').set(options.mode ?? 'edit');
     this.initEmpty();
   }
 
@@ -83,7 +83,7 @@ export class Modeler {
 
   /** 模式切换（edit/preview：规则层全禁 + 只读容器标记） */
   setMode(mode: ModelerMode): void {
-    this.get<any>('dmnMode').setMode(mode);
+    this.get<any>('dmnMode').set(mode);
   }
 
   // ---------- 导入导出 ----------

@@ -48,7 +48,15 @@ export interface DmnParseResult {
 
 /** isReference 属性值（引擎自动解析为元素对象；悬空时保留 id 字符串）统一取 id */
 export function referenceId(ref: unknown): string {
-  return typeof ref === 'string' ? ref : String((ref as any)?.id ?? '');
+  // DMN 引用三形态：已解析对象（.id）/ DMNElementReference 盒（.href 字符串，
+  // requiredInput/requiredDecision 等——描述符 href 是 String 不做解析）/
+  // 裸字符串。href 与裸串都可能带 '#' 前缀，统一剥除
+  if (typeof ref === 'string') {
+    return ref.startsWith('#') ? ref.slice(1) : ref;
+  }
+  const anyRef = ref as any;
+  const raw = typeof anyRef?.href === 'string' ? anyRef.href : String(anyRef?.id ?? '');
+  return raw.startsWith('#') ? raw.slice(1) : raw;
 }
 
 /**

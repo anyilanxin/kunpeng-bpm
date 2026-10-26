@@ -29,6 +29,7 @@ import type Create from 'diagram-js/lib/features/create/Create';
 import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
 import type { DmnElementFactory } from '../factory/DmnElementFactory';
 import { SIZES } from '../meta/ElementTypes';
+import { toolEntryHtml } from '../icons/ToolIcons';
 
 export class DmnContextPadProvider {
   static $inject = ['contextPad', 'modeling', 'elementFactory', 'create', 'connect', 'dmnI18n'];
@@ -57,7 +58,7 @@ export class DmnContextPadProvider {
 
     entries.connect = {
       group: 'connect',
-      className: 'bpmn-icon-connection',
+      html: toolEntryHtml('connect'),
       title: t('连线（按落点自动裁决需求类型）'),
       action: {
         click: (event: Event, _e: unknown) => this.connect.start(event, element),
@@ -67,7 +68,7 @@ export class DmnContextPadProvider {
 
     entries.annotate = {
       group: 'model',
-      className: 'bpmn-icon-note',
+      html: toolEntryHtml('note'),
       title: t('添加注记'),
       action: {
         click: (event: Event) => {
@@ -88,7 +89,7 @@ export class DmnContextPadProvider {
   private deleteEntry(element: any, title: string): Record<string, unknown> {
     return {
       group: 'edit',
-      className: 'bpmn-icon-trash',
+      html: toolEntryHtml('trash'),
       title,
       action: {
         click: () => this.modeling.removeElements([element])

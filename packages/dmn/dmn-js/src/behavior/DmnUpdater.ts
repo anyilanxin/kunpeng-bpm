@@ -63,16 +63,34 @@ export class DmnUpdater {
     private readonly state: DmnDocumentState,
     private readonly canvas: any
   ) {
-    // 命令栈相位事件名约定：`${命令}.${相位}`（executed/reverted/postExecuted）
-    eventBus.on('shape.create.executed', (event: any) => this.adoptShape(event.context.shape));
-    eventBus.on('shape.create.reverted', (event: any) => this.orphanShape(event.context.shape));
-    eventBus.on('connection.create.executed', (event: any) => this.wireConnection(event.context));
-    eventBus.on('connection.create.reverted', (event: any) => this.unwireConnection(event.context.connection));
-    eventBus.on('connection.reconnect.executed', (event: any) => this.rewire(event));
-    eventBus.on('elements.delete.postExecuted', (event: any) => {
-      for (const element of event.context.elements) {
-        this.orphanElement(element);
-      }
+    // 命令栈相位事件=commandStack.<命令>.<相位>（diagram-js 15 一律带
+    // commandStack. 前缀，CommandInterceptor.on 内部同款拼接；裸 '命令.相位'
+    // 是永不派发的死监听）。elements.changed 是 CommandStack 直发的裸事件，不此前缀
+    eventBus.on('commandStack.shape.create.executed', (event: any) => this.adoptShape(event.context.shape));
+    eventBus.on('commandStack.shape.create.reverted', (event: any) => this.orphanShape(event.context.shape));
+    eventBus.on('commandStack.connection.create.executed', (event: any) => this.wireConnection(event.context));
+    eventBus.on('commandStack.connection.create.reverted', (event: any) => this.unwireConnection(event.context.connection));
+    eventBus.on('commandStack.connection.reconnect.executed', (event: any) => this.rewire(event));
+    // 删除走 shape.delete/connection.delete 而非 elements.delete：级联删除的
+    // 进出连线只以嵌套 connection.delete 出现（elements.delete.context.elements
+    // 不含级联件），且 revert 对称逐件派发——撤销删除的语义回挂在同通道闭环。
+    // 摘除必须挂 .executed 而非 .postExecuted：redo 只重放 execute/executed
+    // （pre/postExecute(d) 均不重放），挂 postExecuted 会让重做删除漏摘语义
+    eventBus.on('commandStack.shape.delete.executed', (event: any) => {
+      this.orphanShape(event.context.shape);
+      this.factory.destroy(event.context.shape.businessObject);
+    });
+    eventBus.on('commandStack.shape.delete.reverted', (event: any) => {
+      this.factory.reclaim(event.context.shape.businessObject);
+      this.adoptShape(event.context.shape);
+    });
+    eventBus.on('commandStack.connection.delete.executed', (event: any) => {
+      this.unwireConnection(event.context.connection);
+      this.factory.destroy(event.context.connection.businessObject);
+    });
+    eventBus.on('commandStack.connection.delete.reverted', (event: any) => {
+      this.factory.reclaim(event.context.connection.businessObject);
+      this.rewireConnection(event.context.connection);
     });
     eventBus.on('elements.changed', (event: any) => this.syncElements(event.elements));
   }
@@ -113,7 +131,8 @@ export class DmnUpdater {
       return;
     }
     if (isRequirementType(bo.$type)) {
-      // target 持有：宿主属性数组 + 引用字段按源端裁决（规则层已拦截非法组合）
+      // target 持有：宿主属性数组 + 引用字段按源端裁决（规则层已拦截非法组合）。
+      // 引用值形态=DMNElementReference 盒（href='#id'，描述符约定，见 DmnFactory.createReference）
       const property = REQUIREMENT_HOST_PROPERTY[bo.$type];
       const host = target.businessObject;
       (host.get(property) ?? host[property] ?? []).push(bo);
@@ -126,11 +145,11 @@ export class DmnUpdater {
             : bo.$type === 'dmn:AuthorityRequirement'
               ? 'requiredAuthority'
               : 'requiredDecision',
-        source.businessObject
+        this.factory.createReference(source.businessObject)
       );
     } else if (bo.$type === 'dmn:Association') {
-      bo.set('sourceRef', source.businessObject);
-      bo.set('targetRef', target.businessObject);
+      bo.set('sourceRef', this.factory.createReference(source.businessObject));
+      bo.set('targetRef', this.factory.createReference(target.businessObject));
       (this.state.definitions.artifact ??= []).push(bo);
     }
     this.ensureEdgeDi(connection);
@@ -148,6 +167,8 @@ export class DmnUpdater {
     } else if (bo.$type === 'dmn:Association') {
       removeFrom(this.state.definitions.artifact, bo);
     }
+    // 边 DI 随摘除（redo 经 wireConnection 的 ensureEdgeDi 重建）
+    this.detachDi(connection);
   }
 
   /** 重接后的整体重挂：先全量摘除，再按现行端点挂回 */
@@ -157,22 +178,27 @@ export class DmnUpdater {
     this.wireConnection(context);
   }
 
-  // ---------- 删除 ----------
-
-  /** 删除语义摘除（需求连线从全宿主扫描摘——摘除类操作不依赖画布父链定位） */
-  private orphanElement(element: any): void {
-    const bo = element.businessObject;
+  /**
+   * 删除撤销后的连线回挂：bo 的引用字段未被摘除（unwire 只摘宿主集合与 DI），
+   * 按现行端点回推宿主集合/artifact 并重建边 DI
+   */
+  private rewireConnection(connection: any): void {
+    const bo = connection.businessObject;
     if (!bo) {
       return;
     }
-    if (element.waypoints) {
-      this.unwireConnection(element);
-      this.detachDi(element);
-      this.factory.destroy(bo);
-      return;
+    if (isRequirementType(bo.$type)) {
+      const host = connection.target?.businessObject;
+      if (host) {
+        const property = REQUIREMENT_HOST_PROPERTY[bo.$type];
+        const list = host.get(property) ?? host[property] ?? [];
+        list.push(bo);
+        host.set(property, list);
+      }
+    } else if (bo.$type === 'dmn:Association') {
+      (this.state.definitions.artifact ??= []).push(bo);
     }
-    this.orphanShape(element);
-    this.factory.destroy(bo);
+    this.ensureEdgeDi(connection);
   }
 
   // ---------- DI 同步 ----------
@@ -182,6 +208,11 @@ export class DmnUpdater {
     for (const element of elements) {
       const bo = element.businessObject;
       if (!bo || bo.$type === 'dmn:Definitions') {
+        continue;
+      }
+      // 已从画布摘除的元素（撤销创建/删除）：相位监听已 detachDi——跳过，
+      // 否则 ensureShapeDi/ensureEdgeDi 会把孤儿 DI 重新建回树上
+      if (!element.parent) {
         continue;
       }
       if (element.waypoints) {
@@ -306,8 +337,8 @@ export class DmnUpdater {
         const centerY = child.y + child.height / 2;
         (centerY < divider ? outputs : encapsulated).push(child.businessObject);
       }
-      syncReferenceSet(bo, 'outputDecision', outputs);
-      syncReferenceSet(bo, 'encapsulatedDecision', encapsulated);
+      syncReferenceSet(bo, 'outputDecision', outputs, (t) => this.factory.createReference(t));
+      syncReferenceSet(bo, 'encapsulatedDecision', encapsulated, (t) => this.factory.createReference(t));
     }
   }
 }
@@ -321,11 +352,11 @@ function boShapeOf(bo: any, canvas: any): any | null {
   return null;
 }
 
-/** 引用集整体重排（按 href 复用既有引用对象，减少序列化噪声；顺序=画布序） */
-function syncReferenceSet(bo: any, property: string, targets: any[]): void {
+/** 引用集整体重排（按 href 复用既有引用盒，减少序列化噪声；新成员经 createRef 建盒；顺序=画布序） */
+function syncReferenceSet(bo: any, property: string, targets: any[], createRef: (target: any) => any): void {
   const refs = targets.map((target) => {
     const existing = (bo.get(property) ?? []).find((r: any) => referenceId(r) === target.id);
-    return existing ?? target;
+    return existing ?? createRef(target);
   });
   bo.set(property, refs);
 }

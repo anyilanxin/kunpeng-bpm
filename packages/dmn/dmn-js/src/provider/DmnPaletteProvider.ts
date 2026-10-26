@@ -29,10 +29,10 @@ import type PaletteProvider from 'diagram-js/lib/features/palette/PaletteProvide
 import type Create from 'diagram-js/lib/features/create/Create';
 import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
 import type { DmnElementFactory } from '../factory/DmnElementFactory';
-import { toolIconHtml } from '../icons/ToolIcons';
+import { toolEntryHtml, type ToolIconName } from '../icons/ToolIcons';
 
 /** palette 定规四形状（顺序=面板序：Decision → InputData → KS → BKM） */
-const CREATE_ENTRIES: Array<{ type: string; label: string; icon: string }> = [
+const CREATE_ENTRIES: Array<{ type: string; label: string; icon: ToolIconName }> = [
   { type: 'dmn:Decision', label: '创建决策', icon: 'grid' },
   { type: 'dmn:InputData', label: '创建输入数据', icon: 'input' },
   { type: 'dmn:KnowledgeSource', label: '创建知识源', icon: 'source' },
@@ -55,17 +55,19 @@ export class DmnPaletteProvider implements PaletteProvider {
 
   getPaletteEntries(): Record<string, any> {
     const t = this.i18n.t.bind(this.i18n);
+    // 条目 html 一律走 entryShell（.entry 包装是基座 palette 布局/交互样式的
+    // 挂载点，裸 html 根没有 entry 类 → 尺寸/悬停/拖拽态全失）
     const entries: Record<string, any> = {
       'tool-hand': {
         group: 'tools',
-        className: 'palette-entry-hand',
         title: t('抓手'),
+        html: toolEntryHtml('hand', 22),
         action: { click: 'activateHandTool' }
       },
       'tool-lasso': {
         group: 'tools',
-        className: 'palette-entry-lasso',
         title: t('套索'),
+        html: toolEntryHtml('lasso', 22),
         action: { click: 'activateLassoTool' }
       }
     };
@@ -76,9 +78,8 @@ export class DmnPaletteProvider implements PaletteProvider {
       }
       entries[`create-${item.type.split(':')[1]}`] = {
         group: 'drg',
-        className: `palette-entry-${item.type.split(':')[1].toLowerCase()}`,
         title: t(item.label),
-        html: `<div class="palette-icon">${toolIconHtml(item.icon as never, 22)}</div>`,
+        html: toolEntryHtml(item.icon, 22),
         action: {
           dragstart: this.dragStart(item.type),
           click: this.dragStart(item.type)

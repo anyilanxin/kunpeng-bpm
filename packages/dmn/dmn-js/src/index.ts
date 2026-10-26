@@ -28,5 +28,18 @@ export type { ModelerMode } from './Types';
 export type { ModdleExtension } from './xml/DmnNamespaces';
 export { DmnElementTypes, SIZES, SHAPE_TYPES, CONNECTION_TYPES } from './meta/ElementTypes';
 export { DmnRules, connectionTypeFor } from './rules/DmnRules';
-export { mainDiagram, diagramOfElement } from './xml/DmnReader';
+export { mainDiagram, diagramOfElement, referenceId } from './xml/DmnReader';
 export type { DiView } from './xml/DiMapper';
+export {
+  DmnModules,
+  ViewerModules,
+  NavigatedViewerModules,
+  DmnCoreModule,
+  DmnIOModule,
+  DmnRulesModule,
+  DmnModelingModule,
+  DmnPaletteModule
+} from './modules';
+export { DmnFactory } from './factory/DmnFactory';
+export { DmnModeling } from './command/DmnModeling';
+export { DmnUpdater } from './behavior/DmnUpdater';
