@@ -731,11 +731,12 @@ export function mountDecisionTable(
   };
 }
 
-/** 表级几何同步：.tjs-table 总宽=列宽和（列宽经 vdom/默认值下发，无需再钉 th） */
+/** 表级几何同步：.tjs-table 总宽下限=列宽和（表宽 100% 填满容器——列宽经
+ *  vdom/默认值下发，富余空间由固定布局分给各列，超限则 min-width 撑开滚动） */
 function syncTableMetrics(container: HTMLElement): void {
   const tableEl = container.querySelector('.tjs-table') as HTMLTableElement | null;
   const row = container.querySelector('.tjs-head-row');
   if (!tableEl || !row) return;
   const sum = Array.from(row.children).reduce((s, c) => s + (c as HTMLElement).offsetWidth, 0);
-  tableEl.style.width = `${sum}px`;
+  tableEl.style.minWidth = `${sum}px`;
 }
