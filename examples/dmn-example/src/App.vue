@@ -48,8 +48,10 @@ const dark = ref(false);
 // ---------- 属性面板（编辑态右侧列，bar 槽开关） ----------
 
 const panelOpen = ref(true);
-/** 面板可见 = 编辑形态 + DRD 视图 + 未收起（XML 视图面板无意义，随视图隐藏） */
-const panelVisible = computed(() => form.value === 'edit' && view.value === 'diagram' && panelOpen.value);
+/** 下钻态（决策表/字面/Boxed 编辑器层盖画布）：面板不参与，联动隐藏 */
+const drillOpen = ref(false);
+/** 面板可见 = 编辑形态 + DRD 视图 + 未收起 + 非下钻（XML 视图/下钻编辑器下无意义） */
+const panelVisible = computed(() => form.value === 'edit' && view.value === 'diagram' && panelOpen.value && !drillOpen.value);
 
 /** 渲染缺省主题（不落 XML：仅缺省渲染色——setTheme 为合并语义，两向都给全量值） */
 const RENDERER_THEMES = {
@@ -88,8 +90,16 @@ function instanceBase() {
 
 function bindInstance(next: Modeler): void {
   modeler.value = next;
-  // 浏览器验收钩子（真实 UI 路径之外的程序化探针入口）
+  // 浏览器验收钩子（真实 UI 之外程序化探针入口）
   (window as any).__dmn = next;
+  // 下钻态联动（重建实例后新文档从 DRD 根开始，复位）：面板显隐与画布让位跟随
+  drillOpen.value = false;
+  next.on('dmnViews.opened', () => {
+    drillOpen.value = true;
+  });
+  next.on('dmnViews.closed', () => {
+    drillOpen.value = false;
+  });
 }
 
 /** 实例形态切换：保留当前图内容重建实例（编辑类服务不进只读底座注入器） */
