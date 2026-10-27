@@ -523,7 +523,7 @@
   box-sizing: border-box;
   border: 0;
   border-bottom: 1px solid #e0e0e0;
-  padding: 5px 8px;
+  padding: 9px 8px;
   vertical-align: top;
   text-align: left;
 }
@@ -558,13 +558,13 @@
   position: relative;
   background: #fafafa;
   min-width: 140px;
-  height: 48px;
-  padding: 16px 8px 15px;
+  height: 64px;
+  padding: 24px 8px 22px;
   vertical-align: middle;
 }
 .dmn-table-colgroup {
   position: absolute;
-  top: 3px;
+  top: 5px;
   left: 6px;
   font: 400 10px/1.2 Arial, "Helvetica Neue", Helvetica, "PingFang SC", sans-serif;
   color: #999;
@@ -582,7 +582,7 @@
 .dmn-table-coltype {
   position: absolute;
   right: 6px;
-  bottom: 2px;
+  bottom: 4px;
   font: 400 10px/1.2 Arial, "Helvetica Neue", Helvetica, "PingFang SC", sans-serif;
   color: #999;
   cursor: pointer;
@@ -606,7 +606,7 @@
 }
 .dmn-table-celltext {
   display: block;
-  min-height: 17px;
+  min-height: 20px;
   white-space: pre-wrap;
   cursor: text;
 }
