@@ -26,7 +26,6 @@
 import Modeling from 'diagram-js/lib/features/modeling/Modeling';
 import { UpdatePropertiesHandler, UpdateModdlePropertiesHandler, UpdateLabelHandler } from './DmnUpdateHandlers';
 import { ListAddHandler, ListRemoveHandler, ClauseAddHandler, ClauseRemoveHandler } from './DmnListHandlers';
-import { DmnReplaceElementHandler } from './DmnReplaceElementHandler';
 import type { DmnFactory } from '../factory/DmnFactory';
 import type { BkmExpressionMode } from '../meta/ElementTypes';
 
@@ -47,7 +46,6 @@ export class DmnModeling extends Modeling {
     commandStack.registerHandler('dmn.list.remove', ListRemoveHandler as any);
     commandStack.registerHandler('dmn.table.clause.add', ClauseAddHandler as any);
     commandStack.registerHandler('dmn.table.clause.remove', ClauseRemoveHandler as any);
-    commandStack.registerHandler('element.replace', DmnReplaceElementHandler as any);
   }
 
   updateProperties(element: any, properties: Record<string, any>): void {
@@ -126,13 +124,5 @@ export class DmnModeling extends Modeling {
       moddleElement: bo,
       properties: { decisionLogic: value }
     });
-  }
-
-  /**
-   * 类型替换（用户定规 2026-10-27，drg 族内互替）：保持 id/名称/连线，
-   * 仅改类型与尺寸（中心不变）。经 element.replace 命令入栈（可撤销）。
-   */
-  replaceElement(element: any, target: { type: string }): void {
-    this.commandStack.execute('element.replace', { element, target });
   }
 }

@@ -76,7 +76,6 @@ export type ElementFamily =
   | 'invocable'
   | 'input'
   | 'knowledge'
-  | 'source'
   | 'service'
   | 'artifact'
   | 'requirement'
@@ -114,19 +113,19 @@ export const SIZES = {
 export const SHAPE_TYPES: ShapeTypeMeta[] = [
   {
     type: 'dmn:Decision', label: '决策', width: SIZES.DECISION_W, height: SIZES.DECISION_H,
-    paletteGroup: 'drg', order: 10, replaceFamily: 'invocable', family: 'invocable', drillable: true
+    paletteGroup: 'drg', order: 10, replaceFamily: 'drg', family: 'decision', drillable: true
   },
   {
     type: 'dmn:InputData', label: '输入数据', width: SIZES.INPUT_W, height: SIZES.INPUT_H,
-    paletteGroup: 'drg', order: 20, replaceFamily: 'source', family: 'source'
+    paletteGroup: 'drg', order: 20, replaceFamily: 'drg', family: 'input'
   },
   {
     type: 'dmn:KnowledgeSource', label: '知识源', width: SIZES.KS_W, height: SIZES.KS_H,
-    paletteGroup: 'drg', order: 30, replaceFamily: 'source', family: 'source'
+    paletteGroup: 'drg', order: 30, replaceFamily: 'drg', family: 'knowledge'
   },
   {
     type: 'dmn:BusinessKnowledgeModel', label: '业务知识模型', width: SIZES.BKM_W, height: SIZES.BKM_H,
-    paletteGroup: 'drg', order: 40, replaceFamily: 'invocable', family: 'invocable', drillable: true
+    paletteGroup: 'drg', order: 40, replaceFamily: 'drg', family: 'invocable', drillable: true
   },
   {
     type: 'dmn:DecisionService', label: '决策服务', width: SIZES.SERVICE_W, height: SIZES.SERVICE_H,
