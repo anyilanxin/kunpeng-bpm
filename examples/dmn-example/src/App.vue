@@ -300,7 +300,7 @@ async function runRoundTrip(): Promise<void> {
 
     <!-- 卡片内容区·XML 侧 + 顶部标题栏：右区 bar 槽位挂宿主动作钮（暗色，
          切换器左侧） -->
-    <XmlViewCard ref="xmlCard" v-model:view="view" :get-modeler="() => modeler">
+    <XmlViewCard ref="xmlCard" v-model:view="view" :get-modeler="() => modeler" :dark="dark">
       <template #bar>
         <div class="bar-app-actions">
           <button

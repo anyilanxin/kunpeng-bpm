@@ -4,21 +4,32 @@
  * @kunpeng-io/dmn-js 组件包）：
  * - 卡片内容区整体切换：DRD 视图 = 宿主画布（常驻渲染），XML 视图 = 本组件的
  *   不透明编辑区占满标题栏以下整个区域（非弹框、也非 display:none 隐藏画布
- *   ——隐藏会让导入时视口计算得到 0 尺寸，SVGMatrix 出 NaN）
+ *   ——隐藏会让导入时视口计算得 0 尺寸，SVGMatrix 出 NaN）
  * - 顶部常驻标题栏：右侧 = DRD 图 | XML 分段切换 + 宿主注入区（bar 槽位，
  *   排切换器左侧——宿主应用级动作钮挂这里）
+ * - XML 编辑器 = CodeMirror 6（行号/换行/语法高亮，13px monospace）；
+ *   暗色 = oneDark 主题（编辑区底 #282c34，dark prop 切换=重建编辑器）
+ *   ——设置对齐 kunpeng-modeler 的 XML 视图
  * - 只消费 Modeler 公开 API（saveXML / importXML），编辑状态机（进入快照 /
  *   脏检查 / 应用失败回滚快照）全部在组件内
  * - 受控视图：v-model:view；暴露 loadText（XML 视图下导入文件载入编辑器）
  *   与 getText（XML 视图下导出编辑器内容）给宿主
  */
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { Modeler } from '@kunpeng-io/dmn-js';
+import { EditorState } from '@codemirror/state';
+import { EditorView, lineNumbers } from '@codemirror/view';
+import { xml } from '@codemirror/lang-xml';
+import { oneDark } from '@codemirror/theme-one-dark';
 
-const props = defineProps<{
-  view: 'diagram' | 'xml';
-  getModeler: () => Modeler | null;
-}>();
+const props = withDefaults(
+  defineProps<{
+    view: 'diagram' | 'xml';
+    getModeler: () => Modeler | null;
+    dark?: boolean;
+  }>(),
+  { dark: false }
+);
 
 const emit = defineEmits<{
   (event: 'update:view', view: 'diagram' | 'xml'): void;
@@ -27,9 +38,59 @@ const emit = defineEmits<{
 const xmlText = ref('');
 const xmlSnapshot = ref('');
 const xmlError = ref('');
-const editor = ref<HTMLTextAreaElement>();
+const editorHost = ref<HTMLDivElement>();
+
+/** CodeMirror 实例（组件内单例；dark 切换时销毁重建） */
+let cmView: EditorView | null = null;
 
 const isDirty = computed(() => xmlText.value !== xmlSnapshot.value);
+
+/** CM 基础扩展：行号/换行/XML 语法 + 版式（13px、等宽字体、撑满宿主） */
+function baseExtensions() {
+  return [
+    lineNumbers(),
+    xml(),
+    EditorView.lineWrapping,
+    EditorView.theme({
+      '&': { fontSize: '13px', height: '100%' },
+      '.cm-scroller': { overflow: 'auto', fontFamily: "'Fira Code', 'Courier New', monospace" }
+    })
+  ];
+}
+
+function initEditor(): void {
+  if (!editorHost.value) {
+    return;
+  }
+  cmView = new EditorView({
+    state: EditorState.create({
+      doc: xmlText.value,
+      extensions: [
+        ...baseExtensions(),
+        ...(props.dark ? [oneDark] : []),
+        EditorView.updateListener.of((update) => {
+          if (update.docChanged) {
+            xmlText.value = update.state.doc.toString();
+          }
+        })
+      ]
+    }),
+    parent: editorHost.value
+  });
+}
+
+function destroyEditor(): void {
+  cmView?.destroy();
+  cmView = null;
+}
+
+/** 用新内容替换编辑器全部文本（程序化装载：快照/导入文件/应用归一化） */
+function replaceContent(text: string): void {
+  if (!cmView || cmView.state.doc.toString() === text) {
+    return;
+  }
+  cmView.dispatch({ changes: { from: 0, to: cmView.state.doc.length, insert: text } });
+}
 
 async function switchTo(next: 'diagram' | 'xml'): Promise<void> {
   if (next === props.view) {
@@ -42,6 +103,7 @@ async function switchTo(next: 'diagram' | 'xml'): Promise<void> {
   if (next === 'xml') {
     const { xml } = await modeler.saveXML();
     xmlText.value = xmlSnapshot.value = xml;
+    replaceContent(xml);
     xmlError.value = '';
     emit('update:view', 'xml');
     return;
@@ -63,6 +125,7 @@ async function apply(): Promise<boolean> {
     // 以引擎序列化结果归一化（格式/属性顺序与导出一致）
     const { xml } = await modeler.saveXML();
     xmlText.value = xmlSnapshot.value = xml;
+    replaceContent(xml);
     xmlError.value = '';
     return true;
   } catch (error) {
@@ -80,6 +143,7 @@ async function apply(): Promise<boolean> {
 /** XML 视图下导入文件：载入编辑器（不直接改画布，切回 DRD 图时自动应用） */
 function loadText(text: string): void {
   xmlText.value = text;
+  replaceContent(text);
   xmlError.value = '';
 }
 
@@ -88,11 +152,23 @@ function getText(): string {
   return xmlText.value;
 }
 
+// 暗色切换：oneDark 是静态主题，销毁重建编辑器（内容经 xmlText 保留）
+watch(
+  () => props.dark,
+  () => {
+    destroyEditor();
+    initEditor();
+  }
+);
+
+onMounted(initEditor);
+onBeforeUnmount(destroyEditor);
+
 watch(
   () => props.view,
   (view) => {
     if (view === 'xml') {
-      nextTick(() => editor.value?.focus());
+      nextTick(() => cmView?.focus());
     }
   }
 );
@@ -126,16 +202,10 @@ defineExpose({ loadText, getText });
       </div>
     </header>
 
-    <!-- 卡片内容区：XML 视图时编辑器占满标题栏以下整个区域（DRD 视图由宿主画布占位） -->
-    <section v-if="view === 'xml'" class="xml-dock-body" role="tabpanel" aria-label="DMN XML 编辑">
-      <textarea
-        ref="editor"
-        v-model="xmlText"
-        class="xml-editor"
-        spellcheck="false"
-        wrap="off"
-        aria-label="DMN XML 编辑器"
-      ></textarea>
+    <!-- 卡片内容区：XML 视图时编辑器占满标题栏以下整个区域（DRD 视图由宿主画布
+         占位）。v-show 保 CodeMirror 常驻——v-if 会随视图切换销毁重建编辑器 -->
+    <section v-show="view === 'xml'" class="xml-dock-body" role="tabpanel" aria-label="DMN XML 编辑">
+      <div ref="editorHost" class="xml-editor-host" aria-label="DMN XML 编辑器"></div>
     </section>
   </div>
 </template>
@@ -172,6 +242,7 @@ defineExpose({ loadText, getText });
   gap: 10px;
 }
 
+/* 亮色底随壳层令牌；暗色为 oneDark 编辑区底（下方全局段覆盖） */
 .xml-dock-body {
   flex: 1;
   min-height: 0;
@@ -180,21 +251,17 @@ defineExpose({ loadText, getText });
   pointer-events: auto;
 }
 
-.xml-editor {
+.xml-editor-host {
   flex: 1;
-  width: 100%;
-  border: none;
-  padding: 10px 14px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12px;
-  line-height: 1.6;
-  color: #2c3345;
-  background: transparent;
-  resize: none;
+  min-width: 0;
+}
+
+.xml-editor-host :deep(.cm-editor) {
+  height: 100%;
+}
+
+.xml-editor-host :deep(.cm-editor.cm-focused) {
   outline: none;
-  white-space: pre;
-  overflow: auto;
-  tab-size: 2;
 }
 
 /* 分段切换器（title 位置） */
@@ -235,5 +302,13 @@ defineExpose({ loadText, getText });
   max-width: 50%;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+</style>
+
+<style>
+/* 暗色：XML 编辑区底对齐 oneDark 主题（#282c34）——scoped 段够不到 html.dark
+   祖先选择器，组件类名全局唯一，全局段安全 */
+.dark .xml-dock-body {
+  background: #282c34;
 }
 </style>

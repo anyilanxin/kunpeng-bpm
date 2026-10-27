@@ -9,6 +9,10 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@codemirror/lang-xml": "^6.1.0",
+    "@codemirror/state": "catalog:",
+    "@codemirror/theme-one-dark": "^6.1.3",
+    "@codemirror/view": "catalog:",
     "@kunpeng-io/dmn-js": "workspace:*",
     "@kunpeng-io/dmn-js-properties-panel": "workspace:*",
     "@kunpeng-io/dmn-js-toolbar": "workspace:*",
