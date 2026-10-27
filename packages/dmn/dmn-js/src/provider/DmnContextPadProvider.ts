@@ -34,6 +34,7 @@ import { DmnElementFactory } from '../factory/DmnElementFactory';
 import { SIZES } from '../meta/ElementTypes';
 import { toolEntryHtml } from '../icons/ToolIcons';
 import { EXPRESSION_MENU_ID } from './DmnExpressionMenuProvider';
+import { REPLACE_MENU_ID, REPLACEABLE_FAMILIES } from './DmnReplaceMenuProvider';
 
 export class DmnContextPadProvider {
   static $inject = ['contextPad', 'modeling', 'elementFactory', 'create', 'connect', 'popupMenu', 'dmnI18n'];
@@ -81,6 +82,19 @@ export class DmnContextPadProvider {
         action: {
           click: (event: Event, _e: unknown) =>
             this.popupMenu.open(element, EXPRESSION_MENU_ID, this.menuPosition(event))
+        }
+      };
+    }
+
+    // ---- 替换类型（规则约束的互替：Decision⇄BKM、InputData⇄KS；扳手钮） ----
+    if (element.businessObject?.$type && REPLACEABLE_FAMILIES[this.elementFactory.shapeMeta(element.businessObject.$type)?.replaceFamily ?? '']) {
+      entries.replace = {
+        group: 'edit',
+        html: toolEntryHtml('wrench'),
+        title: t('替换类型'),
+        action: {
+          click: (event: Event, _e: unknown) =>
+            this.popupMenu.open(element, REPLACE_MENU_ID, this.menuPosition(event))
         }
       };
     }
