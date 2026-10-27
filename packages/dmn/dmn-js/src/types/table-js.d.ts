@@ -20,32 +20,16 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * 编辑器视图头部（下钻/多视图共用）：「← 返回 DRD」+ 标题 + 右区插槽。
- * 样式件随宿主（dmn 下钻视图 dmn-js.css / bpmn 面包屑已同款字体族）。
+ * inferno@5 / inferno-create-element@5 最小类型垫片（组件层 createElement 手写
+ * vdom，宽 any）；table-js 的类型随 vendored 包 lib/*.d.ts 提供。
  */
-export function buildBackButton(onBack: () => void): HTMLButtonElement {
-  const back = document.createElement('button');
-  back.type = 'button';
-  back.className = 'dmn-view-back';
-  back.textContent = '← 返回 DRD';
-  back.addEventListener('click', onBack);
-  return back;
-}
-
-export function buildViewHeader(
-  title: string,
-  onBack: () => void,
-  rightSlot?: HTMLElement
-): HTMLElement {
-  const header = document.createElement('div');
-  header.className = 'dmn-view-header';
-  header.append(buildBackButton(onBack));
-  const titleEl = document.createElement('span');
-  titleEl.className = 'dmn-view-title';
-  titleEl.textContent = title;
-  header.append(titleEl);
-  if (rightSlot) {
-    header.append(rightSlot);
+declare module 'inferno' {
+  export class Component<P = any, S = any> {
+    constructor(props?: P, context?: any);
+    props: P;
+    state: S;
   }
-  return header;
+}
+declare module 'inferno-create-element' {
+  export function createElement(tag: any, props: any, ...children: any[]): any;
 }

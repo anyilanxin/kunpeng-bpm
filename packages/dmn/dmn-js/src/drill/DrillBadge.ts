@@ -56,7 +56,7 @@ export class DrillBadgeBehavior {
   static $inject = ['eventBus', 'overlays', 'elementRegistry', 'dmnViews', 'dmnFactory', 'modeling'];
 
   constructor(
-    eventBus: EventBus,
+    private readonly eventBus: EventBus,
     private readonly overlays: Overlays,
     private readonly elementRegistry: ElementRegistry,
     private readonly views: DmnViews,
@@ -101,9 +101,9 @@ export class DrillBadgeBehavior {
       event.stopPropagation();
       const bo = element.businessObject;
       if (bo?.$type === 'dmn:Decision') {
-        openDecisionEditor(element, { views: this.views, factory: this.factory, modeling: this.modeling });
+        openDecisionEditor(element, { views: this.views, factory: this.factory, modeling: this.modeling, eventBus: this.eventBus });
       } else if (bo?.$type === 'dmn:BusinessKnowledgeModel') {
-        openBkmEditor(element, { views: this.views, factory: this.factory, modeling: this.modeling });
+        openBkmEditor(element, { views: this.views, factory: this.factory, modeling: this.modeling, eventBus: this.eventBus });
       }
     });
     this.overlays.add(element, BADGE_TYPE, { position: { top: 4, left: 4 }, html: button });

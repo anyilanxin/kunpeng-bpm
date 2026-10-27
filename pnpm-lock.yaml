@@ -779,6 +779,9 @@ importers:
       '@kunpeng-io/kunpeng-dmn-moddle':
         specifier: workspace:*
         version: link:../kunpeng-dmn-moddle
+      '@kunpeng-io/table-js':
+        specifier: workspace:*
+        version: link:../table-js
       bpmn-moddle:
         specifier: ^10.3.1
         version: 10.3.1
@@ -800,6 +803,12 @@ importers:
       ids:
         specifier: 'catalog:'
         version: 3.0.2
+      inferno:
+        specifier: ^5.6.3
+        version: 5.6.3
+      inferno-create-element:
+        specifier: ^5.6.3
+        version: 5.6.3(inferno@5.6.3)
       inherits-browser:
         specifier: ^0.1.0
         version: 0.1.0
@@ -864,6 +873,27 @@ importers:
         version: 1.7.3(@babel/core@7.29.7)(vite@8.3.5(esbuild@0.28.2))
 
   packages/dmn/kunpeng-dmn-moddle: {}
+
+  packages/dmn/table-js:
+    dependencies:
+      diagram-js:
+        specifier: ^11.3.0 || ^12 || ^13 || ^14 || ^15
+        version: 15.28.1
+      didi:
+        specifier: ^12.0.0
+        version: 12.0.0
+      inferno:
+        specifier: ^5.0.5
+        version: 5.6.3
+      min-dash:
+        specifier: ^5.0.0
+        version: 5.1.0
+      min-dom:
+        specifier: ^5.3.0
+        version: 5.3.0
+      selection-ranges:
+        specifier: ^4.1.1
+        version: 4.1.1
 
   packages/form/form-js:
     devDependencies:
@@ -2022,6 +2052,12 @@ packages:
     resolution: {integrity: sha512-QrWXB+ZQSVPmIWIhtEO9H+gwHaMGYiF5ChvoJ+K9ZGHG/sVsa6yiesAD1GC/x46sET00Xlwo1u49RVVVzvcSkw==}
     engines: {node: '>= 10'}
 
+  component-props@1.1.1:
+    resolution: {integrity: sha512-69pIRJs9fCCHRqCz3390YF2LV1Lu6iEMZ5zuVqqUn+G20V9BNXlMs0cWawWeW9g4Ynmg29JmkG6R7/lUJoGd1Q==}
+
+  component-xor@0.0.4:
+    resolution: {integrity: sha512-ZIt6sla8gfo+AFVRZoZOertcnD5LJaY2T9CKE2j13NJxQt/mUafD69Bl7/Y4AnpI2LGjiXH7cOfJDx/n2G9edA==}
+
   compute-scroll-into-view@3.1.1:
     resolution: {integrity: sha512-VRhuHOLoKYOy4UbilLbUzbYg93XLjv2PncJC50EuTWPA3gaja1UjBsUP/D/9/juV3vQFr6XBEzn9KCAHdUvOHw==}
 
@@ -2107,9 +2143,16 @@ packages:
     resolution: {integrity: sha512-eEBvv5SHBhoCyDX/kOR8UozNfqEkjEXjNCTsE2vWWoxoJ5QC8KXYRTE78mrpdpvXNtSEriLhbgQdD0OkHvLFWQ==}
     engines: {node: '>= 20.12'}
 
+  didi@12.0.0:
+    resolution: {integrity: sha512-zn4AVarmnjgEHyBb3j5yc3KSMPkfkoj+D6nt8qisyvxG/NkmQuHsgQB54Wdc4tITUkJRqU1EvGuNe8RuHWIh6g==}
+    engines: {node: '>= 20.12'}
+
   dmn-moddle@12.2.1:
     resolution: {integrity: sha512-X0UmMGmF3klrDv3NPHq045InNBAE5whmK2GAmXZJ7QszsIWR2p/EHYcD4XiJSUr2n8F8VghY79yDY/eBeiAhxA==}
     engines: {node: '>= 20.12'}
+
+  dom-iterator@1.0.2:
+    resolution: {integrity: sha512-BMelEjhy08OpoWF3v/jrPtx7PZCyP1VM9yiB7rJk19UVmt7zTN5rqoC0Jea+EyT0M6v/VokL0LxIlGLUOBJZ2g==}
 
   dom-serializer@1.4.1:
     resolution: {integrity: sha512-VHwB3KfrcOOkelEG2ZOfxqLZdfkil8PtJi4P8N2MMXucZq2yLp75ClViUlOVwyoHEDjYU433Aq+5zWP61+RGag==}
@@ -2332,6 +2375,20 @@ packages:
   ids@3.0.2:
     resolution: {integrity: sha512-t6YJP4mdC+GHF96Nbis/4FEANhP/8VWmYMvUuYpXvSdrhg5hpIVbq2XZlOA3UWTbtdwPCi0q7jEXOdHkAnqOnw==}
     engines: {node: '>= 20.12'}
+
+  inferno-create-element@5.6.3:
+    resolution: {integrity: sha512-blVfnaZt2T06QXXaMNlxkfJSzq1r7Esd/2/5rF8rJjeNxGBGhWz8fAbU2Vm7uzEYUo5SmKUmsee/IuKJEu65tw==}
+    peerDependencies:
+      inferno: ^5
+
+  inferno-shared@5.6.3:
+    resolution: {integrity: sha512-NzhS62Y6BwfkLNmXS9C0Ie7skY1vIoLrVIYnVrMx1xfTLp/AG+ths4oAJGmWcX/AkVSYl+DjP96HEuUdtGmRRw==}
+
+  inferno-vnode-flags@5.6.3:
+    resolution: {integrity: sha512-1V9Pjz5Erm2sP7xlb4D2zW/U8e3RwU41Ruyn9/apke0BFxbLI+LxxVcKWxom4fPetG6YcBNLpZssy8gkigT9gg==}
+
+  inferno@5.6.3:
+    resolution: {integrity: sha512-2m7bEo/6D+pbxFkFKY/2QOVdknxxXyrXyDdVFobJcQyvfv3985MY+VVwyRZoVJylQG+mzPY5/uDNuXygp8jObA==}
 
   inherits-browser@0.1.0:
     resolution: {integrity: sha512-CJHHvW3jQ6q7lzsXPpapLdMx5hDpSF3FSh45pwsj6bKxJJ8Nl8v43i5yXnr3BdfOimGHKyniewQtnAIp3vyJJw==}
@@ -2662,6 +2719,10 @@ packages:
     resolution: {integrity: sha512-8u/hfXFRBD1O0hPUjioLhoWFHRmt6tKA4/vZPyckBr18l1KE9uHrFaFaUi8MDRTpi4uak2goyPTSNJLXX2k2Hw==}
     engines: {node: '>= 0.4'}
 
+  opencollective-postinstall@2.0.3:
+    resolution: {integrity: sha512-8AV/sCtuzUeTo8gQK5qDZzARrulB3egtLzFgteqB2tcT4Mw7B8Kt7JcDHmltjz6FOAHsvTevk70gZEbhM4ZS9Q==}
+    hasBin: true
+
   own-keys@1.0.2:
     resolution: {integrity: sha512-19YVAg7T+WTrxggPukVq7DjTv6+PJ867TmhCvBsYwmbFCsZd344rq2Ld1p0wo8f8Qrrhgp82c6FJRqdXWtSEhg==}
     engines: {node: '>= 0.4'}
@@ -2824,6 +2885,9 @@ packages:
 
   scroll-into-view-if-needed@3.1.0:
     resolution: {integrity: sha512-49oNpRjWRvnU8NyGVmUaYG4jtTkNonFZI86MmGRDqBphEK2EXT9gdEUoQPZhuBM8yWHxCWbobltqYO5M4XrUvQ==}
+
+  selection-ranges@4.1.1:
+    resolution: {integrity: sha512-MaWca8GVQV+g3IOJDDgDehXFWtB+ycrQD5wkWTTwAQjXvwm1ZeZVoN4IA8KP7R+z8UMOsdkdnpMfo8+40Hru+Q==}
 
   semver-compare@1.0.0:
     resolution: {integrity: sha512-YM3/ITh2MJ5MtzaM429anh+x2jiLVjqILF4m4oyQB18W7Ggea7BfqdH/wGMK7dDiMghv/6WG7znWMwUDzJiXow==}
@@ -4247,6 +4311,10 @@ snapshots:
 
   commander@7.2.0: {}
 
+  component-props@1.1.1: {}
+
+  component-xor@0.0.4: {}
+
   compute-scroll-into-view@3.1.1: {}
 
   convert-source-map@2.0.0: {}
@@ -4348,11 +4416,18 @@ snapshots:
 
   didi@11.0.1: {}
 
+  didi@12.0.0: {}
+
   dmn-moddle@12.2.1:
     dependencies:
       min-dash: 5.1.0
       moddle: 8.2.1
       moddle-xml: 12.3.1(moddle@8.2.1)
+
+  dom-iterator@1.0.2:
+    dependencies:
+      component-props: 1.1.1
+      component-xor: 0.0.4
 
   dom-serializer@1.4.1:
     dependencies:
@@ -4668,6 +4743,20 @@ snapshots:
 
   ids@3.0.2: {}
 
+  inferno-create-element@5.6.3(inferno@5.6.3):
+    dependencies:
+      inferno: 5.6.3
+
+  inferno-shared@5.6.3: {}
+
+  inferno-vnode-flags@5.6.3: {}
+
+  inferno@5.6.3:
+    dependencies:
+      inferno-shared: 5.6.3
+      inferno-vnode-flags: 5.6.3
+      opencollective-postinstall: 2.0.3
+
   inherits-browser@0.1.0: {}
 
   internal-slot@1.1.0:
@@ -4968,6 +5057,8 @@ snapshots:
       define-properties: 1.2.1
       es-object-atoms: 1.1.2
 
+  opencollective-postinstall@2.0.3: {}
+
   own-keys@1.0.2:
     dependencies:
       call-bound: 1.0.4
@@ -5140,6 +5231,10 @@ snapshots:
   scroll-into-view-if-needed@3.1.0:
     dependencies:
       compute-scroll-into-view: 3.1.1
+
+  selection-ranges@4.1.1:
+    dependencies:
+      dom-iterator: 1.0.2
 
   semver-compare@1.0.0: {}
 
