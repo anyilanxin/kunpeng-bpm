@@ -388,7 +388,7 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 12px 16px;
+  padding: 0;
 }
 
 /* 头部行（命中策略/变量名/类型/表达式语言/形态标签） */
@@ -507,7 +507,8 @@
   border-radius: 4px;
 }
 
-/* 决策表（截图版式：双行表头 When/And|Then/And|Annotations、族界⊕、行号列蓝+） */
+/* 决策表（用户截图版式：单行四角表头——左上族标记 When/Then/Annotations、中间列名、
+   右下类型；深蓝圆形 ⊕ 骑族界缝与标题同行；单元格「-」占位+悬停铅笔；底行行号列蓝色+） */
 .dmn-table {
   border-collapse: collapse;
   width: 100%;
@@ -521,64 +522,158 @@
   padding: 4px 8px;
   vertical-align: top;
 }
-.dmn-table-grouprow .dmn-table-grouphead {
-  background: #f4f6f9;
-  font-weight: 600;
-  text-align: center;
-}
-.dmn-table-colrow .dmn-table-colhead {
-  background: #fff;
-  font-weight: 600;
-  min-width: 140px;
-}
-.dmn-table-colhead .dmn-editor-input {
-  width: 100%;
-  margin-bottom: 4px;
-}
-.dmn-table-colhead .dmn-editor-select {
-  width: 100%;
-}
-.dmn-table-addclause {
-  background: #eef3ff;
-  color: #1461c9;
-  font-weight: 700;
-  text-align: center;
+/* 族界加列钮：深蓝圆形 ⊕ 骑族尾列表头格右缘缝，与标题同一行 */
+.dmn-table-addcol {
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #1461c9;
+  color: #fff;
+  font: 700 14px/1 system-ui, "PingFang SC", sans-serif;
   cursor: pointer;
-  min-width: 40px;
 }
-.dmn-table-addclause:hover {
-  background: #dfeaff;
+.dmn-table-addcol:hover {
+  background: #0f4fa8;
+}
+/* 表头格（四角布局：左上族标记 / 中间列名 / 右下类型） */
+.dmn-table-colrow .dmn-table-colhead {
+  position: relative;
+  background: #fff;
+  min-width: 140px;
+  height: 56px;
+  padding: 20px 8px 18px;
+  vertical-align: middle;
+  font-weight: 600;
+}
+.dmn-table-colgroup {
+  position: absolute;
+  top: 3px;
+  left: 6px;
+  font: 400 11px/1.2 system-ui, "PingFang SC", sans-serif;
+  color: #9aa2b0;
+}
+.dmn-table-colname {
+  min-height: 18px;
+  text-align: center;
+  color: #1a1f2b;
+  cursor: text;
+}
+.dmn-table-colname.is-empty {
+  color: #9aa2b0;
+}
+.dmn-table-coltype {
+  position: absolute;
+  right: 6px;
+  bottom: 3px;
+  font: 11px/1.2 system-ui, "PingFang SC", sans-serif;
+  font-weight: 400;
+  color: #7c8595;
+  cursor: pointer;
+}
+.dmn-table-coltype.is-empty {
+  color: #b7bdc9;
+}
+.dmn-table-coltype:hover {
+  color: #1461c9;
 }
 .dmn-table-rownum {
   width: 36px;
   min-width: 36px;
   text-align: center;
-  color: #7c8595;
+  color: #5a6270;
   background: #f4f6f9;
+  vertical-align: middle;
 }
-.dmn-table-cell .dmn-editor-input {
-  width: 100%;
-  border-color: transparent;
+.dmn-table-cell {
+  position: relative;
+}
+.dmn-table-celltext {
+  display: block;
+  min-height: 18px;
+  white-space: pre-wrap;
+  cursor: text;
+}
+.dmn-table-celltext.is-empty {
+  color: #b7bdc9;
+}
+.dmn-table-pencil {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  display: flex;
+  padding: 2px;
+  border: none;
   background: transparent;
+  color: #7c8595;
+  cursor: pointer;
+  opacity: 0;
 }
-.dmn-table-cell .dmn-editor-input:focus {
+.dmn-table-cell:hover .dmn-table-pencil {
+  opacity: 1;
+}
+.dmn-table-pencil:hover {
+  color: #1461c9;
+}
+/* 就地编辑控件：绝对定位浮层（出流，不参与列宽计算）——编辑期表格几何零变化 */
+.dmn-table-edit {
+  position: absolute;
+  inset: 1px;
+  box-sizing: border-box;
+  padding: 2px 4px;
+  border: 1px solid #4d8fff;
+  border-radius: 3px;
+  font: 13px/1.4 system-ui, "PingFang SC", sans-serif;
+  color: #1a1f2b;
   background: #fff;
-  border-color: #4d8fff;
+  outline: none;
+  z-index: 6;
+}
+/* 类型小字编辑（select）：锚右下角，宽度自适应（长类型名不顶宽列） */
+select.dmn-table-edit {
+  inset: auto;
+  right: 2px;
+  bottom: 2px;
+  width: auto;
+  min-width: 0;
+  max-width: 220px;
 }
 .dmn-table-add {
   width: 22px;
   height: 22px;
-  border: 1px solid #c8ccd4;
+  border: none;
   border-radius: 50%;
-  background: #fff;
-  color: #1461c9;
-  font-weight: 700;
+  background: #1461c9;
+  color: #fff;
+  font: 700 14px/1 system-ui, "PingFang SC", sans-serif;
   cursor: pointer;
-  line-height: 1;
+  padding: 0;
 }
 .dmn-table-add:hover {
-  background: #eef3ff;
-  border-color: #4d8fff;
+  background: #0f4fa8;
+}
+/* 视图头槽位（决策表「名 | Hit policy: [▼]」截图版式） */
+.dmn-view-headslot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* 非表视图内边距容器（内容区零留白留给决策表全幅贴边） */
+.dmn-editor-pad {
+  padding: 12px 16px;
+}
+.dmn-decision-editor > .dmn-editor-empty,
+.dmn-bkm-editor > .dmn-editor-empty {
+  margin: 12px 16px;
 }
 
 /* BKM boxed：参数区（F 行）/体区/结果区 */

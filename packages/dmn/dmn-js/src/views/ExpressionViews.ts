@@ -21,9 +21,11 @@
  */
 /**
  * 表达式编辑器视图（G5 核心，用户截图版式）：
- * - Decision：decisionLogic 按形态分派（DecisionTable 网格 / LiteralExpression 文本域），
- *   头部命中策略/变量名/类型/表达式语言/形态切换（点击类型标签弹形态菜单，
- *   当前项置灰——家族替换菜单惯例）；
+ * - Decision：decisionLogic 按形态分派——决策表=用户截图版式（视图头槽位
+ *   「名 | Hit policy: [▼]」、单行四角表头〔左上 When/Then/Annotations 族标记、
+ *   中间列名、右下类型〕、深蓝圆形 ⊕ 骑族界缝与标题同行、单元格「-」占位+
+ *   悬停铅笔、底行行号列蓝色+加行）；LiteralExpression=文本域（头部变量名/
+ *   类型/表达式语言/形态标签，点击形态标签弹形态菜单）。
  * - BKM（Literal 模式）：boxed 编辑器——参数区（formalParameter 增删/名/类型）、
  *   体区（FunctionDefinition.body 按形态分派：Literal=文本域、其余四族本期
  *   占位提示）、结果区（variable name/typeRef）。
@@ -126,16 +128,19 @@ export function openDecisionEditor(element: any, deps: EditorDeps): void {
   const bo = element.businessObject;
   const title = bo.name ?? element.id;
   const body = el('div', 'dmn-decision-editor');
-  deps.views.open(element, title, body);
+  // 视图头槽位（截图版式「名 | Hit policy: [▼]」）；内容随 rerender 重填
+  const slot = el('span', 'dmn-view-headslot');
+  deps.views.open(element, title, body, slot);
 
   const rerender = () => {
     body.textContent = '';
-    renderDecisionBody(body, bo, deps, rerender);
+    slot.textContent = '';
+    renderDecisionBody(body, slot, bo, deps, rerender);
   };
   rerender();
 }
 
-function renderDecisionBody(body: HTMLElement, bo: any, deps: EditorDeps, rerender: () => void): void {
+function renderDecisionBody(body: HTMLElement, slot: HTMLElement, bo: any, deps: EditorDeps, rerender: () => void): void {
   const logic = bo.get('decisionLogic');
   if (!logic) {
     const empty = el('div', 'dmn-editor-empty', '无表达式 — 点击切换形态');
@@ -150,7 +155,10 @@ function renderDecisionBody(body: HTMLElement, bo: any, deps: EditorDeps, rerend
     return;
   }
   if (logic.$type === 'dmn:DecisionTable') {
-    renderDecisionTable(body, bo, logic, deps, rerender);
+    slot.append(el('span', 'dmn-editor-sep', ''));
+    slot.append(labelText('Hit policy:'));
+    slot.append(hitPolicySelect(logic, deps, rerender));
+    renderDecisionTable(body, logic, deps, rerender);
   } else if (logic.$type === 'dmn:LiteralExpression') {
     renderLiteralExpression(body, bo, logic, deps, rerender, false);
   } else {
@@ -181,103 +189,54 @@ function setDecisionLogic(bo: any, kind: string, deps: EditorDeps): void {
   deps.modeling.updateModdleProperties(bo, bo, { decisionLogic: logic });
 }
 
-// ---- 决策表（Decision 定规版式：双行表头 When/And|Then/And|Annotations、族界⊕、注记族、行号列底蓝色+） ----
-function renderDecisionTable(body: HTMLElement, bo: any, table: any, deps: EditorDeps, rerender: () => void): void {
+// ---- 决策表（用户截图版式：单行四角表头——左上族标记 When/Then/Annotations
+// （族内次列起 And）、中间列名、右下类型；深蓝圆形 ⊕ 骑族界缝与标题同行；
+// 单元格「-」占位+悬停铅笔、底行行号列蓝色+） ----
+function renderDecisionTable(body: HTMLElement, table: any, deps: EditorDeps, rerender: () => void): void {
   const inputs: any[] = table.get('input') ?? [];
   const outputs: any[] = table.get('output') ?? [];
   const annotations: any[] = table.get('annotation') ?? [];
   const rules: any[] = table.get('rule') ?? [];
+  // 空族保留一格占位列——全表列数恒定（1 行号 + 输入 + 输出 + 注记），表头/数据行不错位
+  const nIn = Math.max(inputs.length, 1);
+  const nOut = Math.max(outputs.length, 1);
+  const nAnn = Math.max(annotations.length, 1);
 
-  // 头部行：命中策略 + 变量名 + 类型 + 表达式语言 + 形态标签（点击切形态）
-  const head = el('div', 'dmn-editor-head');
-  const name = el('span', 'dmn-editor-name', bo.name ?? '');
-  head.append(name);
-  head.append(el('span', 'dmn-editor-sep', ''));
-  head.append(labelText('Hit policy:'));
-  head.append(hitPolicySelect(table, deps, rerender));
-  head.append(labelText('Variable name:'));
-  head.append(makeTextInput(bo.get('variable')?.name, (v) => setVariableName(bo, v, deps)));
-  head.append(labelText('Variable type:'));
-  head.append(buildTypeSelect(bo.get('variable')?.typeRef, (v) => setVariableTypeRef(bo, v, deps)));
-  const kindTag = el('button', 'dmn-kind-tag', kindLabel(logicKind(table)));
-  kindTag.addEventListener('click', () =>
-    openKindMenu(kindTag, logicKind(table), (kind) => {
-      if (kind === logicKind(table)) return;
-      setDecisionLogic(bo, kind, deps);
-      rerender();
-    })
-  );
-  head.append(kindTag);
-  body.append(head);
-
-  // 表本体（thead 两行 + tbody 规则行 + 加行）
   const tableEl = el('table', 'dmn-table') as HTMLTableElement;
   const thead = tableEl.createTHead();
 
-  // 组头行：When / And / Then / And / Annotations（跨列）
+  // 表头行（单行四角布局：左上=族标记 When/Then/Annotations（族内次列起 And）、
+  // 中间=列名、右下=类型；⊕ 深蓝圆钮骑族界缝，与标题同一行）
   const headRow = thead.insertRow();
-  headRow.className = 'dmn-table-grouprow';
-  const rownumHead = document.createElement('th');
-  rownumHead.className = 'dmn-table-rownum';
-  rownumHead.rowSpan = 2;
-  headRow.append(rownumHead);
-  appendGroupHeader(headRow, 'When', inputs.length > 0 ? inputs.length : 1);
-  appendGroupHeader(headRow, 'And', 1);
-  appendGroupHeader(headRow, 'Then', outputs.length > 0 ? outputs.length : 1);
-  appendGroupHeader(headRow, 'And', 1);
-  const annHead = document.createElement('th');
-  annHead.className = 'dmn-table-grouphead';
-  annHead.textContent = 'Annotations';
-  annHead.colSpan = annotations.length > 0 ? annotations.length : 1;
-  annHead.rowSpan = 2;
-  headRow.append(annHead);
-
-  // 列头行：输入名/类型/⊕加输入 | 输出名/类型/⊕加输出 | 注记名
-  const colRow = thead.insertRow();
-  colRow.className = 'dmn-table-colrow';
-  for (const clause of inputs) {
-    colRow.append(clauseHeaderCell(clause, 'input', deps, rerender));
-  }
-  colRow.append(addClauseCell('⊕', () => {
+  headRow.className = 'dmn-table-colrow';
+  headRow.append(el('th', 'dmn-table-rownum'));
+  appendClauseHeaders(headRow, inputs, 'input', 'When', deps, rerender, () => {
     addClause(deps, table, 'input');
     rerender();
-  }, 'add input'));
-  for (const clause of outputs) {
-    colRow.append(clauseHeaderCell(clause, 'output', deps, rerender));
-  }
-  colRow.append(addClauseCell('⊕', () => {
+  });
+  appendClauseHeaders(headRow, outputs, 'output', 'Then', deps, rerender, () => {
     addClause(deps, table, 'output');
     rerender();
-  }, 'add output'));
-  for (const ann of annotations) {
-    const th = el('th', 'dmn-table-colhead');
-    th.append(makeTextInput(ann.name, (v) => {
-      deps.modeling.updateModdleProperties(ann, ann, { name: v });
-      rerender();
-    }, '备注'));
-    colRow.append(th);
-  }
+  });
+  appendAnnotationHeaders(headRow, annotations, deps, rerender);
 
-  // 规则行
+  // 规则行（显式 tbody：tableEl.insertRow 会误插 thead）：行号 + 条目格
+  const tbody = tableEl.createTBody();
   rules.forEach((rule: any, ri: number) => {
-    const tr = tableEl.insertRow();
+    const tr = tbody.insertRow();
     tr.className = 'dmn-table-rule';
-    const tdNum = document.createElement('td');
-    tdNum.className = 'dmn-table-rownum';
-    tdNum.textContent = String(ri + 1);
-    tr.append(tdNum);
-    (rule.get('inputEntry') ?? []).forEach((entry: any) => tr.append(ruleEntryCell(entry, 'inputEntry', deps, rerender)));
-    (rule.get('outputEntry') ?? []).forEach((entry: any) => tr.append(ruleEntryCell(entry, 'outputEntry', deps, rerender)));
-    (rule.get('annotationEntry') ?? []).forEach((entry: any) => tr.append(ruleEntryCell(entry, 'annotationEntry', deps, rerender)));
-    tableEl.append(tr);
+    tr.append(el('td', 'dmn-table-rownum', String(ri + 1)));
+    appendEntryCells(tr, rule.get('inputEntry'), nIn, deps, rerender);
+    appendEntryCells(tr, rule.get('outputEntry'), nOut, deps, rerender);
+    appendEntryCells(tr, rule.get('annotationEntry'), nAnn, deps, rerender);
   });
 
-  // 加行（蓝色 +，行号列）
-  const addRow = tableEl.insertRow();
+  // 底行：行号列蓝色 + 加规则
+  const addRow = tbody.insertRow();
   addRow.className = 'dmn-table-addrow';
-  const addTd = document.createElement('td');
-  addTd.className = 'dmn-table-rownum';
-  const addBtn = el('button', 'dmn-table-add', '+');
+  const addTd = el('td', 'dmn-table-rownum') as HTMLTableCellElement;
+  const addBtn = el('button', 'dmn-table-add', '+') as HTMLButtonElement;
+  addBtn.type = 'button';
   addBtn.title = '添加规则';
   addBtn.addEventListener('click', () => {
     addRule(deps, table);
@@ -285,34 +244,92 @@ function renderDecisionTable(body: HTMLElement, bo: any, table: any, deps: Edito
   });
   addTd.append(addBtn);
   addRow.append(addTd);
-  const span = document.createElement('td');
-  span.colSpan = inputs.length + outputs.length + annotations.length + 1;
-  span.className = 'dmn-table-addrow-fill';
-  addRow.append(span);
+  const fill = el('td', 'dmn-table-addrow-fill') as HTMLTableCellElement;
+  fill.colSpan = nIn + nOut + nAnn;
+  addRow.append(fill);
 
   body.append(tableEl);
+  // 钉列宽（渲染时按内容冻结 px）：编辑控件为出流浮层 + 列宽钉死，
+  // 进入/退出编辑表格几何零变化（点击编辑不再引起整表抖动）
+  const pinnedRow = tableEl.rows[0];
+  for (const cell of Array.from(pinnedRow.cells)) {
+    cell.style.width = `${cell.offsetWidth}px`;
+  }
 }
 
-function appendGroupHeader(row: HTMLTableRowElement, label: string, span: number): void {
-  const th = document.createElement('th');
-  th.className = 'dmn-table-grouphead';
-  th.textContent = label;
-  th.colSpan = span;
-  row.append(th);
+/** 族界加列钮：深蓝圆形 ⊕，绝对定位骑族尾列表头格右缘缝（宿主格 position:relative），与标题同行 */
+function seamAddButton(title: string, onClick: () => void): HTMLButtonElement {
+  const btn = el('button', 'dmn-table-addcol', '+') as HTMLButtonElement;
+  btn.type = 'button';
+  btn.title = title;
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onClick();
+  });
+  return btn;
 }
 
-function addClauseCell(label: string, onClick: () => void, title: string): HTMLTableCellElement {
-  const th = el('th', 'dmn-table-addclause', label) as HTMLTableCellElement;
-  th.title = title;
-  th.addEventListener('click', onClick);
-  return th;
+function appendClauseHeaders(
+  row: HTMLTableRowElement,
+  clauses: any[],
+  kind: 'input' | 'output',
+  groupLabel: string,
+  deps: EditorDeps,
+  rerender: () => void,
+  onAdd: () => void
+): void {
+  if (clauses.length === 0) {
+    const th = el('th', 'dmn-table-colhead dmn-table-colhead--empty');
+    th.append(el('span', 'dmn-table-colgroup', groupLabel));
+    th.append(seamAddButton(kind === 'input' ? 'add input' : 'add output', onAdd));
+    row.append(th);
+    return;
+  }
+  clauses.forEach((clause, i) => {
+    row.append(clauseHeaderCell(
+      clause, kind, i === 0 ? groupLabel : 'And', deps, rerender,
+      i === clauses.length - 1 ? onAdd : null
+    ));
+  });
 }
 
-function clauseHeaderCell(clause: any, kind: 'input' | 'output', deps: EditorDeps, rerender: () => void): HTMLTableCellElement {
+/** 注记列头：四角布局（左上 Annotations/And + 中间名点击编辑）；空族保留占位格 */
+function appendAnnotationHeaders(row: HTMLTableRowElement, annotations: any[], deps: EditorDeps, rerender: () => void): void {
+  if (annotations.length === 0) {
+    const th = el('th', 'dmn-table-colhead dmn-table-colhead--empty');
+    th.append(el('span', 'dmn-table-colgroup', 'Annotations'));
+    row.append(th);
+    return;
+  }
+  annotations.forEach((ann: any, i: number) => {
+    const th = el('th', 'dmn-table-colhead') as HTMLTableCellElement;
+    th.append(el('span', 'dmn-table-colgroup', i === 0 ? 'Annotations' : 'And'));
+    const nameText: string = ann.get('name') ?? '';
+    const nameEl = el('div', 'dmn-table-colname', nameText || 'Annotation');
+    if (!nameText) nameEl.classList.add('is-empty');
+    nameEl.addEventListener('click', () => {
+      startInlineEdit(th, nameText, (v) => {
+        if (v !== undefined && v !== nameText) {
+          deps.modeling.updateModdleProperties(ann, ann, { name: v });
+        }
+        rerender();
+      });
+    });
+    th.append(nameEl);
+    row.append(th);
+  });
+}
+
+/** 列头格（四角布局）：左上=族标记、中间=名（空显 Input/Output 灰字）、右下=类型（空显 -）；名/类型点击进编辑 */
+function clauseHeaderCell(clause: any, kind: 'input' | 'output', groupLabel: string, deps: EditorDeps, rerender: () => void, onAdd: (() => void) | null): HTMLTableCellElement {
   const th = el('th', 'dmn-table-colhead') as HTMLTableCellElement;
-  if (kind === 'input') {
-    th.append(makeTextInput(clause.get('inputExpression')?.text, (v) => {
-      const expr = clause.get('inputExpression');
+  th.append(el('span', 'dmn-table-colgroup', groupLabel));
+  const expr = kind === 'input' ? clause.get('inputExpression') : undefined;
+  const nameText: string = (kind === 'input' ? expr?.get('text') : clause.get('name')) ?? '';
+  const typeText: string = (kind === 'input' ? expr?.get('typeRef') : clause.get('typeRef')) ?? '';
+
+  const commitName = (v: string) => {
+    if (kind === 'input') {
       if (expr) {
         deps.modeling.updateModdleProperties(clause, expr, { text: v });
       } else {
@@ -320,40 +337,131 @@ function clauseHeaderCell(clause: any, kind: 'input' | 'output', deps: EditorDep
           inputExpression: deps.factory.create<any>({ $type: 'dmn:LiteralExpression', text: v })
         });
       }
-      rerender();
-    }, '输入'));
-    th.append(buildTypeSelect(clause.get('inputExpression')?.typeRef, (v) => {
-      const expr = clause.get('inputExpression');
+    } else {
+      deps.modeling.updateModdleProperties(clause, clause, { name: v });
+    }
+  };
+  const commitType = (v: string) => {
+    if (kind === 'input') {
       if (expr) {
-        deps.modeling.updateModdleProperties(clause, expr, { typeRef: v });
-      } else {
+        deps.modeling.updateModdleProperties(clause, expr, { typeRef: v || undefined });
+      } else if (v) {
         deps.modeling.updateModdleProperties(clause, clause, {
           inputExpression: deps.factory.create<any>({ $type: 'dmn:LiteralExpression', text: '', typeRef: v })
         });
       }
+    } else {
+      deps.modeling.updateModdleProperties(clause, clause, { typeRef: v || undefined });
+    }
+  };
+
+  const nameEl = el('div', 'dmn-table-colname', nameText || (kind === 'input' ? 'Input' : 'Output'));
+  if (!nameText) nameEl.classList.add('is-empty');
+  nameEl.addEventListener('click', () => {
+    startInlineEdit(th, nameText, (v) => {
+      if (v !== undefined && v !== nameText) commitName(v);
       rerender();
-    }));
-  } else {
-    th.append(makeTextInput(clause.name, (v) => {
-      deps.modeling.updateModdleProperties(clause, clause, { name: v });
+    });
+  });
+  const typeEl = el('div', 'dmn-table-coltype', typeText || '-');
+  if (!typeText) typeEl.classList.add('is-empty');
+  typeEl.addEventListener('click', (e) => {
+    e.stopPropagation();
+    startTypeEdit(th, typeText, (v) => {
+      if (v !== undefined && v !== typeText) commitType(v);
       rerender();
-    }, '输出'));
-    th.append(buildTypeSelect(clause.typeRef, (v) => {
-      deps.modeling.updateModdleProperties(clause, clause, { typeRef: v });
-      rerender();
-    }));
+    });
+  });
+  th.append(nameEl, typeEl);
+  if (onAdd) {
+    th.append(seamAddButton(kind === 'input' ? 'add input' : 'add output', onAdd));
   }
   return th;
 }
 
-function ruleEntryCell(entry: any, property: string, deps: EditorDeps, rerender: () => void): HTMLTableCellElement {
-  const td = document.createElement('td');
-  td.className = 'dmn-table-cell';
-  td.append(makeTextInput(entry.text, (v) => {
-    deps.modeling.updateModdleProperties(entry, entry, { text: v });
+/** 规则条目格：文本或「-」灰占位 + 悬停铅笔钮；点击进入就地编辑 */
+function ruleEntryCell(entry: any, deps: EditorDeps, rerender: () => void): HTMLTableCellElement {
+  const td = el('td', 'dmn-table-cell') as HTMLTableCellElement;
+  const text: string = entry.get('text') ?? '';
+  const span = el('span', 'dmn-table-celltext', text || '-');
+  if (!text) span.classList.add('is-empty');
+  const pencil = el('button', 'dmn-table-pencil') as HTMLButtonElement;
+  pencil.type = 'button';
+  pencil.innerHTML = PENCIL_SVG;
+  pencil.title = '编辑';
+  const edit = () => startInlineEdit(td, text, (v) => {
+    if (v !== undefined && v !== text) {
+      deps.modeling.updateModdleProperties(entry, entry, { text: v });
+    }
     rerender();
-  }, property === 'inputEntry' ? '（恒真 -）' : ''));
+  });
+  span.addEventListener('click', edit);
+  pencil.addEventListener('click', (e) => {
+    e.stopPropagation();
+    edit();
+  });
+  td.append(span, pencil);
   return td;
+}
+
+function appendEntryCells(tr: HTMLTableRowElement, entries: any[] | undefined, count: number, deps: EditorDeps, rerender: () => void): void {
+  for (let i = 0; i < count; i++) {
+    const entry = entries?.[i];
+    // 条目数与子句数由 dmn.table.clause 命令成对维护；缺失格仅作空显示（导入异常数据不炸表）
+    tr.append(entry ? ruleEntryCell(entry, deps, rerender) : el('td', 'dmn-table-cell'));
+  }
+}
+
+/** 自绘铅笔图标（12px，currentColor） */
+const PENCIL_SVG = '<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">'
+  + '<path d="M11.3 2.9l1.8 1.8-7.4 7.4-2.4.6.6-2.4z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>'
+  + '<path d="M10.1 4.1l1.8 1.8" stroke="currentColor" stroke-width="1.3"/>'
+  + '</svg>';
+
+/** 就地文本编辑：清空宿主→输入框（聚焦全选）；Enter/失焦提交，Escape 取消（回传 undefined） */
+function startInlineEdit(host: HTMLElement, value: string, onDone: (v: string | undefined) => void): void {
+  const input = document.createElement('input');
+  input.className = 'dmn-table-edit';
+  input.value = value;
+  host.textContent = '';
+  host.append(input);
+  input.focus();
+  input.select();
+  let done = false;
+  const finish = (save: boolean) => {
+    if (done) return;
+    done = true;
+    onDone(save ? input.value : undefined);
+  };
+  input.addEventListener('blur', () => finish(true));
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      finish(true);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      finish(false);
+    }
+  });
+}
+
+/** 就地类型编辑：换成类型下拉；选定提交（空项=清类型，回传 ''），失焦未选=取消（undefined） */
+function startTypeEdit(host: HTMLElement, current: string, onDone: (v: string | undefined) => void): void {
+  host.textContent = '';
+  let done = false;
+  const select = buildTypeSelect(current || undefined, (v) => {
+    if (done) return;
+    done = true;
+    onDone(v ?? '');
+  });
+  select.classList.add('dmn-table-edit');
+  host.append(select);
+  select.focus();
+  select.addEventListener('blur', () => {
+    if (done) return;
+    done = true;
+    onDone(undefined);
+  });
 }
 
 function hitPolicySelect(table: any, deps: EditorDeps, rerender: () => void): HTMLSelectElement {
@@ -429,6 +537,9 @@ function addRule(deps: EditorDeps, table: any): void {
 
 // ---- Literal expression（Decision） ----
 function renderLiteralExpression(body: HTMLElement, bo: any, logic: any, deps: EditorDeps, rerender: () => void, isBkm: boolean): void {
+  // 内容区零留白（决策表全幅贴边）——非表视图经 pad 容器恢复内边距
+  const pad = el('div', 'dmn-editor-pad');
+  body.append(pad);
   const head = el('div', 'dmn-editor-head');
   head.append(el('span', 'dmn-editor-name', bo.name ?? ''));
   if (!isBkm) {
@@ -451,8 +562,8 @@ function renderLiteralExpression(body: HTMLElement, bo: any, logic: any, deps: E
     })
   );
   head.append(kindTag);
-  body.append(head);
-  body.append(makeTextArea(logic.text, (v) => {
+  pad.append(head);
+  pad.append(makeTextArea(logic.text, (v) => {
     deps.modeling.updateModdleProperties(logic, logic, { text: v });
     rerender();
   }, '输入 FEEL 表达式'));
@@ -472,7 +583,7 @@ function renderLiteralExpression(body: HTMLElement, bo: any, logic: any, deps: E
     rerender();
   });
   langRow.append(lang);
-  body.append(langRow);
+  pad.append(langRow);
 }
 
 // ---- BKM boxed ----
@@ -509,6 +620,9 @@ function renderBkmBody(body: HTMLElement, bo: any, deps: EditorDeps, rerender: (
     body.append(el('div', 'dmn-editor-empty', 'Empty（无表达式）——pad 切回 Literal expression 以编辑'));
     return;
   }
+  // 内容区零留白（决策表全幅贴边）——BKM 区块经 pad 容器恢复内边距
+  const pad = el('div', 'dmn-editor-pad');
+  body.append(pad);
   // 参数区（F 行 + ()）
   const params = el('div', 'dmn-bkm-params');
   params.append(el('span', 'dmn-bkm-f', 'F'));
@@ -540,7 +654,7 @@ function renderBkmBody(body: HTMLElement, bo: any, deps: EditorDeps, rerender: (
   });
   paramWrap.append(addParam);
   params.append(paramWrap);
-  body.append(params);
+  pad.append(params);
 
   // 体区（按形态分派）
   const bodyExpr = logic.get('body');
@@ -555,7 +669,7 @@ function renderBkmBody(body: HTMLElement, bo: any, deps: EditorDeps, rerender: (
   } else {
     bodyEl.append(el('div', 'dmn-editor-empty', '无体表达式'));
   }
-  body.append(bodyEl);
+  pad.append(bodyEl);
 
   // 结果区
   const result = el('div', 'dmn-bkm-result');
@@ -586,7 +700,7 @@ function renderBkmBody(body: HTMLElement, bo: any, deps: EditorDeps, rerender: (
     rerender();
   }));
   result.append(varRow);
-  body.append(result);
+  pad.append(result);
 }
 
 // ---- 形态标签文案 ----
