@@ -24,6 +24,16 @@
  * execute/revert 返回受影响元素 → 触发 elements.changed 重绘（diagram-js CommandStack 契约）。
  */
 import type CommandHandler from 'diagram-js/lib/command/CommandHandler';
+import { walkSemanticTree } from '../xml/DiagramBuilder';
+
+/** 沿 $parent 链爬到语义树根（dmn:Definitions） */
+function semanticRoot(bo: any): any {
+  let cur = bo;
+  while (cur?.$parent) {
+    cur = cur.$parent;
+  }
+  return cur;
+}
 
 export class UpdatePropertiesHandler implements CommandHandler {
   static $inject = ['eventBus', 'dmnIds', 'elementRegistry'];
@@ -54,6 +64,18 @@ export class UpdatePropertiesHandler implements CommandHandler {
       this.ids.unclaim(context.renamedFrom);
       this.ids.claim(bo.id, bo);
       this.elementRegistry.updateId(element, bo.id);
+      // 第五同步：DMN 业务引用盒（dmn:DMNElementReference，href='#id' 静态串）
+      // 不随 bo.set('id') 自动跟随（DMNDI 侧 isReference 由 moddle 动态解析自动跟）——
+      // 全语义树扫 href 重写，revert 对称还原
+      const oldHref = `#${context.renamedFrom}`;
+      const newHref = `#${bo.id}`;
+      context.rewrittenRefs = [];
+      walkSemanticTree(semanticRoot(bo), (node: any) => {
+        if (node !== bo && node.$type === 'dmn:DMNElementReference' && node.get('href') === oldHref) {
+          context.rewrittenRefs.push({ node, href: oldHref });
+          node.set('href', newHref);
+        }
+      });
     }
     this.eventBus.fire('dmn.properties.updated', { element, properties });
     return [element];
@@ -69,6 +91,9 @@ export class UpdatePropertiesHandler implements CommandHandler {
       this.ids.unclaim(bo.id);
       this.ids.claim(context.renamedFrom, bo);
       this.elementRegistry.updateId(element, context.renamedFrom);
+      for (const { node, href } of context.rewrittenRefs ?? []) {
+        node.set('href', href);
+      }
     }
     return [element];
   }

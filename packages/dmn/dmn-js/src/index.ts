@@ -28,6 +28,7 @@ export type { ModelerMode } from './Types';
 export type { ModdleExtension } from './xml/DmnNamespaces';
 export { DmnElementTypes, SIZES, SHAPE_TYPES, CONNECTION_TYPES, bkmExpressionMode, isDrillableElement } from './meta/ElementTypes';
 export type { BkmExpressionMode } from './meta/ElementTypes';
+export { is, isAny, getBusinessObject, getLabel } from './meta/ElementUtil';
 export { DmnIcons, dmnIconBody } from './icons/DmnIconSet';
 export type { DmnIconName } from './icons/DmnIconSet';
 export { DmnRules, connectionTypeFor } from './rules/DmnRules';

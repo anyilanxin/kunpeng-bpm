@@ -35,12 +35,21 @@ export type { ModelerMode, ModelerOptions };
 export class Modeler {
   private readonly diagram: Diagram;
 
+  /** 构造期挂起订阅（didi 在 Diagram 构造内实例化 _parent/dmnjs 消费者——
+   * 属性面板渲染器构造即 dmnjs.on('detach')，此刻 this.diagram 未赋值） */
+  private readonly pendingOn: Array<{
+    event: string;
+    priority: number | ((...args: any[]) => any);
+    callback?: (...args: any[]) => any;
+  }> = [];
+  private facadeReady = false;
+
   constructor(options: ModelerOptions) {
     const { container, width, height, modules, additionalModules, ...pluginConfig } = options;
 
     // 插件化契约：除装配键外的任意选项键整体透传为 diagram config——插件
-    // 自带的 config 键无需组件逐键白名单，接入即生效。dmnjs 为宿主访问
-    // 门面的约定服务名（插件经 injector.get('dmnjs') 取门面）
+    // 自带的 config 键无需组件逐键白名单，接入即生效。dmnjs 为宿主访问门面的
+    // 约定服务名（插件经 injector.get('dmnjs') 取门面）
     const hostAccess: ModuleDeclaration = { _parent: ['value', this], dmnjs: ['value', this] };
     const effectiveModules: ModuleDeclaration[] = modules
       ? [...(modules as ModuleDeclaration[]), hostAccess]
@@ -53,6 +62,12 @@ export class Modeler {
       canvas: { container, width, height },
       modules: effectiveModules
     });
+
+    // 构造收尾：flush 挂起订阅（消费者在 Diagram 构造期 .on() 的部分）
+    this.facadeReady = true;
+    for (const { event, priority, callback } of this.pendingOn.splice(0)) {
+      this.on(event, priority as number, callback as (...args: any[]) => any);
+    }
 
     this.get<any>('dmnMode').set(options.mode ?? 'edit');
     this.initEmpty();
@@ -69,6 +84,11 @@ export class Modeler {
   }
 
   on(event: string, priority: number | ((...args: any[]) => any), callback?: (...args: any[]) => any): void {
+    // 门面装配期（diagram 未赋值）：订阅挂起入队，构造收尾统一 flush
+    if (!this.facadeReady) {
+      this.pendingOn.push({ event, priority, callback });
+      return;
+    }
     if (typeof priority === 'function') {
       this.get<any>('eventBus').on(event, priority);
     } else {

@@ -10,19 +10,32 @@
  *   撤销/重做/缩放为插件内置，应用级动作（导入/导出/往返自检）经
  *   dmnToolbar.actions 注册，相对画布水平居中，宽度上限内装不下收「更多」；
  *   三形态实例通用装配（只读底座缺的编辑服务由插件自行非严格解析，相应组不建）
+ * - 网格背景（上游 diagram-js-grid）：编辑态装配（建模辅助，只读形态不装）；
+ *   纯 SVG pattern 绘制，无样式依赖
+ * - 属性面板（@kunpeng-io/dmn-js-properties-panel 家族包）：编辑态右侧列
+ *   （340px），三模块装配（渲染基座 + 通用组 General/Documentation + kunpeng
+ *   组〔Decision 的 versionTag/historyTimeToLive〕）；面板开关在标题栏右区
+ *   bar 槽位；XML 视图下隐藏（panelVisible 联动）
  * - 暗色（标题栏右区钮）：壳层令牌 + html.dark 作用域（--dmn- 与 --bio- 令牌）
  *   + dmnRenderer.setTheme（画布元素填充/描边/文字热切换，不落 XML）
  * - DRD 图/XML 视图切换是示例自有的卡片组件（components/XmlViewCard.vue），
  *   只消费组件包公开 API（saveXML/importXML）
  */
-import { onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import { Modeler, Viewer, NavigatedViewer } from '@kunpeng-io/dmn-js';
 import { DmnToolbarModule } from '@kunpeng-io/dmn-js-toolbar';
 import type { ToolbarActionSpec } from '@kunpeng-io/dmn-js-toolbar';
+import {
+  DmnPropertiesPanelModule,
+  DmnPropertiesProviderModule,
+  KunpengPropertiesProviderModule
+} from '@kunpeng-io/dmn-js-properties-panel';
+import gridModule from 'diagram-js-grid';
 import { sampleDmn } from './dmn-template';
 import XmlViewCard from './components/XmlViewCard.vue';
 
 const canvasHost = ref<HTMLDivElement>();
+const panelHost = ref<HTMLDivElement>();
 const fileInput = ref<HTMLInputElement>();
 const xmlCard = ref<InstanceType<typeof XmlViewCard>>();
 
@@ -32,20 +45,36 @@ const modeler = shallowRef<Modeler | null>(null);
 const view = ref<'diagram' | 'xml'>('diagram');
 const dark = ref(false);
 
+// ---------- 属性面板（编辑态右侧列，bar 槽开关） ----------
+
+const panelOpen = ref(true);
+/** 面板可见 = 编辑形态 + DRD 视图 + 未收起（XML 视图面板无意义，随视图隐藏） */
+const panelVisible = computed(() => form.value === 'edit' && view.value === 'diagram' && panelOpen.value);
+
 /** 渲染缺省主题（不落 XML：仅缺省渲染色——setTheme 为合并语义，两向都给全量值） */
 const RENDERER_THEMES = {
   light: { defaultStrokeColor: '#000000', defaultFillColor: '#ffffff', labelColor: '#000000' },
   dark: { defaultStrokeColor: '#d6d6da', defaultFillColor: '#26262a', labelColor: '#d6d6da' }
 } as const;
 
+/** 编辑态独有模块：网格背景 + 属性面板三模块（渲染基座 + 通用组 + kunpeng 组） */
+function editorModules() {
+  return [gridModule, DmnPropertiesPanelModule, DmnPropertiesProviderModule, KunpengPropertiesProviderModule];
+}
+
 /** 按形态建实例（对齐 bpmn-example）：编辑=Modeler / 导航=NavigatedViewer /
- * 预览=Viewer；工具栏三形态通用装配，主题 config 恒带（重建后无需再 setTheme） */
+ * 预览=Viewer；工具栏三形态通用装配，主题 config 恒带（重建后无需再 setTheme）；
+ * 编辑态另挂网格 + 属性面板（parent 容器注入，渲染器 import.done 时自行挂载） */
 function createInstance(formKind: 'edit' | 'navigated' | 'view'): Modeler {
-  return formKind === 'edit'
-    ? new Modeler({ ...instanceBase() })
-    : formKind === 'navigated'
-      ? new NavigatedViewer({ ...instanceBase() })
-      : new Viewer({ ...instanceBase() });
+  const base = instanceBase();
+  if (formKind !== 'edit') {
+    return formKind === 'navigated' ? new NavigatedViewer(base) : new Viewer(base);
+  }
+  return new Modeler({
+    ...base,
+    additionalModules: [...base.additionalModules, ...editorModules()],
+    propertiesPanel: { parent: panelHost.value! }
+  });
 }
 
 function instanceBase() {
@@ -115,6 +144,10 @@ const ICON_VIEW = actionSvg('<path d="M8 12v24M8 24h18m0-12v24" /><path d="M38 2
 const ICON_DARK = actionSvg(
   '<path d="M24 8a16 16 0 1 0 0 32 16 16 0 0 0 0-32Z" />' +
   '<path d="M24 8a16 16 0 0 1 0 32Z" fill="currentColor" stroke="none" />'
+);
+const ICON_PANEL = actionSvg(
+  '<path d="M8 6h32a2 2 0 0 1 2 2v32a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" />' +
+  '<path d="M30 6v36" /><path d="M14 16h8m-8 8h8m-8 8h8" />'
 );
 
 /** 形态菜单（编辑 / 导航 / 预览；工具栏不承载形态切换） */
@@ -258,14 +291,27 @@ async function runRoundTrip(): Promise<void> {
     <div
       ref="canvasHost"
       class="canvas-host"
-      :class="{ 'canvas-host--xml': view === 'xml' }"
+      :class="{ 'canvas-host--with-panel': panelVisible, 'canvas-host--xml': view === 'xml' }"
     ></div>
+
+    <!-- 属性面板宿主（右侧列，编辑态）：面板模块自行挂载（import.done 时 attach），
+         形态/视图切换面板隐藏但容器常驻（v-show，重建实例仍可注入） -->
+    <aside v-show="panelVisible" ref="panelHost" class="properties-host"></aside>
 
     <!-- 卡片内容区·XML 侧 + 顶部标题栏：右区 bar 槽位挂宿主动作钮（暗色，
          切换器左侧） -->
     <XmlViewCard ref="xmlCard" v-model:view="view" :get-modeler="() => modeler">
       <template #bar>
         <div class="bar-app-actions">
+          <button
+            class="bar-icon-btn"
+            :class="{ active: panelVisible }"
+            title="属性面板"
+            aria-label="属性面板"
+            @click="panelOpen = !panelOpen"
+          >
+            <span class="bar-icon" v-html="ICON_PANEL"></span>
+          </button>
           <button
             class="bar-icon-btn"
             :class="{ active: dark }"
@@ -290,13 +336,32 @@ async function runRoundTrip(): Promise<void> {
   height: 100vh;
 }
 
-/* 画布从顶部标题栏（36px）以下开始铺满 */
+/* 画布从顶部标题栏（36px）以下开始铺满；面板可见时右缘让出面板列 */
 .canvas-host {
   position: absolute;
   top: 36px;
   left: 0;
   right: 0;
   bottom: 0;
+  transition: right 0.15s ease-out;
+}
+
+.canvas-host--with-panel {
+  right: 340px;
+}
+
+/* 属性面板列：面板基座自带滚动与内部观感（bio-properties-panel-container），
+   这里只管定位与暗色边框令牌 */
+.properties-host {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  bottom: 0;
+  width: 340px;
+  border-left: 1px solid var(--x-border, #e8e8e8);
+  background: var(--x-surface, #fff);
+  z-index: 5;
+  overflow: hidden;
 }
 
 /* 实例形态菜单（标题栏左区，与 XmlViewCard 标题栏同层叠放） */
@@ -481,6 +546,26 @@ async function runRoundTrip(): Promise<void> {
   color-scheme: dark;
   --x-surface: #212124;
   --x-border: #3a3a40;
+}
+
+/* 属性面板暗色：令牌覆盖在消费根（.bio-properties-panel）上（与 bpmn-example
+   同款写法）；面板头部图标的白色内底换面板表面色 */
+.dark .bio-properties-panel-header-type-icon svg [fill='#ffffff'] {
+  fill: hsl(228, 6%, 13%);
+}
+
+.dark .bio-properties-panel {
+  --color-white: hsl(228, 6%, 13%);
+  --color-grey-225-10-97: hsl(228, 6%, 11%);
+  --color-grey-225-10-95: hsl(228, 6%, 15%);
+  --color-grey-225-10-85: hsl(228, 6%, 22%);
+  --color-grey-225-10-75: hsl(228, 6%, 30%);
+  --color-grey-225-10-55: hsl(0, 0%, 58%);
+  --color-grey-225-10-35: hsl(0, 0%, 72%);
+  --color-grey-225-10-15: hsl(0, 0%, 90%);
+  --color-blue-205-100-50: hsl(205, 100%, 65%);
+  --color-red-360-100-92: hsl(360, 30%, 26%);
+  --color-red-360-100-97: hsl(360, 30%, 18%);
 }
 
 .dark body,

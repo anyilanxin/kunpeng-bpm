@@ -255,6 +255,9 @@ importers:
       diagram-js:
         specifier: 'catalog:'
         version: 15.28.1
+      diagram-js-grid:
+        specifier: 'catalog:'
+        version: 2.1.0
       vue:
         specifier: 'catalog:'
         version: 3.5.44(typescript@5.9.3)

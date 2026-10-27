@@ -14,3 +14,9 @@ declare module '@kunpeng-io/dmn-js-properties-panel' {
   export const KunpengTooltipProvider: any;
   export const useService: any;
 }
+
+// 上游 diagram-js-grid（JS 源码包，无类型声明）：背景网格模块直插 additionalModules
+declare module 'diagram-js-grid' {
+  const gridModule: any;
+  export default gridModule;
+}
