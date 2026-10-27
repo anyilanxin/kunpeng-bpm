@@ -518,6 +518,7 @@
 }
 .dmn-table th,
 .dmn-table td {
+  box-sizing: border-box;
   border: 1px solid #d4d8de;
   padding: 4px 8px;
   vertical-align: top;
@@ -666,6 +667,27 @@ select.dmn-table-edit {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+/* 列宽拖拽手柄：骑列界线（表头行各格右缘 ±4px），拖拽调左列宽、右邻互补 */
+.dmn-table-colresize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -4px;
+  width: 8px;
+  cursor: col-resize;
+  z-index: 4;
+}
+.dmn-table-colresize:hover,
+.dmn-table-colresize.is-active {
+  background: rgb(20 97 201 / 30%);
+}
+.dmn-table--resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+.dmn-table-colrow .dmn-table-rownum {
+  position: relative;
 }
 /* 非表视图内边距容器（内容区零留白留给决策表全幅贴边） */
 .dmn-editor-pad {

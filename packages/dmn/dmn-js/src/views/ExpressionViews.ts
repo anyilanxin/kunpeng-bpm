@@ -249,12 +249,101 @@ function renderDecisionTable(body: HTMLElement, table: any, deps: EditorDeps, re
   addRow.append(fill);
 
   body.append(tableEl);
-  // 钉列宽（渲染时按内容冻结 px）：编辑控件为出流浮层 + 列宽钉死，
-  // 进入/退出编辑表格几何零变化（点击编辑不再引起整表抖动）
-  const pinnedRow = tableEl.rows[0];
-  for (const cell of Array.from(pinnedRow.cells)) {
-    cell.style.width = `${cell.offsetWidth}px`;
-  }
+  // 钉列宽（首渲按内容测量，此后冻结 px + fixed 布局）：编辑控件为出流浮层 +
+  // 列宽钉死，进入/退出编辑表格几何零变化（点击编辑不再引起整表抖动）；
+  // 每条列界线挂拖拽手柄（列宽手动可调，WeakMap 按 bo 记忆跨 rerender）
+  pinColumnWidths(tableEl, [
+    ROWNUM_COL_KEY,
+    ...columnKeys(inputs, EMPTY_INPUT_COL_KEY),
+    ...columnKeys(outputs, EMPTY_OUTPUT_COL_KEY),
+    ...columnKeys(annotations, EMPTY_ANN_COL_KEY)
+  ]);
+}
+
+// ---- 列宽管理：钉宽 + 边线拖拽 ----
+/** 列宽记忆（WeakMap 按 bo 弱引用：rerender 重建表格后手动调宽不丢，bo 回收不泄漏） */
+const COL_WIDTHS = new WeakMap<object, number>();
+const ROWNUM_COL_KEY: object = { col: 'rownum' };
+const EMPTY_INPUT_COL_KEY: object = { col: 'empty-input' };
+const EMPTY_OUTPUT_COL_KEY: object = { col: 'empty-output' };
+const EMPTY_ANN_COL_KEY: object = { col: 'empty-ann' };
+/** 拖拽下限：内容再多也不许压破（占位列首宽 140、行号列 36 取孰小） */
+const MIN_COL_WIDTH = 40;
+
+function columnKeys(clauses: any[], emptyKey: object): object[] {
+  return clauses.length > 0 ? clauses : [emptyKey];
+}
+
+/** 钉列宽：首渲测量（或取记忆值）→ 显式 px + fixed 布局，列宽全受控；逐格挂边线拖拽手柄 */
+function pinColumnWidths(tableEl: HTMLTableElement, keys: object[]): void {
+  const cells = Array.from(tableEl.rows[0].cells);
+  let total = 0;
+  cells.forEach((cell, i) => {
+    const width = COL_WIDTHS.get(keys[i]) ?? cell.offsetWidth;
+    COL_WIDTHS.set(keys[i], width);
+    cell.style.width = `${width}px`;
+    cell.style.minWidth = '0px';
+    attachColumnResize(tableEl, cell, cells[i + 1] ?? null, keys[i], keys[i + 1] ?? null);
+    total += width;
+  });
+  tableEl.style.width = `${total}px`;
+  tableEl.style.tableLayout = 'fixed';
+}
+
+function applyColumnWidth(cell: HTMLTableCellElement, key: object, width: number): void {
+  const w = Math.round(width);
+  cell.style.width = `${w}px`;
+  COL_WIDTHS.set(key, w);
+}
+
+/** 列界线拖拽手柄：拖左列宽、右邻互补（表总宽不变）；末列无边线互补，总宽随动 */
+function attachColumnResize(
+  tableEl: HTMLTableElement,
+  cell: HTMLTableCellElement,
+  next: HTMLTableCellElement | null,
+  key: object,
+  nextKey: object | null
+): void {
+  const handle = document.createElement('div');
+  handle.className = 'dmn-table-colresize';
+  handle.title = '拖拽调整列宽';
+  cell.append(handle);
+  handle.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const startX = e.clientX;
+    const wA = cell.offsetWidth;
+    const wB = next ? next.offsetWidth : 0;
+    const minA = Math.min(MIN_COL_WIDTH, wA);
+    const minB = next ? Math.min(MIN_COL_WIDTH, wB) : 0;
+    handle.setPointerCapture(e.pointerId);
+    handle.classList.add('is-active');
+    tableEl.classList.add('dmn-table--resizing');
+    const retotal = () => {
+      tableEl.style.width = `${Array.from(tableEl.rows[0].cells).reduce((s, c) => s + c.offsetWidth, 0)}px`;
+    };
+    const onMove = (ev: PointerEvent) => {
+      const delta = ev.clientX - startX;
+      let newA = wA + delta;
+      if (next) {
+        newA = Math.min(Math.max(newA, minA), wA + wB - minB);
+      } else {
+        newA = Math.max(newA, minA);
+      }
+      applyColumnWidth(cell, key, newA);
+      if (next) applyColumnWidth(next, nextKey!, wA + wB - newA);
+      retotal();
+    };
+    const onDone = () => {
+      ac.abort();
+      handle.classList.remove('is-active');
+      tableEl.classList.remove('dmn-table--resizing');
+    };
+    const ac = new AbortController();
+    handle.addEventListener('pointermove', onMove, { signal: ac.signal });
+    handle.addEventListener('pointerup', onDone, { signal: ac.signal });
+    handle.addEventListener('pointercancel', onDone, { signal: ac.signal });
+  });
 }
 
 /** 族界加列钮：深蓝圆形 ⊕，绝对定位骑族尾列表头格右缘缝（宿主格 position:relative），与标题同行 */
