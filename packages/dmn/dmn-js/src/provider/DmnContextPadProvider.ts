@@ -76,7 +76,7 @@ export class DmnContextPadProvider {
     if (isExpressionCarrier) {
       entries.switchExpression = {
         group: 'model',
-        html: toolEntryHtml(element.businessObject?.$type === 'dmn:BusinessKnowledgeModel' ? 'business-knowledge' : 'decision'),
+        html: toolEntryHtml('wrench'),
         title: t('切换表达式'),
         action: {
           click: (event: Event, _e: unknown) =>

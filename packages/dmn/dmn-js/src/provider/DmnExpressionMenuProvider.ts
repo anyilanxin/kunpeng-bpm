@@ -29,8 +29,20 @@
 import type PopupMenu from 'diagram-js/lib/features/popup-menu/PopupMenu';
 import type { DmnModeling } from '../command/DmnModeling';
 import { bkmExpressionMode, decisionExpressionMode } from '../meta/ElementTypes';
+import { dmnIconBody } from '../icons/DmnIconSet';
 
 export const EXPRESSION_MENU_ID = 'dmn-expression-mode';
+
+/** 弹框条目内联图标（截图定规：Empty=✕、Literal={}、Decision table=网格） */
+function entryIcon(kind: 'empty' | 'literal' | 'table'): string {
+  if (kind === 'empty') {
+    return '<svg viewBox="0 0 32 32" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M8 8 L24 24 M24 8 L8 24" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>';
+  }
+  if (kind === 'literal') {
+    return '<svg viewBox="0 0 32 32" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 6 C6 6 6 10 6 12 C6 15 4 16 3 16 C4 16 6 17 6 20 C6 22 6 26 10 26 M22 6 C26 6 26 10 26 12 C26 15 28 16 29 16 C28 16 26 17 26 20 C26 22 26 26 22 26"/></svg>';
+  }
+  return `<svg viewBox="0 0 32 32" width="20" height="20" fill="currentColor" aria-hidden="true"><g transform="scale(${20 / 32})">${dmnIconBody('drd')}</g></svg>`;
+}
 
 export class DmnExpressionMenuProvider {
   static $inject = ['popupMenu', 'modeling', 'dmnI18n'];
@@ -56,12 +68,14 @@ export class DmnExpressionMenuProvider {
         literal: {
           label: t('Literal expression'),
           className: 'dmn-expression-entry-literal',
+          imageHtml: entryIcon('literal'),
           disabled: current === 'literal',
           action: to('literal')
         },
         empty: {
           label: t('Empty'),
           className: 'dmn-expression-entry-empty',
+          imageHtml: entryIcon('empty'),
           disabled: current === 'empty',
           action: to('empty')
         }
@@ -75,18 +89,21 @@ export class DmnExpressionMenuProvider {
       table: {
         label: t('Decision table'),
         className: 'dmn-expression-entry-table',
+        imageHtml: entryIcon('table'),
         disabled: current === 'table',
         action: to('table')
       },
       literal: {
         label: t('Literal expression'),
         className: 'dmn-expression-entry-literal',
+        imageHtml: entryIcon('literal'),
         disabled: current === 'literal',
         action: to('literal')
       },
       empty: {
         label: t('Empty'),
         className: 'dmn-expression-entry-empty',
+        imageHtml: entryIcon('empty'),
         disabled: current === 'empty',
         action: to('empty')
       }
