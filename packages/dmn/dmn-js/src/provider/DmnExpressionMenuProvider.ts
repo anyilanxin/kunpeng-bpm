@@ -20,16 +20,17 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * BKM 表达式切换弹框（用户定规 2026-10-26）：context pad「切换表达式」钮
- * 打开，两选项 Literal expression / Empty（当前模式置灰，家族替换菜单惯例）；
- * Empty=不可下钻（左上角无角标）。切走走 modeling.switchBkmExpression
- * （命令栈可撤销，element.changed 令角标即时增删）。
+ * 表达式切换弹框（用户定规 2026-10-27）：context pad「切换表达式」钮打开；
+ * 当前项置灰（家族替换菜单惯例）。
+ * - BKM：Literal expression / Empty（Empty=无下钻角标）
+ * - Decision：Decision table / Literal expression / Empty（Empty=无下钻角标）
+ * 切换走 modeling.switch*（命令栈可撤销，element.changed 令角标即时增删）。
  */
 import type PopupMenu from 'diagram-js/lib/features/popup-menu/PopupMenu';
 import type { DmnModeling } from '../command/DmnModeling';
-import { bkmExpressionMode } from '../meta/ElementTypes';
+import { bkmExpressionMode, decisionExpressionMode } from '../meta/ElementTypes';
 
-export const EXPRESSION_MENU_ID = 'dmn-bkm-expression';
+export const EXPRESSION_MENU_ID = 'dmn-expression-mode';
 
 export class DmnExpressionMenuProvider {
   static $inject = ['popupMenu', 'modeling', 'dmnI18n'];
@@ -46,20 +47,48 @@ export class DmnExpressionMenuProvider {
 
   getPopupMenuEntries(target: any): Record<string, unknown> {
     const t = this.i18n.t.bind(this.i18n);
-    const current = bkmExpressionMode(target.businessObject);
-    const switchTo = (mode: 'literal' | 'empty') => () => this.modeling.switchBkmExpression(target, mode);
+    const type = target?.businessObject?.$type;
+
+    if (type === 'dmn:BusinessKnowledgeModel') {
+      const current = bkmExpressionMode(target.businessObject);
+      const to = (mode: 'literal' | 'empty') => () => this.modeling.switchBkmExpression(target, mode);
+      return {
+        literal: {
+          label: t('Literal expression'),
+          className: 'dmn-expression-entry-literal',
+          disabled: current === 'literal',
+          action: to('literal')
+        },
+        empty: {
+          label: t('Empty'),
+          className: 'dmn-expression-entry-empty',
+          disabled: current === 'empty',
+          action: to('empty')
+        }
+      };
+    }
+
+    // Decision（三态：Decision table / Literal expression / Empty）
+    const current = decisionExpressionMode(target.businessObject);
+    const to = (mode: 'table' | 'literal' | 'empty') => () => this.modeling.switchDecisionExpression(target, mode);
     return {
+      table: {
+        label: t('Decision table'),
+        className: 'dmn-expression-entry-table',
+        disabled: current === 'table',
+        action: to('table')
+      },
       literal: {
         label: t('Literal expression'),
         className: 'dmn-expression-entry-literal',
         disabled: current === 'literal',
-        action: switchTo('literal')
+        action: to('literal')
       },
       empty: {
         label: t('Empty'),
         className: 'dmn-expression-entry-empty',
         disabled: current === 'empty',
-        action: switchTo('empty')
+        action: to('empty')
       }
     };
   }

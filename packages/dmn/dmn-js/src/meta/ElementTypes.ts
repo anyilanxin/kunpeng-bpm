@@ -208,10 +208,21 @@ export function bkmExpressionMode(bo: any): BkmExpressionMode {
   return bo?.encapsulatedLogic ? 'literal' : 'empty';
 }
 
+/** Decision 表达式模式（用户定规 2026-10-27）：decisionLogic 形态判定，Empty=无下钻 */
+export type DecisionExpressionMode = 'table' | 'literal' | 'empty';
+
+export function decisionExpressionMode(bo: any): DecisionExpressionMode {
+  const logic = bo?.decisionLogic;
+  if (!logic) return 'empty';
+  return logic.$type === 'dmn:DecisionTable' ? 'table'
+    : logic.$type === 'dmn:LiteralExpression' ? 'literal'
+      : 'table'; // 其余形态（Context/List/Invocation/Relation）按表族呈现（占位编辑器）
+}
+
 /**
  * 下钻判定（用户定规：唯一区别在图标——可下钻=角标图标（按内容型），
- * Empty=无角标）：注册表 drillable 为前提；Decision 恒可下钻（点击落
- * 决策表，G5）；BKM 仅 Literal expression 模式可下钻，Empty 无角标。
+ * Empty=无角标）：注册表 drillable 为前提；Decision/BKM 均需表达式在
+ * （Decision=decisionLogic、BKM=encapsulatedLogic），Empty 无角标。
  */
 export function isDrillableElement(element: any): boolean {
   const type = element?.businessObject?.$type ?? element?.type;
@@ -219,8 +230,12 @@ export function isDrillableElement(element: any): boolean {
   if (!meta?.drillable) {
     return false;
   }
+  const bo = element.businessObject;
   if (meta.type === 'dmn:BusinessKnowledgeModel') {
-    return bkmExpressionMode(element.businessObject) === 'literal';
+    return bkmExpressionMode(bo) === 'literal';
+  }
+  if (meta.type === 'dmn:Decision') {
+    return decisionExpressionMode(bo) !== 'empty';
   }
   return true;
 }

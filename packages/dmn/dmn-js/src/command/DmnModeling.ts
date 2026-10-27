@@ -104,4 +104,25 @@ export class DmnModeling extends Modeling {
       properties: { encapsulatedLogic: value }
     });
   }
+
+  /**
+   * Decision 表达式模式切换（用户定规 2026-10-27：Decision table / Literal
+   * expression / Empty 三态，Empty=无下钻角标）：决策表/字面建 decisionLogic
+   * 对应形态，Empty 置 undefined（moddle set 语义=删键）。经
+   * updateModdleProperties 命令入栈（撤销/重做对称，elements.changed 令角标重算）。
+   */
+  switchDecisionExpression(element: any, mode: 'table' | 'literal' | 'empty'): void {
+    const bo = element.businessObject;
+    const value =
+      mode === 'table'
+        ? this.dmnFactory.create<any>({ $type: 'dmn:DecisionTable', hitPolicy: 'UNIQUE' })
+        : mode === 'literal'
+          ? this.dmnFactory.create<any>({ $type: 'dmn:LiteralExpression', text: '' })
+          : undefined;
+    this.commandStack.execute('element.updateModdleProperties', {
+      element,
+      moddleElement: bo,
+      properties: { decisionLogic: value }
+    });
+  }
 }
