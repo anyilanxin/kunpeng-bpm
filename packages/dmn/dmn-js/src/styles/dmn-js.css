@@ -619,6 +619,9 @@
   font-family: 'Arial', 'Helvetica Neue', Helvetica, 'PingFang SC', sans-serif;
   font-size: 14px;
   color: var(--dmn-text);
+  /* 决策表与编辑器边缘的呼吸边距（2026-10-28 用户定规左右各 10px）；
+     字面/Boxed 视图边距走各自的 dmn-editor-pad，不在此列 */
+  padding: 0 10px;
 }
 .dmn-decision-editor {
   display: flex;
