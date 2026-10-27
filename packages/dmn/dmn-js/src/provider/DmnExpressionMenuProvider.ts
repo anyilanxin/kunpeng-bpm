@@ -21,7 +21,7 @@
  */
 /**
  * 表达式切换弹框（用户定规 2026-10-27）：context pad「切换表达式」钮打开；
- * 当前项置灰（家族替换菜单惯例）。
+ * **弹框只列可切目标**（当前项不出现——当前处理 a 时只列 b/c，家族替换菜单惯例）。
  * - BKM：Literal expression / Empty（Empty=无下钻角标）
  * - Decision：Decision table / Literal expression / Empty（Empty=无下钻角标）
  * 切换走 modeling.switch*（命令栈可撤销，element.changed 令角标即时增删）。
@@ -64,49 +64,54 @@ export class DmnExpressionMenuProvider {
     if (type === 'dmn:BusinessKnowledgeModel') {
       const current = bkmExpressionMode(target.businessObject);
       const to = (mode: 'literal' | 'empty') => () => this.modeling.switchBkmExpression(target, mode);
-      return {
-        literal: {
+      const entries: Record<string, unknown> = {};
+      if (current !== 'literal') {
+        entries.literal = {
           label: t('Literal expression'),
           className: 'dmn-expression-entry-literal',
           imageHtml: entryIcon('literal'),
-          disabled: current === 'literal',
           action: to('literal')
-        },
-        empty: {
+        };
+      }
+      if (current !== 'empty') {
+        entries.empty = {
           label: t('Empty'),
           className: 'dmn-expression-entry-empty',
           imageHtml: entryIcon('empty'),
-          disabled: current === 'empty',
           action: to('empty')
-        }
-      };
+        };
+      }
+      return entries;
     }
 
-    // Decision（三态：Decision table / Literal expression / Empty）
+    // Decision（三态：Decision table / Literal expression / Empty）——当前项不列（弹框只列可切目标）
     const current = decisionExpressionMode(target.businessObject);
     const to = (mode: 'table' | 'literal' | 'empty') => () => this.modeling.switchDecisionExpression(target, mode);
-    return {
-      table: {
+    const entries: Record<string, unknown> = {};
+    if (current !== 'table') {
+      entries.table = {
         label: t('Decision table'),
         className: 'dmn-expression-entry-table',
         imageHtml: entryIcon('table'),
-        disabled: current === 'table',
         action: to('table')
-      },
-      literal: {
+      };
+    }
+    if (current !== 'literal') {
+      entries.literal = {
         label: t('Literal expression'),
         className: 'dmn-expression-entry-literal',
         imageHtml: entryIcon('literal'),
-        disabled: current === 'literal',
         action: to('literal')
-      },
-      empty: {
+      };
+    }
+    if (current !== 'empty') {
+      entries.empty = {
         label: t('Empty'),
         className: 'dmn-expression-entry-empty',
         imageHtml: entryIcon('empty'),
-        disabled: current === 'empty',
         action: to('empty')
-      }
-    };
+      };
+    }
+    return entries;
   }
 }
