@@ -40,7 +40,7 @@ const CREATE_ENTRIES: Array<{ type: string; label: string; icon: ToolIconName }>
 ];
 
 export class DmnPaletteProvider implements PaletteProvider {
-  static $inject = ['palette', 'create', 'elementFactory', 'dmnI18n'];
+  static $inject = ['palette', 'create', 'elementFactory', 'dmnI18n', 'handTool', 'lassoTool'];
 
   static readonly PRIORITY = 1000;
 
@@ -48,7 +48,9 @@ export class DmnPaletteProvider implements PaletteProvider {
     palette: Palette,
     private readonly create: Create,
     private readonly elementFactory: DmnElementFactory & ElementFactory,
-    private readonly i18n: { t(s: string): string }
+    private readonly i18n: { t(s: string): string },
+    private readonly handTool: any,
+    private readonly lassoTool: any
   ) {
     palette.registerProvider(DmnPaletteProvider.PRIORITY, this as unknown as PaletteProvider);
   }
@@ -56,19 +58,28 @@ export class DmnPaletteProvider implements PaletteProvider {
   getPaletteEntries(): Record<string, any> {
     const t = this.i18n.t.bind(this.i18n);
     // 条目 html 一律走 entryShell（.entry 包装是基座 palette 布局/交互样式的
-    // 挂载点，裸 html 根没有 entry 类 → 尺寸/悬停/拖拽态全失）
+    // 挂载点，裸 html 根没有 entry 类 → 尺寸/悬停/拖拽态全失）；
+    // action 必须是函数——diagram-js Palette 只回调函数，字符串是死写
+    // （抓手/套索点击无反应的总根源，2026-10-28 修）
     const entries: Record<string, any> = {
       'tool-hand': {
         group: 'tools',
-        title: t('抓手'),
+        title: t('抓手工具（按住拖动画布）'),
         html: toolEntryHtml('hand', 22),
-        action: { click: 'activateHandTool' }
+        action: {
+          click: (event: any) => this.handTool.activateHand(event)
+        }
       },
       'tool-lasso': {
         group: 'tools',
-        title: t('套索'),
+        title: t('套索工具（框选）'),
         html: toolEntryHtml('lasso', 22),
-        action: { click: 'activateLassoTool' }
+        action: {
+          // activateSelection（两段式武装 lasso.selection 前缀）在 diagram-js 15
+          // 无圈选处理者=框选落空；activateLasso(autoActivate=false)=武装单段
+          // lasso 工具，画布下次按下拖拽即框选（自带视觉+end 圈人+不再武装）
+          click: (event: any) => this.lassoTool.activateLasso(event, false)
+        }
       }
     };
     for (const item of CREATE_ENTRIES) {

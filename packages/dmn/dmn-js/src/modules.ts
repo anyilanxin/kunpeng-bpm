@@ -187,9 +187,9 @@ export const DmnModelingModule: ModuleDeclaration = {
   'dmnUpdater': ['type', DmnUpdater]
 };
 
-/** palette / context pad / 弹框（DMN 元数据） */
+/** palette / context pad / 弹框（DMN 元数据）；抓手/套索工具基座自包含（palette 工具钮） */
 export const DmnPaletteModule: ModuleDeclaration = {
-  __depends__: [PaletteModule, ContextPadModule, PopupMenuModule, CreateModule, ConnectModule, DmnModelingModule],
+  __depends__: [PaletteModule, ContextPadModule, PopupMenuModule, CreateModule, ConnectModule, DmnModelingModule, HandToolModule, LassoToolModule],
   __init__: ['dmnPaletteProvider', 'dmnContextPadProvider', 'dmnExpressionMenuProvider'],
   'dmnPaletteProvider': ['type', DmnPaletteProvider],
   'dmnContextPadProvider': ['type', DmnContextPadProvider],

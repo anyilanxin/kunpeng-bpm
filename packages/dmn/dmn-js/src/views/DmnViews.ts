@@ -44,19 +44,24 @@ export interface ViewProvider {
 }
 
 export class DmnViews {
-  static $inject = ['eventBus', 'canvas', 'dmnFactory', 'modeling'];
+  static $inject = ['eventBus', 'canvas', 'dmnFactory', 'injector'];
 
   private layer: HTMLElement | null = null;
   private currentElement: any = null;
   private chrome: OverviewChrome | null = null;
   private providers: ViewProvider[] = [];
+  private readonly modeling: DmnModeling | null;
 
   constructor(
     private readonly eventBus: EventBus,
     private readonly canvas: Canvas,
     private readonly factory: DmnFactory,
-    private readonly modeling: DmnModeling
+    injector: any
   ) {
+    // 非严格解析：Viewer/NavigatedViewer 只读底座无 modeling（编辑服务不进
+    // 注入器）——三视图提供者在只读形态构造时 ctx.modeling 为 null；只读
+    // 形态角标被预览样式隐藏（不可下钻），null 不会被消费
+    this.modeling = injector.get('modeling', false);
     this.eventBus.on('dmn.destroy', () => this.teardown());
   }
 
@@ -80,7 +85,7 @@ export class DmnViews {
     provider.open(element, {
       views: this,
       factory: this.factory,
-      modeling: this.modeling,
+      modeling: this.modeling as DmnModeling,
       eventBus: this.eventBus
     });
     return true;

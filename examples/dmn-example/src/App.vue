@@ -3,7 +3,7 @@
     <div class="example-header">
       <h1>@kunpeng-io/dmn-js · DRD 决策需求图</h1>
       <div class="mode-menu">
-        <button v-for="m in MODES" :key="m.id" :class="{ active: mode === m.id }" @click="switchMode(m.id)">{{ m.label }}</button>
+        <button v-for="m in FORMS" :key="m.id" :class="{ active: form === m.id }" @click="switchForm(m.id)">{{ m.label }}</button>
       </div>
       <div class="header-actions">
         <label class="action-like">
@@ -29,22 +29,25 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref, shallowRef } from 'vue';
-import { Modeler } from '@kunpeng-io/dmn-js';
-import type { ModelerMode } from '@kunpeng-io/dmn-js';
+import { nextTick, onMounted, onBeforeUnmount, ref, shallowRef } from 'vue';
+import { Modeler, Viewer, NavigatedViewer } from '@kunpeng-io/dmn-js';
 import { sampleDmn } from './dmn-template';
 
-const MODES: { id: ModelerMode; label: string }[] = [
+// 实例形态（对齐 bpmn-example：Modeler=编辑 / NavigatedViewer=导航 / Viewer=纯预览）。
+// 切换 = 保留当前图内容重建实例（编辑类服务不进只读底座注入器）
+const FORMS = [
   { id: 'edit', label: '编辑' },
-  { id: 'preview', label: '预览' }
-];
+  { id: 'navigated', label: '导航' },
+  { id: 'view', label: '预览' }
+] as const;
+type FormKind = (typeof FORMS)[number]['id'];
 
 const host = ref<HTMLElement | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
 // 画布元素对象不入 Vue 深层响应式（bpmn 线契约：代理会冻结 children 属性）
 const modeler = shallowRef<Modeler | null>(null);
 const status = ref<{ kind: '' | 'ok' | 'fail'; text: string }>({ kind: '', text: '骨架空图（U2-G1：fork bpmn 内核）' });
-const mode = ref<ModelerMode>('edit');
+const form = ref<FormKind>('edit');
 const view = ref<'drd' | 'xml'>('drd');
 const xmlText = ref('');
 const dark = ref(false);
@@ -56,6 +59,38 @@ const RENDERER_THEMES = {
   dark: { defaultStrokeColor: '#d6d6da', defaultFillColor: '#26262a', labelColor: '#d6d6da' }
 } as const;
 
+/** 按形态建实例（对齐 bpmn-example：编辑=Modeler / 导航=NavigatedViewer / 预览=Viewer，
+ * 主题 config 恒带——重建后无需再 setTheme） */
+function createInstance(formKind: FormKind): Modeler {
+  const base = {
+    container: host.value!,
+    dmnRenderer: { ...RENDERER_THEMES[dark.value ? 'dark' : 'light'] }
+  };
+  return formKind === 'edit'
+    ? new Modeler(base)
+    : formKind === 'navigated'
+      ? new NavigatedViewer(base)
+      : new Viewer(base);
+}
+
+function bindInstance(next: Modeler): void {
+  modeler.value = next;
+  // 浏览器验收钩子（真实 UI 路径之外的程序化探针入口）
+  (window as any).__dmn = next;
+}
+
+/** 实例形态切换：保留当前图内容重建实例（编辑类服务不进只读底座注入器） */
+async function switchForm(next: FormKind): Promise<void> {
+  if (form.value === next || !modeler.value) {
+    return;
+  }
+  const { xml } = await modeler.value.saveXML();
+  modeler.value.destroy();
+  bindInstance(createInstance(next));
+  form.value = next;
+  await modeler.value.importXML(xml);
+}
+
 /** 暗色切换（标题栏钮）三合一：宿主壳层令牌（example-shell.dark）+ html.dark
  * 作用域（内核 --dmn- 与 --bio- 令牌）+ dmnRenderer.setTheme（画布元素填充/描边/文字热切换） */
 function toggleDark(): void {
@@ -65,27 +100,18 @@ function toggleDark(): void {
 }
 
 onMounted(async () => {
-  const instance = new Modeler({
-    container: host.value!,
-    // 按当前主题给渲染缺省（实例重建后无需再 setTheme）
-    dmnRenderer: { ...RENDERER_THEMES[dark.value ? 'dark' : 'light'] }
-  });
-  modeler.value = instance;
-  // 浏览器验收钩子（真实 UI 路径之外的程序化探针入口）
-  (window as any).__dmn = instance;
+  bindInstance(createInstance('edit'));
   try {
-    const { warnings } = await instance.importXML(sampleDmn);
+    const { warnings } = await modeler.value!.importXML(sampleDmn);
     status.value = { kind: warnings.length ? 'fail' : 'ok', text: warnings.length ? `导入告警 ${warnings.length} 条` : '样例导入成功（U2 域层）' };
   } catch (error) {
     status.value = { kind: 'fail', text: `导入失败：${(error as Error).message}` };
   }
 });
 
-function switchMode(next: ModelerMode) {
-  if (mode.value === next) return;
-  mode.value = next;
-  modeler.value!.setMode(next);
-}
+onBeforeUnmount(() => {
+  modeler.value?.destroy();
+});
 
 async function toggleView() {
   if (view.value === 'drd') {
