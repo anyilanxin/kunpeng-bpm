@@ -84,6 +84,7 @@ import { DmnExpressionMenuProvider } from './provider/DmnExpressionMenuProvider'
 import { DrillViewService } from './drill/DrillView';
 import { DrillBadgeBehavior } from './drill/DrillBadge';
 import { DmnViews } from './views/DmnViews';
+import { DmnDecisionTableModule, DmnLiteralViewModule, DmnBoxedViewModule } from './views/DmnViewModules';
 
 /** 只读查看平台特性（Viewer 底座） */
 export const ViewerPlatformModules: ModuleDeclaration[] = [
@@ -133,8 +134,11 @@ export const PlatformModules: ModuleDeclaration[] = [
   ...EditorPlatformModules
 ];
 
-/** DMN 核心：类型表/工厂/渲染/词典/模式/下钻（三形态恒装） */
+/** DMN 核心：类型表/工厂/渲染/词典/模式/下钻（三形态恒装）+ 下钻视图三模块
+ * （2026-10-27 用户裁定恒装：决策表/字面/boxed 各为内部插件模块，经
+ * __depends__ 装配，DmnViews 注册表承接分派） */
 export const DmnCoreModule: ModuleDeclaration = {
+  __depends__: [DmnDecisionTableModule, DmnLiteralViewModule, DmnBoxedViewModule],
   // dmnRenderer 必须急切构造：BaseRenderer 仅在构造时向 eventBus 注册，
   // 懒构造会落到 diagram-js 的 fuchsia 兜底渲染；dmnMode 同理（首帧容器标记）；
   // drillView/drillBadge 急切（监听导入/创建时机挂角标）

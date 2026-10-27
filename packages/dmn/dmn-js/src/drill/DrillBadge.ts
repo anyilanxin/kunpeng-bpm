@@ -21,8 +21,9 @@
  */
 /**
  * 下钻角标（用户定规 2026-10-26）：可下钻元素**元素内部左上角**蓝底角标
- * （{top:4,left:4}），点击经 DmnViews 进对应编辑视图（Decision=决策表/
- * 字面、BKM=boxed 五族/字面）。Empty 模式无角标（isDrillableElement）。
+ * （{top:4,left:4}），点击经 DmnViews 视图提供者注册表进对应编辑视图
+ * （Decision=决策表/字面、BKM=boxed 五族/字面——具体分派在 DmnViewModules
+ * 各提供者 matches，角标不认识具体编辑器）。Empty 模式无角标（isDrillableElement）。
  */
 import type EventBus from 'diagram-js/lib/core/EventBus';
 import type Overlays from 'diagram-js/lib/features/overlays/Overlays';
@@ -30,9 +31,6 @@ import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
 import { isDrillableElement, shapeMetaOf } from '../meta/ElementTypes';
 import { dmnIconBody, type DmnIconName } from '../icons/DmnIconSet';
 import type { DmnViews } from '../views/DmnViews';
-import type { DmnFactory } from '../factory/DmnFactory';
-import type { DmnModeling } from '../command/DmnModeling';
-import { openDecisionEditor, openBkmEditor } from '../views/ExpressionViews';
 
 const BADGE_TYPE = 'dmn-drill-badge';
 
@@ -53,15 +51,13 @@ function badgeSvg(type: string): string {
 }
 
 export class DrillBadgeBehavior {
-  static $inject = ['eventBus', 'overlays', 'elementRegistry', 'dmnViews', 'dmnFactory', 'modeling'];
+  static $inject = ['eventBus', 'overlays', 'elementRegistry', 'dmnViews'];
 
   constructor(
-    private readonly eventBus: EventBus,
+    eventBus: EventBus,
     private readonly overlays: Overlays,
     private readonly elementRegistry: ElementRegistry,
-    private readonly views: DmnViews,
-    private readonly factory: DmnFactory,
-    private readonly modeling: DmnModeling
+    private readonly views: DmnViews
   ) {
     eventBus.on('import.done', () => {
       for (const element of this.elementRegistry.getAll()) {
@@ -99,12 +95,7 @@ export class DrillBadgeBehavior {
     button.innerHTML = badgeSvg(type);
     button.addEventListener('click', (event) => {
       event.stopPropagation();
-      const bo = element.businessObject;
-      if (bo?.$type === 'dmn:Decision') {
-        openDecisionEditor(element, { views: this.views, factory: this.factory, modeling: this.modeling, eventBus: this.eventBus });
-      } else if (bo?.$type === 'dmn:BusinessKnowledgeModel') {
-        openBkmEditor(element, { views: this.views, factory: this.factory, modeling: this.modeling, eventBus: this.eventBus });
-      }
+      this.views.openView(element);
     });
     this.overlays.add(element, BADGE_TYPE, { position: { top: 4, left: 4 }, html: button });
   }
