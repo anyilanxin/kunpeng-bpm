@@ -246,6 +246,9 @@ importers:
       '@kunpeng-io/dmn-js-properties-panel':
         specifier: workspace:*
         version: link:../../packages/dmn/dmn-js-properties-panel
+      '@kunpeng-io/dmn-js-toolbar':
+        specifier: workspace:*
+        version: link:../../packages/dmn/dmn-js-toolbar
       '@kunpeng-io/kunpeng-dmn-moddle':
         specifier: workspace:*
         version: link:../../packages/dmn/kunpeng-dmn-moddle
@@ -871,6 +874,24 @@ importers:
       vite-plugin-babel:
         specifier: 'catalog:'
         version: 1.7.3(@babel/core@7.29.7)(vite@8.3.5(esbuild@0.28.2))
+
+  packages/dmn/dmn-js-toolbar:
+    devDependencies:
+      '@kunpeng-io/dmn-js':
+        specifier: workspace:*
+        version: link:../dmn-js
+      diagram-js:
+        specifier: ^15.9.0
+        version: 15.28.1
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.5(esbuild@0.28.2)
 
   packages/dmn/kunpeng-dmn-moddle: {}
 

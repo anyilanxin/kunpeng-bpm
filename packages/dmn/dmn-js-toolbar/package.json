@@ -1,0 +1,40 @@
+{
+  "name": "@kunpeng-io/dmn-js-toolbar",
+  "version": "0.1.0",
+  "description": "DMN 建模器悬浮工具栏插件：相对画布居中，内置撤销/重做/缩放（无布局切换），宿主可注册自定义动作",
+  "license": "GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0",
+  "type": "module",
+  "main": "./dist/dmn-js-toolbar.es.js",
+  "module": "./dist/dmn-js-toolbar.es.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/dmn-js-toolbar.es.js"
+    },
+    "./styles": "./assets/dmn-js-toolbar.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "assets",
+    "LICENSE",
+    "licenses"
+  ],
+  "scripts": {
+    "build": "vite build --config vite.lib.config.ts && tsc -p tsconfig.lib.json",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@kunpeng-io/dmn-js": "workspace:*",
+    "diagram-js": "^15.9.0",
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}
