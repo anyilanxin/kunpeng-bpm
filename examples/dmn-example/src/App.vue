@@ -14,7 +14,7 @@
         <button @click="runRoundTrip">字节级往返自检</button>
         <button :class="{ active: panelOpen }" @click="panelOpen = !panelOpen">面板</button>
         <button :class="{ active: view === 'xml' }" @click="toggleView">{{ view === 'drd' ? 'XML 视图' : 'DRD 视图' }}</button>
-        <button :class="{ active: dark }" @click="dark = !dark">暗色</button>
+        <button :class="{ active: dark }" @click="toggleDark">暗色</button>
       </div>
     </div>
     <div class="example-header example-subheader">
@@ -50,8 +50,26 @@ const xmlText = ref('');
 const dark = ref(false);
 const panelOpen = ref(false);
 
+/** 渲染缺省主题（不落 XML：仅缺省渲染色——setTheme 为合并语义，两向都给全量值） */
+const RENDERER_THEMES = {
+  light: { defaultStrokeColor: '#000000', defaultFillColor: '#ffffff', labelColor: '#000000' },
+  dark: { defaultStrokeColor: '#d6d6da', defaultFillColor: '#26262a', labelColor: '#d6d6da' }
+} as const;
+
+/** 暗色切换（标题栏钮）三合一：宿主壳层令牌（example-shell.dark）+ html.dark
+ * 作用域（内核 --dmn- 与 --bio- 令牌）+ dmnRenderer.setTheme（画布元素填充/描边/文字热切换） */
+function toggleDark(): void {
+  dark.value = !dark.value;
+  document.documentElement.classList.toggle('dark', dark.value);
+  modeler.value?.get<any>('dmnRenderer').setTheme(RENDERER_THEMES[dark.value ? 'dark' : 'light']);
+}
+
 onMounted(async () => {
-  const instance = new Modeler({ container: host.value! });
+  const instance = new Modeler({
+    container: host.value!,
+    // 按当前主题给渲染缺省（实例重建后无需再 setTheme）
+    dmnRenderer: { ...RENDERER_THEMES[dark.value ? 'dark' : 'light'] }
+  });
   modeler.value = instance;
   // 浏览器验收钩子（真实 UI 路径之外的程序化探针入口）
   (window as any).__dmn = instance;
@@ -281,5 +299,36 @@ button.active,
 
 .example-shell.dark .properties-host {
   border-left-color: #3c3c3c;
+}
+
+/* 暗色下 diagram-js 通用 UI 令牌（palette/pad/弹框/直编的 --bio-* 体系：
+   容器由 Canvas 自动挂 .bio-theme-parent，:deep 穿透 scoped 命中其变量声明；
+   画布底色 --canvas-fill-color 引用 --bio-surface 随动。dmn 专属面
+   --dmn-* 令牌集由内核 dmn-js.css 自带 .dark 段承担） */
+.example-shell.dark :deep(.djs-container) {
+  --bio-surface: #26262a;
+  --bio-surface-overlay: #2e2e33;
+  --bio-surface-subtle: #2a2a2f;
+  --bio-surface-medium: #333338;
+  --bio-surface-inverted: #d6d6da;
+  --bio-surface-inverted-subtle: #a8a8b2;
+  --bio-text: #d6d6da;
+  --bio-text-subtle: #a8a8b2;
+  --bio-text-subtlest: #7f7f88;
+  --bio-text-on-inverted: #1f1f23;
+  --bio-border: #4a4a52;
+  --bio-border-disabled: #3d3d44;
+  --bio-primary: #4d8fff;
+  --bio-primary-surface: rgb(77 143 255 / 15%);
+  --bio-danger: #ff7a7a;
+  --bio-danger-surface-subtle: rgb(255 122 122 / 12%);
+  --bio-selected-surface: #333338;
+  --bio-selected-text: #d6d6da;
+  --bio-focus: #4d8fff;
+  --bio-focus-surface: rgb(77 143 255 / 20%);
+  --bio-canvas-accent: #4d8fff;
+  --bio-canvas-accent-subtle: #74a7ff;
+  --bio-shadow: rgb(0 0 0 / 50%);
+  --bio-shadow-subtle: rgb(0 0 0 / 30%);
 }
 </style>

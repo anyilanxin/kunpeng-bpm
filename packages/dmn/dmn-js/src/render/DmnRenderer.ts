@@ -66,18 +66,48 @@ const DASH_REQUIREMENT = '6 4';
 const DASH_ASSOCIATION = '4 4';
 
 export class DmnRenderer extends BaseRenderer {
-  static $inject = ['eventBus', 'textRenderer', 'config.dmnRenderer'];
+  static $inject = ['eventBus', 'textRenderer', 'config.dmnRenderer', 'elementRegistry', 'graphicsFactory'];
 
   constructor(
     eventBus: EventBus,
     private readonly textUtil: TextUtil,
-    config: DmnRendererConfig
+    config: DmnRendererConfig,
+    private readonly elementRegistry: any,
+    private readonly graphicsFactory: any
   ) {
     super(eventBus, 1500);
     this.config = { ...DEFAULT_CONFIG, ...config };
+    this.defaultTheme = Object.freeze({
+      stroke: this.config.defaultStrokeColor,
+      fill: this.config.defaultFillColor,
+      labelColor: this.config.labelColor
+    });
   }
 
-  private readonly config: Required<DmnRendererConfig>;
+  private config: Required<DmnRendererConfig>;
+
+  /** 缺省主题冻结缓存（theme() 热路径零分配） */
+  private defaultTheme: Readonly<StyleTheme>;
+
+  /**
+   * 运行期主题切换（暗色模式，对齐 bpmn 线 BpmnRenderer.setTheme 契约）：
+   * 合并覆盖缺省并全量重绘。缺省主题不写 DI/XML——导出无痕。
+   */
+  setTheme(overrides: DmnRendererConfig): void {
+    this.config = { ...this.config, ...overrides };
+    this.defaultTheme = Object.freeze({
+      stroke: this.config.defaultStrokeColor,
+      fill: this.config.defaultFillColor,
+      labelColor: this.config.labelColor
+    });
+    for (const element of this.elementRegistry.getAll()) {
+      this.graphicsFactory.update(
+        element.waypoints ? 'connection' : 'shape',
+        element,
+        this.elementRegistry.getGraphics(element)
+      );
+    }
+  }
 
   override canRender(element: any): boolean {
     const type = element.businessObject?.$type ?? element.type;
@@ -161,7 +191,7 @@ export class DmnRenderer extends BaseRenderer {
 
   override drawConnection(visuals: SVGElement, connection: any): SVGElement {
     const type = connection.businessObject?.$type ?? connection.type;
-    const stroke = this.config.defaultStrokeColor;
+    const stroke = this.theme().stroke;
     const points = connection.waypoints;
     const last = points[points.length - 1];
     const prev = points[points.length - 2] ?? last;
@@ -222,7 +252,7 @@ export class DmnRenderer extends BaseRenderer {
     const el = this.textUtil.createText(text, {
       box: { width: box.width, height: box.height } as any,
       align: align as any,
-      style: { fontFamily: 'system-ui, "PingFang SC", sans-serif', fontSize: 12, fill: this.config.labelColor },
+      style: { fontFamily: 'system-ui, "PingFang SC", sans-serif', fontSize: 12, fill: this.theme().labelColor },
       padding: 2
     });
     attr(el, { transform: `translate(${box.x} ${box.y})` });
@@ -232,12 +262,8 @@ export class DmnRenderer extends BaseRenderer {
   // 下钻角标不走渲染层：DrillBadgeBehavior 以 overlays 挂 DOM 按钮（原生
   // 点击不进画布事件链，移动/删除跟随由 Overlays 基座承担）
 
-  private theme(): StyleTheme {
-    return {
-      stroke: this.config.defaultStrokeColor,
-      fill: this.config.defaultFillColor,
-      labelColor: this.config.labelColor
-    };
+  private theme(): Readonly<StyleTheme> {
+    return this.defaultTheme;
   }
 
   /** 命中/轮廓 path：世界坐标包围盒（DMN 各形状记法差异相对包围盒让出量小，按包围盒取偏保守） */
