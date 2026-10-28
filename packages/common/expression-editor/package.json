@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/expression-editor",
-  "version": "2026.10.4",
+  "version": "2026.10.1",
   "description": "Editor for FEEL expressions.",
   "type": "module",
   "main": "./dist/index.js",

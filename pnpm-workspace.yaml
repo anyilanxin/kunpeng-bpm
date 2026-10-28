@@ -74,6 +74,7 @@ catalog:
   semver: ^7.8.5
   semver-compare: ^1.0.0
   sortablejs: ^1.15.7
+  table-js: ^9.4.0
   tiny-svg: ^4.1.4
   turbo: ^2.11.9
   typescript: ^5.9.3

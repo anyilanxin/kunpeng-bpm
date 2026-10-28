@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/element-templates-json-schema",
-  "version": "2026.10.4",
+  "version": "2026.10.1",
   "description": "JSON Schema for (Kunpeng) Element Templates",
   "keywords": [
     "json-schema",

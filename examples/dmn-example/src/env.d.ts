@@ -20,3 +20,18 @@ declare module 'diagram-js-grid' {
   const gridModule: any;
   export default gridModule;
 }
+
+// npm table-js@9.4.0（bpmn.io，无类型声明）：示例直连 dmn-js 源码编译，需自带垫片
+// （dmn-js 包内的同款垫片在 src/types/table-js.d.ts，不进示例编译单元）
+declare module 'table-js' {
+  const Table: any;
+  export default Table;
+}
+declare module 'table-js/lib/features/selection' {
+  const selectionModule: any;
+  export default selectionModule;
+}
+declare module 'table-js/lib/features/interaction-events' {
+  const interactionEventsModule: any;
+  export default interactionEventsModule;
+}

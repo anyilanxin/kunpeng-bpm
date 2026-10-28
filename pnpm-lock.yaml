@@ -159,6 +159,9 @@ catalogs:
     sortablejs:
       specifier: ^1.15.7
       version: 1.15.7
+    table-js:
+      specifier: ^9.4.0
+      version: 9.4.0
     tiny-svg:
       specifier: ^4.1.4
       version: 4.1.4
@@ -800,9 +803,6 @@ importers:
       '@kunpeng-io/kunpeng-dmn-moddle':
         specifier: workspace:*
         version: link:../kunpeng-dmn-moddle
-      '@kunpeng-io/table-js':
-        specifier: workspace:*
-        version: link:../table-js
       bpmn-moddle:
         specifier: ^10.3.1
         version: 10.3.1
@@ -845,6 +845,9 @@ importers:
       moddle-xml:
         specifier: ^12.3.1
         version: 12.3.1(moddle@8.2.1)
+      table-js:
+        specifier: 'catalog:'
+        version: 9.4.0(diagram-js@15.28.1)(inferno@5.6.3)
       tiny-svg:
         specifier: 'catalog:'
         version: 4.1.4
@@ -912,27 +915,6 @@ importers:
         version: 8.3.5(esbuild@0.28.2)
 
   packages/dmn/kunpeng-dmn-moddle: {}
-
-  packages/dmn/table-js:
-    dependencies:
-      diagram-js:
-        specifier: ^11.3.0 || ^12 || ^13 || ^14 || ^15
-        version: 15.28.1
-      didi:
-        specifier: ^12.0.0
-        version: 12.0.0
-      inferno:
-        specifier: ^5.0.5
-        version: 5.6.3
-      min-dash:
-        specifier: ^5.0.0
-        version: 5.1.0
-      min-dom:
-        specifier: ^5.3.0
-        version: 5.3.0
-      selection-ranges:
-        specifier: ^4.1.1
-        version: 4.1.1
 
   packages/form/form-js:
     devDependencies:
@@ -2175,10 +2157,6 @@ packages:
     resolution: {integrity: sha512-eEBvv5SHBhoCyDX/kOR8UozNfqEkjEXjNCTsE2vWWoxoJ5QC8KXYRTE78mrpdpvXNtSEriLhbgQdD0OkHvLFWQ==}
     engines: {node: '>= 20.12'}
 
-  didi@12.0.0:
-    resolution: {integrity: sha512-zn4AVarmnjgEHyBb3j5yc3KSMPkfkoj+D6nt8qisyvxG/NkmQuHsgQB54Wdc4tITUkJRqU1EvGuNe8RuHWIh6g==}
-    engines: {node: '>= 20.12'}
-
   dmn-moddle@12.2.1:
     resolution: {integrity: sha512-X0UmMGmF3klrDv3NPHq045InNBAE5whmK2GAmXZJ7QszsIWR2p/EHYcD4XiJSUr2n8F8VghY79yDY/eBeiAhxA==}
     engines: {node: '>= 20.12'}
@@ -2996,6 +2974,12 @@ packages:
 
   tabbable@6.5.0:
     resolution: {integrity: sha512-wieBHXygIm7OyQOu5hQlkk62/WyCFYGlWg7L6/ZCUZwx0o398Zkn4pVmMyfYhfMG8kGrj/Krt8eIk6UKC6VzwA==}
+
+  table-js@9.4.0:
+    resolution: {integrity: sha512-m7G/yfFnP2pniz+NMT9QnrYko8MUVBbWsFD+zHY808VBmVZqIHPR68VzCtvWXDF1oCLG4c96BM0nOA4ILzqK+w==}
+    peerDependencies:
+      diagram-js: ^11.3.0 || ^12 || ^13 || ^14 || ^15
+      inferno: ^5.0.5
 
   throttle-debounce@5.0.2:
     resolution: {integrity: sha512-B71/4oyj61iNH0KeCamLuE2rmKuTO5byTOSVwECM5FA7TiAiAW+UqTKZ9ERueC4qvgSttUhdmq1mXC3kJqGX7A==}
@@ -4414,8 +4398,6 @@ snapshots:
 
   didi@11.0.1: {}
 
-  didi@12.0.0: {}
-
   dmn-moddle@12.2.1:
     dependencies:
       min-dash: 5.1.0
@@ -5334,6 +5316,15 @@ snapshots:
       stable: 0.1.8
 
   tabbable@6.5.0: {}
+
+  table-js@9.4.0(diagram-js@15.28.1)(inferno@5.6.3):
+    dependencies:
+      diagram-js: 15.28.1
+      didi: 11.0.1
+      inferno: 5.6.3
+      min-dash: 5.1.0
+      min-dom: 5.3.0
+      selection-ranges: 4.1.1
 
   throttle-debounce@5.0.2: {}
 

@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/properties-panel",
-  "version": "2026.10.5",
+  "version": "2026.10.1",
   "description": "Library for creating bpmn-io properties panels.",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",

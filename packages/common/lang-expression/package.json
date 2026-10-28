@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/lang-expression",
-  "version": "2026.10.4",
+  "version": "2026.10.1",
   "description": "FEEL language support for the CodeMirror code editor",
   "scripts": {
     "build": "rimraf dist && vite build",

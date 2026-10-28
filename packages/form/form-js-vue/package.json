@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/form-js-vue",
-  "version": "0.1.0",
+  "version": "2026.10.1",
   "description": "form-js Vue 3 渲染器——消费统一设计协议，element-plus 直绑，FormEngine 为校验单一事实源",
   "license": "GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0",
   "type": "module",

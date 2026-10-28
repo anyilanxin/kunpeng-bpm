@@ -21,7 +21,8 @@
  */
 /**
  * inferno@5 / inferno-create-element@5 最小类型垫片（组件层 createElement 手写
- * vdom，宽 any）；table-js 的类型随 vendored 包 lib/*.d.ts 提供。
+ * vdom，宽 any）；npm table-js@9.4.0 不带类型声明，最小 any 垫片同置于此
+ * （Sheet/Components/EventBus 语义见上游源码快照 design-docs/code/table-js/）。
  */
 declare module 'inferno' {
   export class Component<P = any, S = any> {
@@ -32,4 +33,16 @@ declare module 'inferno' {
 }
 declare module 'inferno-create-element' {
   export function createElement(tag: any, props: any, ...children: any[]): any;
+}
+declare module 'table-js' {
+  const Table: any;
+  export default Table;
+}
+declare module 'table-js/lib/features/selection' {
+  const selectionModule: any;
+  export default selectionModule;
+}
+declare module 'table-js/lib/features/interaction-events' {
+  const interactionEventsModule: any;
+  export default interactionEventsModule;
 }

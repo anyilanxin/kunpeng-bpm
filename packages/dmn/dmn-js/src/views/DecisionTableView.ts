@@ -33,9 +33,9 @@
  * - 列宽：默认 56/192px 经 vdom 下发 + WeakMap 记忆拖拽（Excel 语义骑缝手柄）。
  */
 import { createElement } from 'inferno-create-element';
-import Table from '@kunpeng-io/table-js';
-import selectionModule from '@kunpeng-io/table-js/lib/features/selection';
-import interactionEventsModule from '@kunpeng-io/table-js/lib/features/interaction-events';
+import Table from 'table-js';
+import selectionModule from 'table-js/lib/features/selection';
+import interactionEventsModule from 'table-js/lib/features/interaction-events';
 import type { DmnFactory } from '../factory/DmnFactory';
 import type { DmnModeling } from '../command/DmnModeling';
 
