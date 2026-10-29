@@ -153,10 +153,12 @@ export class BpmnPaletteProvider {
       };
     });
 
-    // ---- "…"：全量创建弹框（画布根宿主，可视区中心落形） ----
+    // ---- "…"：全量创建弹框（画布根宿主，可视区中心落形）——三点取类型色
+    // 兜底（'*'，2026-10-29 用户定规：与类型条目同一张 iconColors 表，anyi
+    // 端即品牌蓝）；未配置表的宿主不传色，保持 currentColor ----
     entries['create-more'] = {
       group: 'more',
-      html: toolEntryHtml('more', 22),
+      html: toolEntryHtml('more', 22, this.elementTypes.iconFillOf({ type: '*' })),
       title: this.i18n.t('更多元素'),
       action: {
         click: () => this.bpmnPopup.open(

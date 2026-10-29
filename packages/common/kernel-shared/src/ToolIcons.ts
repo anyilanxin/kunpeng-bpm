@@ -31,11 +31,14 @@ import { svgShell, entryShell } from './shell';
 /**
  * 由图标体记录构造工具图标入口（18 网格）。
  * 泛型保留字面量键——toolIconHtml/toolEntryHtml 的入参类型即 bodies 的键集合。
+ * 可选 color：图标体统一以 currentColor 着色，包一层 `<g color=…>` 令其解析
+ * 到指定色（SVG color 是合法 presentation attribute，currentColor 继承之）；
+ * 不传维持宿主 CSS color 继承（悬停变色等仍由外层 CSS 接管）。
  */
 export function createToolIcons<B extends Record<string, string>>(bodies: B) {
-  const toolIconHtml = (name: keyof B & string, size = 18): string =>
-    svgShell(bodies[name], 18, size);
-  const toolEntryHtml = (name: keyof B & string, size = 18): string =>
-    entryShell(toolIconHtml(name, size));
+  const toolIconHtml = (name: keyof B & string, size = 18, color?: string): string =>
+    svgShell(color ? `<g color="${color}">${bodies[name]}</g>` : bodies[name], 18, size);
+  const toolEntryHtml = (name: keyof B & string, size = 18, color?: string): string =>
+    entryShell(toolIconHtml(name, size, color));
   return { toolIconHtml, toolEntryHtml };
 }

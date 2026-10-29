@@ -155,11 +155,12 @@ export class BpmnContextPadProvider {
       };
     }
 
-    // ---- "…"：全量追加弹框（快捷追加之外的全部可追加类型） ----
+    // ---- "…"：全量追加弹框（快捷追加之外的全部可追加类型）——三点取类型色
+    // 兜底（'*'，2026-10-29 用户定规：与 palette 三点同源同表） ----
     if (appendableFlowNode && !this.popupMenu.isEmpty(element, BpmnAppendMenuProvider.MENU_ID)) {
       entries['append-more'] = {
         group: 'append',
-        html: toolEntryHtml('more'),
+        html: toolEntryHtml('more', 18, this.elementTypes.iconFillOf({ type: '*' })),
         title: this.i18n.t('追加更多元素'),
         action: {
           click: () => this.openElementMenu(element, BpmnAppendMenuProvider.MENU_ID, '追加元素')
