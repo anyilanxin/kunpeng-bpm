@@ -687,13 +687,14 @@ export class BpmnRenderer extends BaseRenderer {
     append(visuals, l);
   }
 
-  /** 条件流：源端空心菱形标记（规范 §10.5.1）。中心距起点 4px 与默认流
-   斜杠同语言（2026-10-29 用户定规：起点处即四边形，不得有前置线段——
-   视觉参照图标集 bpmn-icon-conditional-flow 的源端菱形） */
+  /** 条件流：源端空心菱形标记（规范 §10.5.1）。中心距起点 6px——菱形
+   半径 6 令近端尖角恰抵元素边（2026-10-29 用户复调 +2px：4px 版尖角
+   侵入元素 2px 显得太贴；起点处即四边形、无前置线段的定规不变，视觉
+   参照图标集 bpmn-icon-conditional-flow 的源端菱形） */
   private appendDiamondMarker(visuals: SVGElement, at: any, next: any, stroke: string): void {
     const angle = Math.atan2(next.y - at.y, next.x - at.x);
-    const cx = at.x + Math.cos(angle) * 4;
-    const cy = at.y + Math.sin(angle) * 4;
+    const cx = at.x + Math.cos(angle) * 6;
+    const cy = at.y + Math.sin(angle) * 6;
     const d = create('path');
     attr(d, {
       d: diamondPath(cx, cy, 6, 6),
