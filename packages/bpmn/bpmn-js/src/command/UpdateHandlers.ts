@@ -51,7 +51,7 @@ export class UpdatePropertiesHandler implements CommandHandler {
       this.ids.claim(bo.id, bo);
     }
     this.eventBus.fire('bpmn.properties.updated', { element, properties });
-    return [element];
+    return UpdatePropertiesHandler.affected(context);
   }
 
   revert(context: any): any[] {
@@ -64,7 +64,18 @@ export class UpdatePropertiesHandler implements CommandHandler {
       this.ids.unclaim(bo.id);
       this.ids.claim(context.renamedFrom, bo);
     }
-    return [element];
+    return UpdatePropertiesHandler.affected(context);
+  }
+
+  /** 变更集：被改元素 + default 引用变更时的全部出线。默认流斜杠画在连线
+   gfx 上（判定读源网关 default 属性）——只通知网关则连线不重绘、斜杠
+   滞留旧默认线（脏标记范围先例同 SetColorHandler 之外部标签）。 */
+  private static affected(context: any): any[] {
+    const element = context.element;
+    if (!('default' in context.properties)) {
+      return [element];
+    }
+    return [element, ...(element.outgoing ?? [])];
   }
 }
 
