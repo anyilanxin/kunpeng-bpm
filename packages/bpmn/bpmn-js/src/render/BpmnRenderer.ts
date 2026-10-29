@@ -687,17 +687,28 @@ export class BpmnRenderer extends BaseRenderer {
     append(visuals, l);
   }
 
-  /** 条件流：源端空心菱形标记（规范 §10.5.1）。中心距起点 6px——菱形
-   半径 6 令近端尖角恰抵元素边（2026-10-29 用户复调 +2px：4px 版尖角
-   侵入元素 2px 显得太贴；起点处即四边形、无前置线段的定规不变，视觉
-   参照图标集 bpmn-icon-conditional-flow 的源端菱形） */
+  /** 条件流：源端空心菱形标记（规范 §10.5.1）。随走线取向的宽扁菱形——
+   沿走线半长 9、垂向半高 5（18×10，2026-10-29 用户复调：正方形太"正"，
+   参照外部工具的扁菱形），中心距起点 9 令近端尖角恰抵元素边（零侵入、
+   无前置线段的定规不变）。取向按源段方向构造（布线端向纯净，源段恒
+   正交，但仍按角度算垂向，斜线走线亦成立） */
   private appendDiamondMarker(visuals: SVGElement, at: any, next: any, stroke: string): void {
     const angle = Math.atan2(next.y - at.y, next.x - at.x);
-    const cx = at.x + Math.cos(angle) * 6;
-    const cy = at.y + Math.sin(angle) * 6;
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    const px = -s;
+    const py = c;
+    const along = 9;
+    const across = 5;
+    const cx = at.x + c * along;
+    const cy = at.y + s * along;
     const d = create('path');
     attr(d, {
-      d: diamondPath(cx, cy, 6, 6),
+      d:
+        `M${cx - c * along},${cy - s * along} ` +
+        `L${cx + px * across},${cy + py * across} ` +
+        `L${cx + c * along},${cy + s * along} ` +
+        `L${cx - px * across},${cy - py * across} Z`,
       fill: this.config.defaultFillColor,
       stroke,
       'stroke-width': 1.5
