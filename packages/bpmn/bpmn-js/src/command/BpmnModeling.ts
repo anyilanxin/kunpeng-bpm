@@ -34,7 +34,7 @@ import type Rules from 'diagram-js/lib/features/rules/Rules';
 import { isObject } from 'min-dash';
 import { EventDefinitions } from '../meta/EventDefinitions';
 import type { BpmnElementTypes } from '../meta/ElementTypes';
-import { UpdatePropertiesHandler, UpdateLabelHandler, UpdateModdlePropertiesHandler } from './UpdateHandlers';
+import { UpdatePropertiesHandler, UpdateLabelHandler, UpdateModdlePropertiesHandler, FlowSwitchTypeHandler } from './UpdateHandlers';
 import { ReplaceElementHandler } from './ReplaceElementHandler';
 import { AddLaneHandler, RemoveLaneHandler, assertAddLaneAllowed, assertRemoveLaneAllowed } from './LaneHandlers';
 import { OrientationHandler } from './OrientationHandler';
@@ -74,6 +74,15 @@ export class BpmnModeling extends Modeling {
     commandStack.registerHandler('lane.remove', RemoveLaneHandler as any);
     commandStack.registerHandler('orientation.set', OrientationHandler as any);
     commandStack.registerHandler('element.setColor', SetColorHandler as any);
+    commandStack.registerHandler('flow.switchType', FlowSwitchTypeHandler as any);
+  }
+
+  /**
+   * 连线类型切换（sequence/conditional/default，规则见 FlowSwitchTypeHandler；
+   * 入口=context pad 切换弹框与属性面板开关）。
+   */
+  switchFlowType(element: any, kind: 'sequence' | 'conditional' | 'default'): void {
+    this.stack.execute('flow.switchType', { element, kind });
   }
 
   /**

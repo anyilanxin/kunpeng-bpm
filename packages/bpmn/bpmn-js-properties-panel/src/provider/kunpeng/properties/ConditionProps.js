@@ -198,11 +198,13 @@ const CONDITIONAL_SOURCES = [
   'bpmn:InclusiveGateway'
 ];
 
-// default 属性持有者（BPMN 2.0 XSD tExclusiveGateway/tInclusiveGateway/tComplexGateway）
+// default 属性持有者：网关族（tExclusiveGateway/tInclusiveGateway/tComplexGateway）
+// 与活动族（XSD tActivity 亦有 default 属性——2026-10-29 产品定规放开三态切换）
 const DEFAULTABLE_SOURCES = [
   'bpmn:ExclusiveGateway',
   'bpmn:InclusiveGateway',
-  'bpmn:ComplexGateway'
+  'bpmn:ComplexGateway',
+  'bpmn:Activity'
 ];
 
 function isConditionalSource(element) {

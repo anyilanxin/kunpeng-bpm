@@ -28,7 +28,7 @@ import type { BpmnElementTypes } from '../meta/ElementTypes';
 import { isContainerType, metaId } from '../meta/ElementTypes';
 import type { AppendPreview } from '../behavior/AppendPreview';
 import { BpmnAlignMenuProvider } from './BpmnAlignMenuProvider';
-import { BpmnAppendMenuProvider, BpmnCreateMenuProvider } from './BpmnElementMenuProvider';
+import { BpmnAppendMenuProvider, BpmnCreateMenuProvider, BpmnFlowTypeMenuProvider } from './BpmnElementMenuProvider';
 import { bpmnEntryHtml } from '../icons/BpmnIcons';
 import { toolEntryHtml } from '../icons/ToolIcons';
 import { alignPadEntryHtml } from '@kunpeng-io/kernel-shared';
@@ -231,6 +231,19 @@ export class BpmnContextPadProvider {
           action: { click: () => this.modeling.removeLane(element) }
         };
       }
+    }
+
+    // ---- 连线类型切换（规则见 BpmnFlowTypeMenuProvider：事件源出线无选项
+    //      即 isEmpty 判空不出钮；网关源二态/活动源三态） ----
+    if (type === 'bpmn:SequenceFlow' && !this.popupMenu.isEmpty(element, BpmnFlowTypeMenuProvider.MENU_ID)) {
+      entries['switch-flow-type'] = {
+        group: 'edit',
+        html: toolEntryHtml('wrench'),
+        title: this.i18n.t('切换连线类型'),
+        action: {
+          click: () => this.openElementMenu(element, BpmnFlowTypeMenuProvider.MENU_ID, '切换连线类型')
+        }
+      };
     }
 
     // ---- 删除 ----

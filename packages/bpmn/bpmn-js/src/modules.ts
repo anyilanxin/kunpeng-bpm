@@ -110,7 +110,7 @@ import { BpmnPopup } from './provider/BpmnPopup';
 import { BpmnPaletteLayout } from './provider/BpmnPaletteLayout';
 import { BpmnReplaceMenuProvider } from './provider/BpmnReplaceMenuProvider';
 import { BpmnAlignMenuProvider } from './provider/BpmnAlignMenuProvider';
-import { BpmnAppendMenuProvider, BpmnCreateMenuProvider } from './provider/BpmnElementMenuProvider';
+import { BpmnAppendMenuProvider, BpmnCreateMenuProvider, BpmnFlowTypeMenuProvider } from './provider/BpmnElementMenuProvider';
 import { AppendPreview } from './behavior/AppendPreview';
 import { LinkCatchBehavior } from './behavior/LinkCatchBehavior';
 import { BpmnOutlineProvider } from './provider/BpmnOutlineProvider';
@@ -291,12 +291,13 @@ export const BpmnPopupMenuModule: ModuleDeclaration = {
     // 声明；无 Provider 注册时 activate 无害返回 false
     DirectEditingModule
   ],
-  __init__: ['popupMenuProvider', 'bpmnAlignMenuProvider', 'bpmnAppendMenuProvider', 'bpmnCreateMenuProvider'],
+  __init__: ['popupMenuProvider', 'bpmnAlignMenuProvider', 'bpmnAppendMenuProvider', 'bpmnCreateMenuProvider', 'bpmnFlowTypeMenuProvider'],
   'bpmnPopup': ['type', BpmnPopup],
   'popupMenuProvider': ['type', BpmnReplaceMenuProvider],
   'bpmnAlignMenuProvider': ['type', BpmnAlignMenuProvider],
   'bpmnAppendMenuProvider': ['type', BpmnAppendMenuProvider],
-  'bpmnCreateMenuProvider': ['type', BpmnCreateMenuProvider]
+  'bpmnCreateMenuProvider': ['type', BpmnCreateMenuProvider],
+  'bpmnFlowTypeMenuProvider': ['type', BpmnFlowTypeMenuProvider]
 };
 
 /**
