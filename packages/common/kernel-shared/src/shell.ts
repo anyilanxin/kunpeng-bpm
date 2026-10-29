@@ -5,23 +5,23 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation. The copyright holder designates this
- * particular file as subject to the "Classpath" exception as provided
- * in the LICENSE file in the licenses/ directory that accompany this code.
+ * published by the Free Software Foundation.  The copyright holder designates
+ * this particular file as subject to the "Classpath" exception as provided
+ * in the LICENSE file and licenses/ directory that accompany this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
- * version 2 for more details (a copy is included in the licenses/ directory that
- * accompanied this code).
+ * for more details (a copy is included in the licenses/ directory that
+ * accompanied this work).
  *
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * 图标 SVG 外壳单一来源：IconSet / ToolIcons / AlignIcons / BpmnIcons 四处
- * 此前各自内联同款 `<svg …>` 模板与 `.entry` 包装（评估 B7），收敛于此。
+ * 图标 SVG 外壳单一来源（bpmn-js / dmn-js 共享）：IconSet / ToolIcons /
+ * AlignIcons / BpmnIcons 等图标族统一 `<svg …>` 模板与 `.entry` 包装。
  */
 export const SVG_NS = 'http://www.w3.org/2000/svg';
 

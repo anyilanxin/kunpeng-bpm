@@ -29,4 +29,4 @@
  * 画布绘制域，不是图标资产，仍归 render。
  */
 export * from './ToolIcons';
-export * from './AlignIcons';
+export { alignIconHtml, alignPadEntryHtml } from '@kunpeng-io/kernel-shared';

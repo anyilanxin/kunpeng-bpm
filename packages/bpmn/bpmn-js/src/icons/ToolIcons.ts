@@ -11,9 +11,9 @@
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * version 2 for more details (a copy is included in the licenses/ directory that
- * accompanied this code).
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+ * for more details (a copy is included in the licenses/ directory that
+ * accompanied this work).
  *
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
@@ -27,9 +27,10 @@
  * 用户指认文件见 IconSet 各条目注释）；集合未覆盖的（泳道系/折叠钮/更多/
  * 创建）保留自有设计；泳道系：横带 + 头带刻线，插入方向用 + 号位置表达；
  * 子流程折叠钮：盒内 +/-（规范折叠标记语义）。
+ * 入口机制（toolIconHtml/toolEntryHtml）由 @kunpeng-io/kernel-shared 共享。
  */
 import { iconSetAsset } from './IconSet';
-import { svgShell, entryShell } from './shell';
+import { createToolIcons } from '@kunpeng-io/kernel-shared';
 
 const S = 'fill="none" stroke="currentColor" stroke-width="1.5"';
 
@@ -81,11 +82,4 @@ const ICON_BODIES: Record<string, string> = {
 /** 工具/动作图标名：palette 工具区与 context pad 动作钮的合法取值 */
 export type ToolIconName = keyof typeof ICON_BODIES;
 
-export function toolIconHtml(name: ToolIconName, size = 18): string {
-  return svgShell(ICON_BODIES[name], 18, size);
-}
-
-/** palette / context pad 动作条目 html（外壳单一来源 icons/shell） */
-export function toolEntryHtml(name: ToolIconName, size = 18): string {
-  return entryShell(toolIconHtml(name, size));
-}
+export const { toolIconHtml, toolEntryHtml } = createToolIcons(ICON_BODIES);

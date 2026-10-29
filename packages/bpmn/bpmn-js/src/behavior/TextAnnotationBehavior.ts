@@ -25,7 +25,7 @@
 import type EventBus from 'diagram-js/lib/core/EventBus';
 import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
 import { SIZES } from '../meta/ElementTypes';
-import { trimResizeHandles } from '../util/Dom';
+import { trimResizeHandles } from '@kunpeng-io/kernel-shared';
 
 /**
  * 文本注记横向调整 + 高度自适应：

@@ -31,7 +31,7 @@ import { BpmnAlignMenuProvider } from './BpmnAlignMenuProvider';
 import { BpmnAppendMenuProvider, BpmnCreateMenuProvider } from './BpmnElementMenuProvider';
 import { bpmnEntryHtml } from '../icons/BpmnIcons';
 import { toolEntryHtml } from '../icons/ToolIcons';
-import { alignPadEntryHtml } from '../icons/AlignIcons';
+import { alignPadEntryHtml } from '@kunpeng-io/kernel-shared';
 import { BpmnPopup } from './BpmnPopup';
 import type { BpmnMode } from '../mode/BpmnMode';
 

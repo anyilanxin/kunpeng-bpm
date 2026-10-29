@@ -40,7 +40,7 @@ import type PopupMenu from 'diagram-js/lib/features/popup-menu/PopupMenu';
 import type Canvas from 'diagram-js/lib/core/Canvas';
 import type ContextPad from 'diagram-js/lib/features/context-pad/ContextPad';
 import type EventBus from 'diagram-js/lib/core/EventBus';
-import { observeBox } from '../util/Dom';
+import { observeBox } from '@kunpeng-io/kernel-shared';
 
 export type BpmnPopupAnchor =
   | { readonly kind: 'palette' }

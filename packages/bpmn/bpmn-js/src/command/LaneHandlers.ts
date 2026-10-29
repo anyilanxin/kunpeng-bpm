@@ -51,7 +51,7 @@ import {
   withSpan,
   type RectLike
 } from '../util/PoolGeometry';
-import { applyRect } from '../util/Geometry';
+import { applyRect } from '@kunpeng-io/kernel-shared';
 
 function rectOf(el: any): RectLike {
   return { x: el.x, y: el.y, width: el.width, height: el.height };

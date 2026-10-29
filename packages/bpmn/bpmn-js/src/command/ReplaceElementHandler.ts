@@ -33,7 +33,7 @@ import { isEventFamily, isSubProcessFamily } from '../meta/ElementTypes';
 import type { BpmnElementTypes, ShapeTypeMeta } from '../meta/ElementTypes';
 import type { BpmnFactory } from '../factory/BpmnFactory';
 import type { BpmnDocumentState } from '../xml/DocumentState';
-import { snapshotWaypoints } from '../util/Geometry';
+import { snapshotWaypoints } from '@kunpeng-io/kernel-shared';
 
 export class ReplaceElementHandler implements CommandHandler {
   static $inject = ['bpmnElementTypes', 'bpmnFactory', 'eventBus', 'bpmnDocumentState', 'layouter'];

@@ -11,16 +11,17 @@
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * version 2 for more details (a copy is included in the licenses/ directory that
- * accompanied this code).
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+ * for more details (a copy is included in the licenses/ directory that
+ * accompanied this work).
  *
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * DOM 操作样板收敛：与模型/命令无关的纯 DOM 工具（手柄裁剪、尺寸三信号监听等）。
+ * DOM 操作样板收敛（两内核共享）：与模型/命令无关的纯 DOM 工具
+ * （手柄裁剪、尺寸三信号监听等）。
  */
 
 /** 查询并移除文档中全部匹配节点 */

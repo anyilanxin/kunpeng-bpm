@@ -353,6 +353,9 @@ importers:
 
   packages/bpmn/bpmn-js:
     dependencies:
+      '@kunpeng-io/kernel-shared':
+        specifier: workspace:*
+        version: link:../../common/kernel-shared
       '@kunpeng-io/kunpeng-bpmn-moddle':
         specifier: workspace:*
         version: link:../kunpeng-bpmn-moddle
@@ -681,6 +684,8 @@ importers:
         specifier: 'catalog:'
         version: 8.3.5(esbuild@0.28.2)
 
+  packages/common/kernel-shared: {}
+
   packages/common/lang-expression:
     dependencies:
       '@codemirror/autocomplete':
@@ -797,6 +802,9 @@ importers:
 
   packages/dmn/dmn-js:
     dependencies:
+      '@kunpeng-io/kernel-shared':
+        specifier: workspace:*
+        version: link:../../common/kernel-shared
       '@kunpeng-io/kunpeng-bpmn-moddle':
         specifier: workspace:*
         version: link:../../bpmn/kunpeng-bpmn-moddle

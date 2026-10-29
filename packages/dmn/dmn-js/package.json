@@ -28,6 +28,7 @@
     "prepublishOnly": "pnpm run typecheck && pnpm run build"
   },
   "dependencies": {
+    "@kunpeng-io/kernel-shared": "workspace:*",
     "@kunpeng-io/kunpeng-bpmn-moddle": "workspace:*",
     "@kunpeng-io/kunpeng-dmn-moddle": "workspace:*",
     "table-js": "catalog:",

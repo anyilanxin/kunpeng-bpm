@@ -26,7 +26,7 @@
  * 几何计算全部由 diagram-js 内置 AlignElements / DistributeElements 服务承担，
  * 条目只负责把选区翻译成 trigger 调用。
  */
-import { alignIconHtml } from '../icons/AlignIcons';
+import { alignIconHtml } from '@kunpeng-io/kernel-shared';
 
 export class BpmnAlignMenuProvider {
   static readonly MENU_ID = 'bpmn-align';

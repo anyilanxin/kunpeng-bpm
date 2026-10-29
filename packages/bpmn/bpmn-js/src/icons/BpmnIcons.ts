@@ -57,7 +57,7 @@ import { EventDefinitions } from '../meta/EventDefinitions';
 import { isEventFamily, isGatewayFamily } from '../meta/ElementTypes';
 import { loopKindOf, type LoopKind } from '../meta/LoopCharacteristics';
 import { iconSetSvg, type IconSetKey } from './IconSet';
-import { svgShell, entryShell } from './shell';
+import { svgShell, entryShell } from '@kunpeng-io/kernel-shared';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const ICON_STROKE = '#000000';
