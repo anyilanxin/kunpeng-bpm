@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/kernel-shared",
-  "version": "2026.10.3",
+  "version": "2026.10.4",
   "description": "bpmn-js / dmn-js 两内核共享的图标外壳、对齐图标与 DOM/几何工具（源码共享包——内核构建时内联自包含；GPLv2+CE）",
   "license": "GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0",
   "type": "module",

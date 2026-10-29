@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/bpmnlint-plugin-kunpeng-compat",
-  "version": "2026.10.3",
+  "version": "2026.10.4",
   "description": "A bpmnlint plug-in for kunpeng compatibility",
   "main": "index.js",
   "exports": {
