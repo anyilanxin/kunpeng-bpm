@@ -137,21 +137,24 @@
   height: 24px;
   border-radius: 3px;
 }
-/* 面板/操作钮条目悬停反馈:背景提亮(与弹框条目同族 6% 灰)+ 图标随悬停主题色
-   (diagram-js 默认仅改 color,图标须 currentColor 才可见)+ 抓取光标提示可拖建 */
-.djs-palette .entry,
-.djs-context-pad .entry {
-  cursor: grab;
+/* 面板/操作钮条目悬停反馈（2026-10-29 用户定规，palette 与 context pad
+   同款）：悬浮不整块提亮、光标保持默认，仅图标变色。
+   - 光标：基座 palette 无 cursor 规则、context pad 本就 cursor:default，
+     此处不加任何光标规则（曾设 grab/grabbing 已按定规移除，勿回加）。
+   - 底色：基座 palette hover 无背景；context pad 基座自带 hover 提亮
+     背景（--context-pad-entry-hover-background-color），显式覆盖回常态
+     底色——悬浮前后钮底视觉零变化。
+   - 图标变色：currentColor 剪影/线框随基座 hover color（主题色）；固定
+     记法色图标（bpmnIconColors）的 fill 是 g 的 presentation attr
+     （特异性低于任何 CSS 规则），hover 覆盖为同主题色令全部图标一致
+     变色，移出还原记法色。 */
+.djs-palette .entry:hover svg g,
+.djs-context-pad .entry:hover svg g {
+  fill: var(--palette-entry-hover-color);
 }
 
-.djs-palette .entry:active,
-.djs-context-pad .entry:active {
-  cursor: grabbing;
-}
-
-.djs-palette .entry:hover,
 .djs-context-pad .entry:hover {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--context-pad-entry-background-color);
 }
 
 .djs-popup .djs-popup-header .entry:hover { background: rgba(0, 0, 0, 0.06); }
