@@ -2,10 +2,6 @@ packages:
   - packages/*
   - packages/*/*
   - examples/*
-  # 遗留预构建分发物（勿在新链路引用，见根 AGENTS.md）：其 npm 依赖
-  # @kunpeng-js/bpmnlint-plugin-kunpeng-compat 已从 registry 下架（404），
-  # 排除出安装图让新机器可装；预构建文件原样保留，消费方自行提供其依赖
-  - '!packages/bpmn/linting'
 
 # 版本目录（pnpm catalog 协议）：家族包依赖版本统一从这里取。
 # 注意：pnpm add 会整文件重写（字母序重排、剥除条目分组注释，2026-10-28

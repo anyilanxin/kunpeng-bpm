@@ -156,7 +156,7 @@ export class BpmnModeling extends Modeling {
   }
 
   /**
-   * 泳道操作（朝向感知，旧 @kunpeng-js 线 API 契约）：
+   * 泳道操作（朝向感知，旧线 API 契约延续）：
    * - where 'top'|'bottom'|'left'|'right'：插道（'top'/'left'=序列前端，
    *   'bottom'/'right'=后端；水平池行带沿 y 堆叠、垂直池列带沿 x 堆叠）；
    * - where 'divide'：分割目标泳道为 count 段（2|3，总跨度不变）。

@@ -206,6 +206,9 @@ importers:
       '@kunpeng-io/bpmn-js':
         specifier: workspace:*
         version: link:../../packages/bpmn/bpmn-js
+      '@kunpeng-io/bpmn-js-behaviors':
+        specifier: workspace:*
+        version: link:../../packages/bpmn/bpmn-js-behaviors
       '@kunpeng-io/bpmn-js-properties-panel':
         specifier: workspace:*
         version: link:../../packages/bpmn/bpmn-js-properties-panel
