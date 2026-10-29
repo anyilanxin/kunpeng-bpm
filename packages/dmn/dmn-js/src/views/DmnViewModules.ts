@@ -26,7 +26,7 @@ import type { ModuleDeclaration } from 'didi';
 import type { DmnViews, ViewProvider } from './DmnViews';
 import type { EditorDeps } from './shared/types';
 import { el } from './shared/dom';
-import { mountDecisionTable } from './DecisionTableView';
+import { mountDecisionTable } from './decision-table';
 import { openLiteralView } from './LiteralView';
 import { openBoxedView } from './BoxedView';
 
