@@ -60,6 +60,12 @@ export interface ModelerOptions {
    * 未知 metaId 构造即 throw（宿主配置错误不静默吞掉）。
    */
   paletteQuickIds?: string[];
+  /**
+   * 类型记法色（插件位之一）：palette/contextPad/替换·追加·创建弹框图标的
+   * 着色映射——键为类型全名（如 'bpmn:StartEvent'），'*' 键兜底其余类型；
+   * 未配置时图标保持单色缺省。与画布默认色共用同一张表即可两端观感一致。
+   */
+  bpmnIconColors?: Record<string, string>;
   /** 实例缺省布局朝向（水平/垂直池；模型标记优先，见 meta/Orientation） */
   orientation?: 'horizontal' | 'vertical';
   /** 渲染主题覆盖（插件位之一） */

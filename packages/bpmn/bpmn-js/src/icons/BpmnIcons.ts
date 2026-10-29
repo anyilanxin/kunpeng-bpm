@@ -339,10 +339,11 @@ export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20, fill = '#
 }
 
 /** palette / context pad 类型条目 html（裸 SVG 收不到交互，必须包标准 .entry 外壳） */
-export function bpmnEntryHtml(meta: BpmnIconMeta, size = 18): string {
-  // currentColor:条目图标随容器文字色,palette/context pad 悬停主题色反馈可见
-  // (diagram-js 悬停语义=变色而非换底;固定 #000 会吞掉全部悬停反馈)
-  return entryShell(bpmnIconHtml(meta, size, 'currentColor'));
+export function bpmnEntryHtml(meta: BpmnIconMeta, size = 18, fill = 'currentColor'): string {
+  // 缺省 currentColor:条目图标随容器文字色,palette/context pad 悬停主题色反馈可见
+  // (diagram-js 悬停语义=变色而非换底;固定 #000 会吞掉全部悬停反馈);
+  // 宿主配置 bpmnIconColors 后传入类型记法色(与画布默认色同源,悬停反馈让位于着色)
+  return entryShell(bpmnIconHtml(meta, size, fill));
 }
 
 /**

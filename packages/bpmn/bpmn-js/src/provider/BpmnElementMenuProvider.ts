@@ -115,7 +115,7 @@ function buildEntries(
     entries[`${keyPrefix}-${metaId(meta)}`] = {
       label: i18n.t(meta.label),
       group: { id: meta.paletteGroup!, name: i18n.t(groupLabels.get(meta.paletteGroup!)!) },
-      imageHtml: bpmnIconHtml(meta),
+      imageHtml: bpmnIconHtml(meta, 20, elementTypes.iconFillOf(meta) ?? '#000000'),
       title: i18n.t(meta.label),
       action: () => {
         place(meta, elementFactory.createShape(elementTypes.createAttrs(meta)));

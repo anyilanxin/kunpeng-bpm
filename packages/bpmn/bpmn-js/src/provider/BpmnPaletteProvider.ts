@@ -142,7 +142,7 @@ export class BpmnPaletteProvider {
       const isPlainIntermediate = metaId(meta) === 'IntermediateThrowEvent' && !meta.eventSymbol;
       entries[`create-${metaId(meta)}`] = {
         group: `quick-${index}`,
-        html: bpmnEntryHtml(meta, 26),
+        html: bpmnEntryHtml(meta, 26, this.elementTypes.iconFillOf(meta)),
         title: isPlainIntermediate
           ? this.i18n.t('创建中间/边界事件（拖到活动上为边界事件）')
           : this.i18n.t(`创建${meta.label}`),

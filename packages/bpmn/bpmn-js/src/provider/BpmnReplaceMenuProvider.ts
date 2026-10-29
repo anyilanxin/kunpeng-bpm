@@ -81,7 +81,7 @@ export class BpmnReplaceMenuProvider {
         }
         entries[`replace-${metaId(candidate)}`] = {
           label: this.i18n.t(candidate.label),
-          imageHtml: bpmnIconHtml(candidate),
+          imageHtml: bpmnIconHtml(candidate, 20, this.elementTypes.iconFillOf(candidate) ?? '#000000'),
           title: this.i18n.t(candidate.label),
           action: () => {
             this.modeling.replaceElement(target, {

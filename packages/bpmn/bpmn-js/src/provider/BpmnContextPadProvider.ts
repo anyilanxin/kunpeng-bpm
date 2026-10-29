@@ -111,7 +111,7 @@ export class BpmnContextPadProvider {
           : `${this.i18n.t('追加')} ${this.i18n.t(meta.label)}`;
         entries[`append-${metaId(meta)}`] = {
           group: 'append',
-          html: bpmnEntryHtml(meta),
+          html: bpmnEntryHtml(meta, 18, this.elementTypes.iconFillOf(meta)),
           title: appendTitle,
           action: {
             click: () => {
@@ -139,7 +139,7 @@ export class BpmnContextPadProvider {
       const annotationMeta = this.elementTypes.shapeMeta('bpmn:TextAnnotation')!;
       entries['annotate'] = {
         group: 'append',
-        html: bpmnEntryHtml(annotationMeta),
+        html: bpmnEntryHtml(annotationMeta, 18, this.elementTypes.iconFillOf(annotationMeta)),
         title: this.i18n.t('添加文本注释'),
         action: {
           click: () => {

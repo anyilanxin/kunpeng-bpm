@@ -586,7 +586,7 @@ export function isContainerType(type?: string | null, isExpanded?: boolean): boo
  * 3. 服务级——didi 覆盖 `bpmnElementTypes` 整体替换注册表（增删类型/改尺寸）。
  */
 export class BpmnElementTypes {
-  static $inject = ['config.paletteQuickIds'];
+  static $inject = ['config.paletteQuickIds', 'config.bpmnIconColors'];
 
   /** 默认快捷集（9 条；见上方取值说明），宿主未传 paletteQuickIds 时生效 */
   static readonly PALETTE_QUICK_IDS: readonly string[] = [
@@ -604,8 +604,10 @@ export class BpmnElementTypes {
   private readonly shapeByType = new Map<string, ShapeTypeMeta>();
   private readonly connectionByType = new Map<string, ConnectionTypeMeta>();
   private readonly quickIds: readonly string[];
+  private readonly iconColors?: Record<string, string>;
 
-  constructor(quickIds?: string[]) {
+  constructor(quickIds?: string[], iconColors?: Record<string, string>) {
+    this.iconColors = iconColors;
     for (const meta of SHAPE_TYPES) {
       if (!this.shapeByType.has(meta.type)) {
         this.shapeByType.set(meta.type, meta);
@@ -649,6 +651,19 @@ export class BpmnElementTypes {
 
   shapeMeta(type: string): ShapeTypeMeta | undefined {
     return this.shapeByType.get(type);
+  }
+
+  /**
+   * 类型记法色（palette/contextPad/替换·追加·创建弹框图标的着色源）：
+   * `bpmnIconColors` 按类型全名（如 'bpmn:StartEvent'）精确匹配，'*' 键兜底
+   * 其余类型；未配置或未命中返回 undefined——图标回落单色缺省（观感不变），
+   * 内核自身不预设施色，配色事实源归宿主（与画布默认色同一张表即可两端一致）。
+   */
+  iconFillOf(meta: { type?: string } | undefined): string | undefined {
+    if (!this.iconColors || !meta?.type) {
+      return undefined;
+    }
+    return this.iconColors[meta.type] ?? this.iconColors['*'];
   }
 
   connectionMeta(type: string): ConnectionTypeMeta | undefined {
