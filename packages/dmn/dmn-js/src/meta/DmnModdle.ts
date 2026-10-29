@@ -36,7 +36,7 @@ import dmndiDescriptor from 'dmn-moddle/resources/dmn/json/dmndi13.json';
 import dcDescriptor from 'dmn-moddle/resources/dmn/json/dc.json';
 import diDescriptor from 'dmn-moddle/resources/dmn/json/di.json';
 import kunpengDescriptor from '@kunpeng-io/kunpeng-dmn-moddle/resources/kunpeng.json';
-import type { ModdleExtension } from '../xml/DmnNamespaces';
+import type { ModdleExtension } from './ModdleExtension';
 
 export class DmnModdle {
   static $inject = ['config.moddleExtensions', 'dmnIds'];

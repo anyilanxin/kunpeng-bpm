@@ -25,7 +25,7 @@ export type { ModelerOptions } from './Types';
 export { Viewer, NavigatedViewer } from './Viewer';
 export type { ViewerOptions } from './Viewer';
 export type { ModelerMode } from './Types';
-export type { ModdleExtension } from './xml/DmnNamespaces';
+export type { ModdleExtension } from './meta/ModdleExtension';
 export { DmnElementTypes, SIZES, SHAPE_TYPES, CONNECTION_TYPES, bkmExpressionMode, isDrillableElement } from './meta/ElementTypes';
 export type { BkmExpressionMode } from './meta/ElementTypes';
 export { is, isAny, getBusinessObject, getLabel } from './meta/ElementUtil';

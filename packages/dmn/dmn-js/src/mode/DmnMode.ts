@@ -13,7 +13,7 @@
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * version 2 for more details (a copy is included in the licenses/ directory that
- * accompanied this code).
+ * accompanied this work).
  *
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
@@ -22,30 +22,28 @@
 /**
  * 模式服务：edit（完整编辑）/ preview（只读预览）。
  *
- * preview 的语义是三层防线，缺一不可：
- * 1. UI 层——palette / context pad 隐藏（容器挂 bpmn-preview-mode 类，
- *    styles/bpmn-js.css 隐藏规则），Provider 层同时返回空条目；
- * 2. 规则层——BpmnRules 对全部编辑动作（移动/创建/连线/缩放/删除/对齐/分布）一律否决，
- *    拖拽、套索移动、空间工具等交互即使绕过 UI 也无法改动模型；
- * 3. 直编层——LabelEditingProvider 拒绝激活。
- * 保留能力：选择（供属性面板等宿主读取当前元素）、缩放/平移导航、导入导出。
+ * preview 的语义是两层防线，缺一不可：
+ * 1. UI 层——palette / context pad 隐藏（容器挂 dmn-preview-mode 类，
+ *    styles/dmn-js.css 隐藏规则），Provider 层同时返回空条目；
+ * 2. 规则层——DmnRules 对全部编辑动作（移动/创建/连线/缩放/删除）一律否决，
+ *    拖拽、套索移动等交互即使绕过 UI 也无法改动模型。
+ * 保留能力：选择（供属性面板等宿主读取当前元素）、缩放/平移导航、导入导出、下钻查看。
  */
 import type EventBus from 'diagram-js/lib/core/EventBus';
 import type Canvas from 'diagram-js/lib/core/Canvas';
 import type { Injector } from 'didi';
-
-export type ModelerMode = 'edit' | 'preview';
+import type { ModelerMode } from '../Types';
 
 /** 预览模式标记类（挂在 canvas 容器上，样式层据此隐藏编辑 UI） */
-export const PREVIEW_CLASS = 'bpmn-preview-mode';
+export const PREVIEW_CLASS = 'dmn-preview-mode';
 
-export class BpmnMode {
+export class DmnMode {
   static $inject = ['eventBus', 'canvas', 'injector', 'config.mode'];
 
   private mode: ModelerMode;
 
   // palette/contextPad 经 injector 可选获取（Viewer 底座不装配编辑面板，
-  // 硬注入会在构造期 No provider 崩溃；connectionDocking 同款降级模式）
+  // 硬注入会在构造期 No provider 崩溃）
   private readonly palette: any;
   private readonly contextPad: any;
 

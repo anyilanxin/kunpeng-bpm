@@ -13,17 +13,17 @@
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * version 2 for more details (a copy is included in the licenses/ directory that
- * accompanied this code).
+ * accompanied this work).
  *
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * 词典服务（默认 zh-CN 透传）。插件可整体替换（覆盖 `bpmnI18n`）实现任意语言/文案。
+ * 词典服务（默认 zh-CN 透传）。插件可整体替换（覆盖 `dmnI18n`）实现任意语言/文案。
  */
-export class BpmnI18n {
-  static $inject = ['config.bpmnI18n'];
+export class DmnI18n {
+  static $inject = ['config.dmnI18n'];
 
   private readonly dict: Record<string, string>;
 

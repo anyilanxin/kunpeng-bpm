@@ -77,10 +77,10 @@
   --context-pad-entry-background-color: var(--bio-surface-subtle);
 }
 
-/* 预览模式（BpmnMode）：隐藏元素面板与上下文面板——只读预览模型。
- * 规则层（BpmnRules）同步否决全部编辑动作，此为 UI 防线而非唯一防线。 */
-.djs-container.bpmn-preview-mode .djs-palette,
-.djs-container.bpmn-preview-mode .djs-context-pad { display: none !important; }
+/* 预览模式（DmnMode）：隐藏元素面板与上下文面板——只读预览模型。
+ * 规则层（DmnRules）同步否决全部编辑动作，此为 UI 防线而非唯一防线。 */
+.djs-container.dmn-preview-mode .djs-palette,
+.djs-container.dmn-preview-mode .djs-context-pad { display: none !important; }
 
 /* 连线拖拽预览：恢复实心箭头填充。diagram-js 影子样式对 .djs-dragger 容器
    内全部图形强制 fill:none !important（线框化拖拽影子），但实心箭头是
@@ -341,7 +341,7 @@
 .dmn-drill-badge:hover svg {
   filter: brightness(1.08);
 }
-.bpmn-preview-mode .djs-overlay .dmn-drill-badge {
+.dmn-preview-mode .djs-overlay .dmn-drill-badge {
   display: none;
 }
 

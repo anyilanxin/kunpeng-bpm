@@ -66,8 +66,8 @@ import { DmnModdle } from './meta/DmnModdle';
 import { DmnFactory } from './factory/DmnFactory';
 import { DmnElementFactory } from './factory/DmnElementFactory';
 import { DmnRenderer } from './render/DmnRenderer';
-import { BpmnMode as DmnMode } from './mode/BpmnMode';
-import { BpmnI18n as DmnI18n } from './i18n/BpmnI18n';
+import { DmnMode } from './mode/DmnMode';
+import { DmnI18n } from './i18n/DmnI18n';
 import { DmnRules } from './rules/DmnRules';
 import { DmnLayouter } from './layout/DmnLayouter';
 import CroppingConnectionDocking from 'diagram-js/lib/layout/CroppingConnectionDocking';
@@ -81,7 +81,6 @@ import { DmnUpdater } from './behavior/DmnUpdater';
 import { DmnPaletteProvider } from './provider/DmnPaletteProvider';
 import { DmnContextPadProvider } from './provider/DmnContextPadProvider';
 import { DmnExpressionMenuProvider } from './provider/DmnExpressionMenuProvider';
-import { DrillViewService } from './drill/DrillView';
 import { DrillBadgeBehavior } from './drill/DrillBadge';
 import { DmnViews } from './views/DmnViews';
 import { DmnDecisionTableModule, DmnLiteralViewModule, DmnBoxedViewModule } from './views/DmnViewModules';
@@ -141,8 +140,8 @@ export const DmnCoreModule: ModuleDeclaration = {
   __depends__: [DmnDecisionTableModule, DmnLiteralViewModule, DmnBoxedViewModule],
   // dmnRenderer 必须急切构造：BaseRenderer 仅在构造时向 eventBus 注册，
   // 懒构造会落到 diagram-js 的 fuchsia 兜底渲染；dmnMode 同理（首帧容器标记）；
-  // drillView/drillBadge 急切（监听导入/创建时机挂角标）
-  __init__: ['dmnRenderer', 'dmnMode', 'drillView', 'drillBadge', 'dmnViews'],
+  // drillBadge 急切（监听导入/创建时机挂角标）
+  __init__: ['dmnRenderer', 'dmnMode', 'drillBadge', 'dmnViews'],
   'dmnIds': ['factory', () => new Ids([36, 36, 1])],
   'dmnElementTypes': ['type', ElementTypesClass],
   'dmnFactory': ['type', DmnFactory],
@@ -155,7 +154,6 @@ export const DmnCoreModule: ModuleDeclaration = {
   'dmnRenderer': ['type', DmnRenderer],
   'dmnI18n': ['type', DmnI18n],
   'translate': ['factory', (dmnI18n: { t(s: string): string }) => (text: string) => dmnI18n.t(text)],
-  'drillView': ['type', DrillViewService],
   'dmnViews': ['type', DmnViews],
   'drillBadge': ['type', DrillBadgeBehavior]
 };
