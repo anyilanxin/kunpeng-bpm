@@ -18,15 +18,16 @@
 /**
  * 悬浮工具栏服务（对齐 bpmn 线 @kunpeng-io/bpmn-js-toolbar 契约，2026-10-28
  * 用户裁定：同款工具栏、**无布局（转置）钮**——dmn 无朝向模型）：渲染进画布
- * 容器、相对画布水平居中。内置动作（撤销重做组 / 缩放组）走内核服务；宿主经
+ * 容器、相对画布水平居中。内置动作（颜色组：设置/清除选中元素颜色 / 撤销
+ * 重做组 / 缩放组）走内核服务；宿主经
  * `dmnToolbar.actions` 注册应用级动作（导入导出等——render() 可放任意控件），
  * 按 group 连续成组、换组分隔。
  * 宽度上限 min(画布容器宽 × ½, 视口宽 × ⅓)，装不下的尾段自动收进「更多」
  * 弹层（容器尺寸/模式变化即时重排）。
  *
- * 只读实例（Viewer/NavigatedViewer）可装配：撤销重做依赖的 commandStack 经
- * 注入器非严格解析（缺失即 null，整组不建），缩放组与宿主动作照常——宿主
- * 声明 showInPreview 的动作在只读态保留。
+ * 只读实例（Viewer/NavigatedViewer）可装配：撤销重做/颜色组依赖的
+ * commandStack/modeling 经注入器非严格解析（缺失即 null，整组不建），
+ * 缩放组与宿主动作照常——宿主声明 showInPreview 的动作在只读态保留。
  *
  * 皮肤全部走 --bio-* 语义令牌（宿主 .djs-container 令牌作用域，暗色随宿主
  * 热切换）；预览（只读）模式下隐藏编辑动作，仅保留声明 showInPreview 的
@@ -43,6 +44,15 @@ interface ModeService {
 }
 interface I18nLike {
   t(text: string): string;
+}
+interface ModelingLike {
+  setColor(elements: ColorElementLike[], colors: { fill?: string; stroke?: string }): void;
+}
+
+/** 可着色元素结构化类型（colors 为 bioc 显式色，未着色时缺省） */
+interface ColorElementLike {
+  id: string;
+  colors?: { fill?: string; stroke?: string };
 }
 /** 注入器结构化类型（编辑类服务按非严格解析：缺失得 null 而非抛错） */
 interface InjectorLike {
@@ -76,6 +86,10 @@ export interface ToolbarConfig {
 /** 内置缩放步进（与 bpmn 线一致，1.2 倍率） */
 const ZOOM_STEP = 1.2;
 
+/** 取色器回显缺省（未着色字段的占位回显，主题无关）：与提交判定同源——
+ *  回显值与缺省相同即"未改"不提交（原生 color input 无"无值"态） */
+const COLOR_DEFAULTS = { fill: '#ffffff', stroke: '#000000' } as const;
+
 export class DmnToolbar {
   static $inject = [
     'eventBus',
@@ -88,8 +102,9 @@ export class DmnToolbar {
 
   private readonly root: HTMLElement;
   private readonly zoomLabel: HTMLButtonElement;
-  /** 只读实例缺 commandStack（编辑模块不进注入器），撤销重做组整组不建 */
+  /** 只读实例缺 commandStack/modeling（编辑模块不进注入器），相应组整组不建 */
   private readonly commandStack: CommandStack | null;
+  private readonly modeling: ModelingLike | null;
   private readonly undoBtn?: HTMLButtonElement;
   private readonly redoBtn?: HTMLButtonElement;
   private readonly customControls: Array<{ spec: ToolbarActionSpec; el: HTMLElement }> = [];
@@ -100,6 +115,17 @@ export class DmnToolbar {
   private readonly resizeObserver: ResizeObserver;
   private readonly onViewportResize = (): void => this.reflow();
   private onDocPointerDown: ((event: MouseEvent) => void) | null = null;
+  /** 内置颜色组状态：选中中的可着色元素与回显代表（首个） */
+  private colorTargets: ColorElementLike[] = [];
+  private colorTarget: ColorElementLike | null = null;
+  private fillColor: string = COLOR_DEFAULTS.fill;
+  private strokeColor: string = COLOR_DEFAULTS.stroke;
+  private colorSetBtn: HTMLButtonElement | null = null;
+  private colorClearBtn: HTMLButtonElement | null = null;
+  private fillColorInput: HTMLInputElement | null = null;
+  private strokeColorInput: HTMLInputElement | null = null;
+  private colorPop: HTMLElement | null = null;
+  private onColorDocDown: ((event: MouseEvent) => void) | null = null;
 
   constructor(
     eventBus: EventBus,
@@ -110,6 +136,7 @@ export class DmnToolbar {
     config: ToolbarConfig = {}
   ) {
     this.commandStack = injector.get<CommandStack | null>('commandStack', false);
+    this.modeling = injector.get<ModelingLike | null>('modeling', false);
 
     const t = (text: string): string => this.dmnI18n.t(text);
     this.root = document.createElement('div');
@@ -126,9 +153,13 @@ export class DmnToolbar {
       this.root.appendChild(this.buildCustomControl(spec));
     }
 
-    // 内置组（在后）：撤销重做 → 缩放（无转置钮——dmn 无朝向模型）。
+    // 内置组（在后）：颜色 → 撤销重做 → 缩放（无转置钮——dmn 无朝向模型）。
     // 编辑服务缺失的组不建（只读实例仅剩缩放组）
     if (lastGroup !== null) {
+      this.root.appendChild(separator());
+    }
+    if (this.modeling) {
+      this.root.appendChild(this.buildColorsGroup(t));
       this.root.appendChild(separator());
     }
     if (this.commandStack) {
@@ -178,6 +209,21 @@ export class DmnToolbar {
 
     eventBus.on('canvas.viewbox.changed', () => this.syncZoom());
     eventBus.on('commandStack.changed', () => this.syncHistory());
+    // 颜色组回显：选择变化换目标；撤销重做/属性面板改色经 elements.changed 跟随
+    eventBus.on('selection.changed', (event: any) => {
+      this.colorTargets = [
+        ...new Map<string, ColorElementLike>(
+          (event.newSelection ?? []).map((e: ColorElementLike): [string, ColorElementLike] => [e.id, e])
+        ).values()
+      ];
+      this.colorTarget = this.colorTargets[0] ?? null;
+      this.syncColors();
+    });
+    eventBus.on('elements.changed', (event: any) => {
+      if (this.colorTarget && event.elements?.some((e: ColorElementLike) => this.colorTargets.includes(e))) {
+        this.syncColors();
+      }
+    });
     eventBus.on('mode.changed', () => this.syncMode());
     eventBus.on('diagram.destroy', () => this.destroy());
 
@@ -204,6 +250,7 @@ export class DmnToolbar {
     this.resizeObserver.disconnect();
     window.removeEventListener('resize', this.onViewportResize);
     this.closePopup();
+    this.closeColorPopup();
     this.root.remove();
   }
 
@@ -292,6 +339,151 @@ export class DmnToolbar {
     }
     this.customControls.push({ spec, el: btn });
     return btn;
+  }
+
+  /** 内置颜色组：设置颜色（按钮 + 填充/描边两行弹框 + 确定）与同组清除颜色
+      钮；选中空时双钮禁用。外点关闭不提交（下次打开按元素现状回显，未确定
+      的选择自然作废）；清除颜色是同组独立钮不入弹框 */
+  private buildColorsGroup(t: (text: string) => string): HTMLElement {
+    const colors = group('colors', true);
+
+    const wrap = document.createElement('span');
+    wrap.className = 'dmn-color-action';
+    this.colorSetBtn = iconButton('set-colors', t('设置选中元素颜色'), ICONS.setColor, () => this.toggleColorPopup());
+
+    this.colorPop = document.createElement('div');
+    this.colorPop.className = 'dmn-color-pop';
+    this.colorPop.hidden = true;
+
+    const makeRow = (kind: 'fill' | 'stroke'): HTMLElement => {
+      const row = document.createElement('label');
+      row.className = 'dmn-color-row';
+      const text = document.createElement('span');
+      text.textContent = t(kind === 'fill' ? '填充' : '描边');
+      const input = document.createElement('input');
+      input.type = 'color';
+      input.addEventListener('input', () => {
+        if (kind === 'fill') {
+          this.fillColor = input.value;
+        } else {
+          this.strokeColor = input.value;
+        }
+      });
+      if (kind === 'fill') {
+        this.fillColorInput = input;
+      } else {
+        this.strokeColorInput = input;
+      }
+      row.append(text, input);
+      return row;
+    };
+
+    const foot = document.createElement('div');
+    foot.className = 'dmn-color-foot';
+    const ok = document.createElement('button');
+    ok.type = 'button';
+    ok.className = 'dmn-color-ok';
+    ok.textContent = t('确定');
+    ok.addEventListener('click', () => {
+      this.commitColors();
+      this.closeColorPopup();
+    });
+    foot.append(ok);
+
+    this.colorPop.append(makeRow('fill'), makeRow('stroke'), foot);
+    wrap.append(this.colorSetBtn, this.colorPop);
+
+    this.colorClearBtn = iconButton('clear-colors', t('清除选中元素颜色'), ICONS.clearColor, () => this.clearColors());
+    colors.append(wrap, this.colorClearBtn);
+    this.syncColors();
+    return colors;
+  }
+
+  private toggleColorPopup(): void {
+    if (this.colorPop?.hidden) {
+      this.openColorPopup();
+    } else {
+      this.closeColorPopup();
+    }
+  }
+
+  private openColorPopup(): void {
+    if (!this.colorPop || !this.colorSetBtn) {
+      return;
+    }
+    this.syncColors();
+    this.colorPop.hidden = false;
+    this.colorSetBtn.classList.add('dmn-toolbar-btn--active');
+    this.onColorDocDown = (event: MouseEvent) => {
+      if (!this.colorPop!.contains(event.target as Node) && !this.colorSetBtn!.contains(event.target as Node)) {
+        this.closeColorPopup();
+      }
+    };
+    document.addEventListener('mousedown', this.onColorDocDown);
+  }
+
+  private closeColorPopup(): void {
+    if (this.onColorDocDown) {
+      document.removeEventListener('mousedown', this.onColorDocDown);
+      this.onColorDocDown = null;
+    }
+    if (this.colorPop) {
+      this.colorPop.hidden = true;
+    }
+    this.colorSetBtn?.classList.remove('dmn-toolbar-btn--active');
+  }
+
+  /** 回显弹框与双钮可用态：未着色字段回显固定缺省占位 */
+  private syncColors(): void {
+    const colors = this.colorTarget?.colors;
+    this.fillColor = colors?.fill || COLOR_DEFAULTS.fill;
+    this.strokeColor = colors?.stroke || COLOR_DEFAULTS.stroke;
+    if (this.fillColorInput) {
+      this.fillColorInput.value = this.fillColor;
+    }
+    if (this.strokeColorInput) {
+      this.strokeColorInput.value = this.strokeColor;
+    }
+    const empty = this.colorTargets.length === 0;
+    if (this.colorSetBtn) {
+      this.colorSetBtn.disabled = empty;
+    }
+    if (this.colorClearBtn) {
+      this.colorClearBtn.disabled = empty;
+    }
+  }
+
+  /** 确定：只提交被改字段；未改字段仅在代表元素已有显式色时回传保留（多选
+      时按代表现状统一落到全体——ColorHandler 整替语义，混合色被代表值统一
+      是预期行为）。与回显缺省相同的值不提交：既不把占位回显误写成显式色，
+      也不为无变化生成空命令 */
+  private commitColors(): void {
+    if (!this.modeling || this.colorTargets.length === 0) {
+      return;
+    }
+    const explicit = this.colorTarget?.colors ?? {};
+    const colors: { fill?: string; stroke?: string } = {};
+    let changed = false;
+    for (const kind of ['fill', 'stroke'] as const) {
+      const value = kind === 'fill' ? this.fillColor : this.strokeColor;
+      if (value !== (explicit[kind] ?? COLOR_DEFAULTS[kind])) {
+        colors[kind] = value;
+        changed = true;
+      } else if (explicit[kind]) {
+        colors[kind] = explicit[kind];
+      }
+    }
+    if (changed) {
+      this.modeling.setColor(this.colorTargets, colors);
+    }
+  }
+
+  /** 清除：空 colors 整替（ColorHandler 语义=清除回落主题缺省） */
+  private clearColors(): void {
+    if (!this.modeling || this.colorTargets.length === 0) {
+      return;
+    }
+    this.modeling.setColor(this.colorTargets, {});
   }
 
   private syncZoom(): void {

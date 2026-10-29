@@ -154,3 +154,69 @@
 .dmn-toolbar-popup .dmn-toolbar-sep {
   display: none;
 }
+
+/* 内置颜色组「设置颜色」控件：钮复用 .dmn-toolbar-btn，弹框与「更多」弹层
+   同语言（--bio-* 令牌，随宿主暗色热切换） */
+.dmn-color-action {
+  position: relative;
+  display: inline-flex;
+}
+
+.dmn-color-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 224px;
+  padding: 12px;
+  background: var(--bio-surface-overlay, #fff);
+  border: 1px solid var(--bio-border, #e2e5ea);
+  border-radius: var(--bio-radius-lg, 8px);
+  box-shadow: 0 6px 20px var(--bio-shadow-strong, rgba(15, 19, 30, 0.12));
+}
+
+.dmn-color-pop[hidden] {
+  display: none;
+}
+
+.dmn-color-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--bio-text);
+  cursor: default;
+}
+
+.dmn-color-row input[type='color'] {
+  width: 44px;
+  height: 22px;
+  padding: 0;
+  background: var(--bio-surface);
+  border: 1px solid var(--bio-border);
+  border-radius: var(--bio-radius-sm, 4px);
+  cursor: pointer;
+}
+
+.dmn-color-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dmn-color-ok {
+  height: 24px;
+  padding: 0 12px;
+  font-size: 12px;
+  border-radius: var(--bio-radius-md, 6px);
+  color: #fff;
+  background: var(--bio-primary, #2d71eb);
+  border: none;
+  cursor: pointer;
+}
+
+.dmn-color-ok:hover {
+  filter: brightness(1.08);
+}

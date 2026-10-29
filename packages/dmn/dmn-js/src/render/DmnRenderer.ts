@@ -116,7 +116,7 @@ export class DmnRenderer extends BaseRenderer {
 
   override drawShape(visuals: SVGElement, shape: any): SVGElement {
     const type = shape.businessObject?.$type ?? shape.type;
-    const theme = this.theme();
+    const theme = this.themeFor(shape);
     switch (type) {
       case 'dmn:Decision':
         this.drawAssetShape(visuals, 'decision', shape.width, shape.height, theme);
@@ -191,7 +191,7 @@ export class DmnRenderer extends BaseRenderer {
 
   override drawConnection(visuals: SVGElement, connection: any): SVGElement {
     const type = connection.businessObject?.$type ?? connection.type;
-    const stroke = this.theme().stroke;
+    const stroke = this.themeFor(connection).stroke;
     const points = connection.waypoints;
     const last = points[points.length - 1];
     const prev = points[points.length - 2] ?? last;
@@ -264,6 +264,21 @@ export class DmnRenderer extends BaseRenderer {
 
   private theme(): Readonly<StyleTheme> {
     return this.defaultTheme;
+  }
+
+  /** 元素级主题：bioc 颜色（element.colors，DI 扩展往返）优先于全局缺省；
+   * 无元素色返回冻结缺省（热路径零分配）。形内文字色恒走全局（对齐 bpmn 线：
+   * 形内标签不随元素色） */
+  private themeFor(element: any): Readonly<StyleTheme> {
+    const colors = element?.colors;
+    if (!colors?.fill && !colors?.stroke) {
+      return this.defaultTheme;
+    }
+    return {
+      stroke: colors.stroke ?? this.config.defaultStrokeColor,
+      fill: colors.fill ?? this.config.defaultFillColor,
+      labelColor: this.config.labelColor
+    };
   }
 
   /** 命中/轮廓 path：世界坐标包围盒（DMN 各形状记法差异相对包围盒让出量小，按包围盒取偏保守） */

@@ -36,6 +36,7 @@ import dmndiDescriptor from 'dmn-moddle/resources/dmn/json/dmndi13.json';
 import dcDescriptor from 'dmn-moddle/resources/dmn/json/dc.json';
 import diDescriptor from 'dmn-moddle/resources/dmn/json/di.json';
 import kunpengDescriptor from '@kunpeng-io/kunpeng-dmn-moddle/resources/kunpeng.json';
+import biocDescriptor from '@kunpeng-io/kunpeng-dmn-moddle/resources/bioc.json';
 import type { ModdleExtension } from './ModdleExtension';
 
 export class DmnModdle {
@@ -57,6 +58,7 @@ export class DmnModdle {
         dcDescriptor,
         diDescriptor,
         kunpengDescriptor,
+        biocDescriptor,
         ...Object.values(this.extensions)
       ];
       const instance = new Moddle(packages as never);

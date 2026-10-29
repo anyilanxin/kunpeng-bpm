@@ -164,6 +164,7 @@ export class DiagramBuilder {
       width: di.bounds?.width,
       height: di.bounds?.height,
       dividerY: di.dividerY,
+      ...(di.colors ? { colors: di.colors } : {}),
       di: di.node,
       parent
     });
@@ -213,6 +214,7 @@ export class DiagramBuilder {
       source,
       target,
       waypoints: di.waypoints?.map((w) => ({ x: w.x, y: w.y })),
+      ...(di.colors ? { colors: di.colors } : {}),
       di: di.node,
       parent: source.parent
     });
