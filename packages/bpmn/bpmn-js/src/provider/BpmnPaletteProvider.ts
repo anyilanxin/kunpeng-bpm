@@ -90,7 +90,7 @@ export class BpmnPaletteProvider {
     // ---- 工具组 ----
     entries['tool-hand'] = {
       group: 'tools',
-      html: toolEntryHtml('hand', 22),
+      html: toolEntryHtml('hand', 22, this.elementTypes.toolFillOf('hand')),
       title: this.i18n.t('抓手工具（按住拖动画布）'),
       action: {
         click: (event: any) => this.handTool.activateHand(event)
@@ -98,7 +98,7 @@ export class BpmnPaletteProvider {
     };
     entries['tool-lasso'] = {
       group: 'tools',
-      html: toolEntryHtml('lasso', 22),
+      html: toolEntryHtml('lasso', 22, this.elementTypes.toolFillOf('lasso')),
       title: this.i18n.t('套索工具（框选）'),
       action: {
         // seata/bpmn-js 同款：点击激活套索（crosshair 光标），随后在画布拖拽出框选。
@@ -109,7 +109,7 @@ export class BpmnPaletteProvider {
     };
     entries['tool-space'] = {
       group: 'tools',
-      html: toolEntryHtml('space', 22),
+      html: toolEntryHtml('space', 22, this.elementTypes.toolFillOf('space')),
       title: this.i18n.t('空间工具（腾挪空间）'),
       action: {
         click: (event: any) => this.spaceTool.activateMakeSpace(event)
@@ -117,7 +117,7 @@ export class BpmnPaletteProvider {
     };
     entries['tool-connect'] = {
       group: 'tools',
-      html: toolEntryHtml('connect', 22),
+      html: toolEntryHtml('connect', 22, this.elementTypes.toolFillOf('connect')),
       title: this.i18n.t('全局连线'),
       action: {
         click: (event: any) => this.globalConnect.start(event)
@@ -158,7 +158,7 @@ export class BpmnPaletteProvider {
     // 端即品牌蓝）；未配置表的宿主不传色，保持 currentColor ----
     entries['create-more'] = {
       group: 'more',
-      html: toolEntryHtml('more', 22, this.elementTypes.iconFillOf({ type: '*' })),
+      html: toolEntryHtml('more', 22, this.elementTypes.toolFillOf('more', true)),
       title: this.i18n.t('更多元素'),
       action: {
         click: () => this.bpmnPopup.open(

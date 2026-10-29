@@ -666,6 +666,21 @@ export class BpmnElementTypes {
     return this.iconColors[meta.type] ?? this.iconColors['*'];
   }
 
+  /**
+   * 工具/动作图标取色（palette 工具区与 context pad 动作钮）：与类型记法
+   * 同一张 `bpmnIconColors` 表，按图标名精确匹配（hand/lasso/space/connect/
+   * more/plus/wrench/trash/lane 系——工具名不含 ':' 与类型键天然不冲突）。
+   * withTypeFallback=true 时并入 '*' 兜底（'…'全量入口开的是类型弹框，与
+   * 类型条目同族语义随兜底色）；其余工具缺省不兜底——未命中返回 undefined
+   * 图标保持 currentColor（2026-10-29 用户定规：所有图标颜色可配置不写死）。
+   */
+  toolFillOf(name: string, withTypeFallback = false): string | undefined {
+    if (!this.iconColors) {
+      return undefined;
+    }
+    return this.iconColors[name] ?? (withTypeFallback ? this.iconColors['*'] : undefined);
+  }
+
   connectionMeta(type: string): ConnectionTypeMeta | undefined {
     return this.connectionByType.get(type);
   }

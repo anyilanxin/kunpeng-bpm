@@ -60,7 +60,6 @@ import { iconSetSvg, type IconSetKey } from './IconSet';
 import { svgShell, entryShell } from '@kunpeng-io/kernel-shared';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
-const ICON_STROKE = '#000000';
 
 /** 开始事件符号 → 图标集键（规范 §10.5.1 Table 10.5 全触发） */
 const START_SYMBOL_KEYS: Record<string, IconSetKey> = {
@@ -247,17 +246,18 @@ const TASK_BOX = { x: 0, y: 0, width: 116, height: 78 };
  * 公开 API：宿主/插件（如属性面板展示选中元素图标）可直接传元素类型
  * 字符串（如 'bpmn:UserTask'）或类型元数据（含事件符号/子流程形态/循环特性变体）。
  */
-export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20, fill = '#000000'): string {
+export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20, fill = 'currentColor'): string {
   const meta = typeof source === 'string' ? { type: source } : source;
 
-  // 图标集优先：已确认映射的类型直接输出标准剪影图标（元素记法图标固定黑色，
-  // 与原自绘 ICON_STROKE 一致；currentColor 场景由 loopMarkerIconHtml 等显式传）
+  // 图标集优先：已确认映射的类型直接输出标准剪影图标。fill 全面可配
+  // （2026-10-29 用户定规：图标颜色不写死）——缺省 currentColor 随容器文字色，
+  // 宿主经 bpmnIconColors/显式入参着色；手绘回退路径描边同用 fill
   const setKey = iconSetKeyOf(meta);
   if (setKey) {
     return iconSetSvg(setKey, size, fill);
   }
 
-  const stroke = fill === 'currentColor' ? 'currentColor' : ICON_STROKE;
+  const stroke = fill === 'currentColor' ? 'currentColor' : fill;
   const theme: StyleTheme = { stroke, fill: '#ffffff', labelColor: stroke };
   const parts: string[] = [];
   const P = (d: string, extra = '', w = 1.8) =>
@@ -358,7 +358,7 @@ export function loopMarkerIconHtml(kind: LoopMarkerKind, size = 16): string {
  * 画布元素 → 记法缩样 SVG（公开 API：属性面板等宿主 UI 传当前选中元素即可）。
  * 变体自动推导：事件取事件定义符号、子流程取折叠形态、活动取循环特性标记。
  */
-export function iconOfElement(element: any, size = 20, fill = '#000000'): string {
+export function iconOfElement(element: any, size = 20, fill = 'currentColor'): string {
   const bo = element?.businessObject;
   const type: string = bo?.$type ?? element?.type ?? '';
   const meta: BpmnIconMeta = { type };
