@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/expression-builtins",
-  "version": "2026.10.1",
+  "version": "2026.10.3",
   "description": "Collection of builtin Camunda extensions for FEEL",
   "type": "module",
   "sideEffects": false,

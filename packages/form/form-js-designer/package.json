@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/form-js-designer",
-  "version": "2026.10.1",
+  "version": "2026.10.3",
   "description": "form-js 动态表单可视化设计器（拖拽编排 + 属性编辑 + 协议 Schema 产出）",
   "license": "GPL-2.0-only WITH Classpath-exception-2.0",
   "type": "module",

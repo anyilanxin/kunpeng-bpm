@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/form-js",
-  "version": "2026.10.1",
+  "version": "2026.10.3",
   "description": "动态表单统一设计协议——Schema 类型体系 / 结构校验 / 校验引擎 / 规范序列化（框架无关，Node 可用）",
   "license": "GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0",
   "type": "module",

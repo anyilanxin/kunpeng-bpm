@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/dmn-js-toolbar",
-  "version": "2026.10.1",
+  "version": "2026.10.3",
   "description": "DMN 建模器悬浮工具栏插件：相对画布居中，内置撤销/重做/缩放（无布局切换），宿主可注册自定义动作",
   "license": "GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0",
   "type": "module",

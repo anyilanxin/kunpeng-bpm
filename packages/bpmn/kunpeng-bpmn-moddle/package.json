@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/kunpeng-bpmn-moddle",
-  "version": "2026.10.1",
+  "version": "2026.10.3",
   "description": "Kunpeng 自有 BPMN 2.0 扩展元模型描述（kunpeng 命名空间；标准 BPMN 描述由 npm bpmn-moddle 资源提供）",
   "keywords": [
     "bpmn",
