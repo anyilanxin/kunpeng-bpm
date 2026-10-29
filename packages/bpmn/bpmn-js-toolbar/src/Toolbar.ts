@@ -207,6 +207,9 @@ export class BpmnToolbar {
     this.resizeObserver = new ResizeObserver(() => this.reflow());
     this.resizeObserver.observe(this.canvas.getContainer());
     window.addEventListener('resize', this.onViewportResize);
+    // 构造期容器无宽（宿主页布局未就绪/隐藏挂载）时 RO 与窗口事件都不再有后续
+    // 通知，宽度上限会卡在 0——宿主 canvas.resized() 与导入完成各补一次重排兜住
+    eventBus.on('canvas.resized', () => this.reflow());
 
     eventBus.on('canvas.viewbox.changed', () => this.syncZoom());
     // 朝向变化两路：转置命令（含撤销重做）与导入解析（标记/池 DI 推断）
@@ -214,7 +217,10 @@ export class BpmnToolbar {
       this.syncHistory();
       this.syncOrientation();
     });
-    eventBus.on('import.done', () => this.syncOrientation());
+    eventBus.on('import.done', () => {
+      this.syncOrientation();
+      this.reflow();
+    });
     eventBus.on('mode.changed', () => this.syncMode());
     eventBus.on('diagram.destroy', () => this.destroy());
 

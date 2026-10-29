@@ -171,6 +171,10 @@ export class DmnToolbar {
     this.resizeObserver = new ResizeObserver(() => this.reflow());
     this.resizeObserver.observe(this.canvas.getContainer());
     window.addEventListener('resize', this.onViewportResize);
+    // 构造期容器无宽（宿主页布局未就绪/隐藏挂载）时 RO 与窗口事件都不再有后续
+    // 通知，宽度上限会卡在 0——宿主 canvas.resized() 与导入完成各补一次重排兜住
+    eventBus.on('canvas.resized', () => this.reflow());
+    eventBus.on('import.done', () => this.reflow());
 
     eventBus.on('canvas.viewbox.changed', () => this.syncZoom());
     eventBus.on('commandStack.changed', () => this.syncHistory());
