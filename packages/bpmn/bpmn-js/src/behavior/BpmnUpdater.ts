@@ -114,36 +114,50 @@ export class BpmnUpdater extends CommandInterceptor {
       });
     }
 
-    this.on('elements.delete', 'postExecuted', (event: any) => {
-      const elements: any[] = event.context.elements;
-      // 先清连线引用（id 一并释放），再清形状；标签元素共享宿主 bo，语义/DI 操作全部跳过
-      for (const element of elements.filter((e) => e.waypoints)) {
-        this.unwireConnection(element);
-        this.bpmnFactory.destroy(element.businessObject);
+    // 删除语义同步挂底层命令（shape.delete/connection.delete）而非顶层聚合
+    // （elements.delete）：删形状时 DeleteShapeHandler.preExecute 把进出连线与
+    // 子形状以嵌套命令级联删除（各自触发同款底层命令），聚合级监听看不到嵌套
+    // 命令——语义树残留幽灵连线（sourceRef/targetRef 悬空），重导入丢引用、
+    // 字节级往返破坏、规则引擎踩幽灵节点即崩。标签元素共享宿主 bo，全部跳过
+    this.on('connection.delete', 'executed', (event: any) => {
+      const { connection } = event.context;
+      if (connection.labelTarget) {
+        return;
       }
-      for (const element of elements.filter((e) => !e.waypoints && !e.labelTarget)) {
-        this.orphan(element);
-        this.bpmnFactory.destroy(element.businessObject);
-      }
+      this.unwireConnection(connection);
+      this.bpmnFactory.destroy(connection.businessObject);
     });
-
-    // 撤销删除：DeleteElementsHandler.revert 只恢复画布（不走 create 命令），
-    // 语义挂接/DI 节点在此对称重建（形状先就位，连线端点才可解析；detachDi
-    // 摘残留 DI 节点并清引用，让 ensure*Di 重建）
-    this.on('elements.delete', 'reverted', (event: any) => {
-      const elements: any[] = event.context.elements;
-      for (const element of elements.filter((e) => !e.waypoints && !e.labelTarget && e.businessObject)) {
-        this.detachDi(element);
-        this.adopt(element);
-        this.ensureShapeDi(element);
-        this.bpmnFactory.reclaim(element.businessObject);
+    this.on('connection.delete', 'reverted', (event: any) => {
+      const { connection } = event.context;
+      if (connection.labelTarget) {
+        return;
       }
-      for (const element of elements.filter((e) => e.waypoints && e.businessObject)) {
-        this.detachDi(element);
-        this.wireConnection(element, element.source, element.target);
-        this.ensureEdgeDi(element);
-        this.bpmnFactory.reclaim(element.businessObject);
+      this.detachDi(connection);
+      this.wireConnection(connection, connection.source, connection.target);
+      this.ensureEdgeDi(connection);
+      this.bpmnFactory.reclaim(connection.businessObject);
+    });
+    this.on('shape.delete', 'executed', (event: any) => {
+      const { shape } = event.context;
+      if (shape.labelTarget) {
+        return;
       }
+      this.orphan(shape);
+      this.bpmnFactory.destroy(shape.businessObject);
+    });
+    // 撤销删除：底层命令 revert 只恢复画布（不走 create 命令），语义挂接/DI
+    // 节点在此对称重建（连线先于宿主形状 revert：端点 bo 引用先行解析；形状
+    // revert 后 parent 已复原，adopt 的父链解析成立）；detachDi 摘残留 DI 节点
+    // 并清引用，让 ensure*Di 重建
+    this.on('shape.delete', 'reverted', (event: any) => {
+      const { shape } = event.context;
+      if (shape.labelTarget || !shape.businessObject) {
+        return;
+      }
+      this.detachDi(shape);
+      this.adopt(shape);
+      this.ensureShapeDi(shape);
+      this.bpmnFactory.reclaim(shape.businessObject);
     });
 
     // 几何/颜色回写：画布元素变更（移动/缩放/重路由/着色）统一同步到 DI 节点；
