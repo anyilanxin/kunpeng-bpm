@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://anyilanxin.com/schema/kunpeng/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_014ukj3" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.27.0-rc.0" modeler:executionPlatform="Kunpeng Cloud" modeler:executionPlatformVersion="8.5.0">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:extensionElements>
+      <kunpeng:versionTag />
+    </bpmn:extensionElements>
+    <bpmn:businessRuleTask id="BusinessRuleTask_1">
+      <bpmn:extensionElements>
+        <kunpeng:calledDecision bindingType="versionTag" />
+      </bpmn:extensionElements>
+    </bpmn:businessRuleTask>
+    <bpmn:callActivity id="CallActivity_1">
+      <bpmn:extensionElements>
+        <kunpeng:calledElement propagateAllChildVariables="false" bindingType="versionTag" />
+      </bpmn:extensionElements>
+    </bpmn:callActivity>
+    <bpmn:userTask id="UserTask_1">
+      <bpmn:extensionElements>
+        <kunpeng:formDefinition formId="" bindingType="versionTag" />
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="Activity_11a19e7_di" bpmnElement="BusinessRuleTask_1">
+        <dc:Bounds x="160" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_041pcaf_di" bpmnElement="CallActivity_1">
+        <dc:Bounds x="300" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0c38tbi_di" bpmnElement="UserTask_1">
+        <dc:Bounds x="440" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

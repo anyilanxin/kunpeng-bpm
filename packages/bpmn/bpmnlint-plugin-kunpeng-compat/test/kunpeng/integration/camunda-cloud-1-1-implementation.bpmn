@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://anyilanxin.com/schema/kunpeng/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1vpqgc5" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.4.2" modeler:executionPlatform="Kunpeng Cloud" modeler:executionPlatformVersion="1.1.0">
+  <bpmn:process id="Process_0h5hgi7" isExecutable="true">
+    <bpmn:sendTask id="Activity_0yxq5i6">
+      <bpmn:extensionElements>
+        <kunpeng:taskDefinition type="foo" />
+      </bpmn:extensionElements>
+    </bpmn:sendTask>
+    <bpmn:businessRuleTask id="Activity_1sgdq2g">
+      <bpmn:extensionElements>
+        <kunpeng:taskDefinition type="foo" />
+      </bpmn:extensionElements>
+    </bpmn:businessRuleTask>
+    <bpmn:serviceTask id="Activity_1v0xj73">
+      <bpmn:extensionElements>
+        <kunpeng:taskDefinition type="foo" />
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:scriptTask id="Activity_0o38gsg">
+      <bpmn:extensionElements>
+        <kunpeng:taskDefinition type="foo" />
+      </bpmn:extensionElements>
+    </bpmn:scriptTask>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_0h5hgi7">
+      <bpmndi:BPMNShape id="Activity_01mn3ro_di" bpmnElement="Activity_0yxq5i6">
+        <dc:Bounds x="160" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1fjfz5j_di" bpmnElement="Activity_1sgdq2g">
+        <dc:Bounds x="280" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0cj8fik_di" bpmnElement="Activity_1v0xj73">
+        <dc:Bounds x="400" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0ur6ve4_di" bpmnElement="Activity_0o38gsg">
+        <dc:Bounds x="520" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

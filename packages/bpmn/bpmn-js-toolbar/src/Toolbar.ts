@@ -21,8 +21,9 @@
  */
 /**
  * 悬浮工具栏服务：渲染进画布容器、相对画布水平居中（容器随宿主布局伸缩，
- * 面板让位/窗口缩放下恒居中）。内置动作（颜色组：设置/清除选中元素颜色 /
- * 撤销重做组 / 缩放组，横纵布局钮嵌在缩放组内放大与适应画布之间）走内核
+ * 面板让位/窗口缩放下恒居中）。内置动作（校验钮〔宿主装配 linting 服务时〕/
+ * 颜色组：设置/清除选中元素颜色 / 撤销重做组 / 缩放组，横纵布局钮嵌在缩放
+ * 组内放大与适应画布之间）走内核
  * 服务；宿主经 `bpmnToolbar.actions`
  * 注册应用级动作（导入导出、模式切换等——render() 可放任意控件），
  * 按 group 连续成组、换组分隔。
@@ -54,6 +55,13 @@ interface OrientationLike {
 interface ModelingLike {
   setOrientation(orientation: ModelOrientation): void;
   setColor(elements: ColorElementLike[], colors: { fill?: string; stroke?: string }): void;
+}
+
+/** 校验服务（@kunpeng-io/linting/modeler 装配时存在）：激活开关契约 */
+interface LintingLike {
+  isActive(): boolean;
+  activate(): void;
+  deactivate(): void;
 }
 
 /** 可着色元素结构化类型（colors 为 bioc 显式色，未着色时缺省；标签选中时
@@ -118,8 +126,10 @@ export class BpmnToolbar {
   /** 只读实例缺 commandStack/modeling（编辑模块不进注入器），相应组整组不建 */
   private readonly commandStack: CommandStack | null;
   private readonly modeling: ModelingLike | null;
+  private readonly linting: LintingLike | null;
   private readonly undoBtn?: HTMLButtonElement;
   private readonly redoBtn?: HTMLButtonElement;
+  private readonly lintBtn?: HTMLButtonElement;
   private readonly orientationBtn?: HTMLButtonElement;
   private readonly customControls: Array<{ spec: ToolbarActionSpec; el: HTMLElement }> = [];
   /** 顶层级段落（组/分隔线/宿主控件）的规范序——溢出收纳每轮全量回栏重排 */
@@ -152,6 +162,7 @@ export class BpmnToolbar {
   ) {
     this.commandStack = injector.get<CommandStack | null>('commandStack', false);
     this.modeling = injector.get<ModelingLike | null>('modeling', false);
+    this.linting = injector.get<LintingLike | null>('linting', false);
 
     const t = (text: string): string => this.bpmnI18n.t(text);
     this.root = document.createElement('div');
@@ -168,9 +179,16 @@ export class BpmnToolbar {
       this.root.appendChild(this.buildCustomControl(spec));
     }
 
-    // 内置组（在后）：颜色 → 撤销重做 → 缩放；横纵布局钮嵌在缩放组内（放大与
+    // 内置组（在后）：校验 → 颜色 → 撤销重做 → 缩放；横纵布局钮嵌在缩放组内（放大与
     // 适应画布之间）。编辑服务缺失的组/钮不建（只读实例仅剩缩放组）
     if (lastGroup !== null) {
+      this.root.appendChild(separator());
+    }
+    // 校验单钮：宿主装配 @kunpeng-io/linting/modeler（linting 服务）时才有——
+    // 非严格解析缺失即无钮，工具栏对未装校验的宿主零变化；激活态高亮随开关
+    if (this.linting) {
+      this.lintBtn = iconButton('lint', t('开启校验'), ICONS.lint, () => this.toggleLint());
+      this.root.appendChild(this.lintBtn);
       this.root.appendChild(separator());
     }
     if (this.modeling) {
@@ -275,6 +293,7 @@ export class BpmnToolbar {
     this.syncZoom();
     this.syncHistory();
     this.syncOrientation();
+    this.syncLint();
     this.syncMode();
   }
 
@@ -289,6 +308,7 @@ export class BpmnToolbar {
     this.syncZoom();
     this.syncHistory();
     this.syncOrientation();
+    this.syncLint();
     this.syncMode();
   }
 
@@ -553,6 +573,28 @@ export class BpmnToolbar {
     const horizontal = this.orientationService.getOrientation() === 'horizontal';
     this.orientationBtn.innerHTML = horizontal ? ICONS.orientationHorizontal : ICONS.orientationVertical;
     this.orientationBtn.title = this.bpmnI18n.t(horizontal ? '切换为纵向布局' : '切换为横向布局');
+  }
+
+  /** 校验钮：激活高亮 + 提示写明点击将切到的目标态 */
+  private toggleLint(): void {
+    if (!this.linting) {
+      return;
+    }
+    if (this.linting.isActive()) {
+      this.linting.deactivate();
+    } else {
+      this.linting.activate();
+    }
+    this.syncLint();
+  }
+
+  private syncLint(): void {
+    if (!this.lintBtn || !this.linting) {
+      return;
+    }
+    const active = this.linting.isActive();
+    this.lintBtn.classList.toggle('bpmn-toolbar-btn--active', active);
+    this.lintBtn.title = this.bpmnI18n.t(active ? '关闭校验' : '开启校验');
   }
 
   private syncMode(): void {

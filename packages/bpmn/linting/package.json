@@ -1,0 +1,56 @@
+{
+  "name": "@kunpeng-io/linting",
+  "version": "2026.10.3",
+  "description": "BPMN linting for @kunpeng-io/bpmn-js（XML 驱动 Linter 核心 + 画布 linting 集成模块，规则=@kunpeng-io/bpmnlint-plugin-kunpeng-compat）",
+  "main": "./dist/index.js",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./modeler": {
+      "types": "./dist/modeler.d.ts",
+      "default": "./dist/modeler.js"
+    },
+    "./assets/linting.css": "./assets/linting.css",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "keywords": [
+    "bpmnlint",
+    "kunpeng"
+  ],
+  "author": {
+    "name": "anyilanxin",
+    "email": "anyilanxin@aliyun.com"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@bpmn-io/diagram-js-ui": "catalog:",
+    "@kunpeng-io/kunpeng-bpmn-moddle": "workspace:*",
+    "@kunpeng-io/bpmnlint-plugin-kunpeng-compat": "workspace:*",
+    "bpmn-moddle": "catalog:",
+    "bpmnlint": "catalog:",
+    "bpmnlint-utils": "catalog:",
+    "clsx": "catalog:",
+    "min-dash": "catalog:",
+    "min-dom": "catalog:",
+    "modeler-moddle": "catalog:",
+    "semver-compare": "catalog:"
+  },
+  "files": [
+    "assets",
+    "dist",
+    "LICENSE"
+  ],
+  "devDependencies": {
+    "vite": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

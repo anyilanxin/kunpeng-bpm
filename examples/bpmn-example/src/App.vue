@@ -40,6 +40,7 @@ import {
 import BpmnColorPickerModule from 'bpmn-js-color-picker/colors';
 import gridModule from 'diagram-js-grid';
 import behaviorsModule from '@kunpeng-io/bpmn-js-behaviors';
+import LintingModelerModule from '@kunpeng-io/linting/modeler';
 // kunpeng 业务协议由组件包内置（BpmnModdle 与上游 bpmn-moddle 标准资源一并注册），宿主无需注入
 import { SamplePluginModule } from './sample-plugin';
 import { CUSTOM_COLOR_PICKER_COLORS } from './color-palette';
@@ -73,7 +74,9 @@ function getModeler(): Modeler | null {
 const usePlugin = new URLSearchParams(location.search).get('plugin') !== '0';
 
 /** 编辑态实例的模块装配：组件默认集 + 属性面板三模块 + grid/调色板/缩略图插件
- * + kunpeng 扩展缺省行为集（建形补缺省/XML 卫生，源码直出包直插）+ 示例插件 */
+ * + kunpeng 扩展缺省行为集（建形补缺省/XML 卫生，源码直出包直插）+ 校验集成
+ * （@kunpeng-io/linting：装上即得工具栏「开启校验」钮——激活开关+画布问题
+ * 标注+点击定位，规则=bpmnlint-plugin-kunpeng-compat）+ 示例插件 */
 function editorModules(): any[] {
   const modules = [
     BpmnPropertiesPanelModule,
@@ -82,7 +85,8 @@ function editorModules(): any[] {
     gridModule,
     BpmnColorPickerModule,
     MinimapModule,
-    behaviorsModule
+    behaviorsModule,
+    LintingModelerModule
   ];
   return usePlugin ? [...modules, SamplePluginModule] : modules;
 }

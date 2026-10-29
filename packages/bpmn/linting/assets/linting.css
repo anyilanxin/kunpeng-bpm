@@ -1,0 +1,38 @@
+:root {
+  --cl-color-white: hsl(0, 0%, 100%);
+
+  --cl-color-info: #0f62fe;
+  --cl-color-warning: #ff832b;
+  --cl-color-error: #da1e26;
+  --cl-color-success: #52b415;
+}
+
+.cl-icon, .cl-icon * {
+  box-sizing: border-box;
+}
+
+.cl-icon {
+  --icon-color: white;
+  --icon-bg-color: #333;
+  background: var(--icon-bg-color);
+  color: var(--icon-color);
+  border-radius: 100%;
+  height: 20px;
+  width: 20px;
+  border: solid 4px var(--icon-bg-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cl-icon-error {
+  --icon-bg-color: var(--cl-color-error);
+}
+
+.cl-icon-warn {
+  --icon-bg-color: var(--cl-color-warning);
+}
+
+.cl-icon-info {
+  --icon-bg-color: var(--cl-color-info);
+}

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://anyilanxin.com/schema/kunpeng/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0hea83y" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.7.0" modeler:executionPlatform="Kunpeng Cloud" modeler:executionPlatformVersion="8.1.0">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:subProcess id="EventSubProcess_2" name="No error code" triggeredByEvent="true">
+      <bpmn:startEvent id="StartEvent_2">
+        <bpmn:outgoing>SequenceFlow_3</bpmn:outgoing>
+        <bpmn:errorEventDefinition id="ErrorEventDefinition_0ov4axh" errorRef="Error_1b1o35j" />
+      </bpmn:startEvent>
+      <bpmn:sequenceFlow id="SequenceFlow_3" sourceRef="StartEvent_2" targetRef="ServiceTask_2" />
+      <bpmn:boundaryEvent id="BoundaryEvent_2" attachedToRef="ServiceTask_2">
+        <bpmn:errorEventDefinition id="ErrorEventDefinition_1bvz2ck" errorRef="Error_1b1o35j" />
+      </bpmn:boundaryEvent>
+      <bpmn:serviceTask id="ServiceTask_2">
+        <bpmn:extensionElements>
+          <kunpeng:taskDefinition type="foo" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>SequenceFlow_3</bpmn:incoming>
+      </bpmn:serviceTask>
+    </bpmn:subProcess>
+    <bpmn:subProcess id="EventSubProcess_1" name="No error reference" triggeredByEvent="true">
+      <bpmn:startEvent id="StartEvent_1">
+        <bpmn:outgoing>SequenceFlow_1</bpmn:outgoing>
+        <bpmn:errorEventDefinition id="ErrorEventDefinition_1668298" errorRef="Error_1b1o35j" />
+      </bpmn:startEvent>
+      <bpmn:boundaryEvent id="BoundaryEvent_1" attachedToRef="ServiceTask_1">
+        <bpmn:errorEventDefinition id="ErrorEventDefinition_03vyez9" errorRef="Error_1b1o35j" />
+      </bpmn:boundaryEvent>
+      <bpmn:sequenceFlow id="SequenceFlow_1" sourceRef="StartEvent_1" targetRef="ServiceTask_1" />
+      <bpmn:serviceTask id="ServiceTask_1">
+        <bpmn:extensionElements>
+          <kunpeng:taskDefinition type="foo" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>SequenceFlow_1</bpmn:incoming>
+      </bpmn:serviceTask>
+    </bpmn:subProcess>
+  </bpmn:process>
+  <bpmn:error id="Error_1b1o35j" name="Error_1" errorCode="foo" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="Activity_05vqqt9_di" bpmnElement="EventSubProcess_2" isExpanded="true">
+        <dc:Bounds x="170" y="300" width="350" height="200" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_08ivrsn_di" bpmnElement="StartEvent_2">
+        <dc:Bounds x="210" y="382" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0gqdsfg_di" bpmnElement="ServiceTask_2">
+        <dc:Bounds x="300" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_059g9n4_di" bpmnElement="BoundaryEvent_2">
+        <dc:Bounds x="382" y="422" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0pbb7ng_di" bpmnElement="SequenceFlow_3">
+        <di:waypoint x="246" y="400" />
+        <di:waypoint x="300" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="BPMNShape_1uhll8o" bpmnElement="EventSubProcess_1" isExpanded="true">
+        <dc:Bounds x="170" y="80" width="350" height="200" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0diyafe" bpmnElement="StartEvent_1">
+        <dc:Bounds x="210" y="162" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1xgs3nq_di" bpmnElement="ServiceTask_1">
+        <dc:Bounds x="300" y="140" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_08kky0o" bpmnElement="BoundaryEvent_1">
+        <dc:Bounds x="382" y="202" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_0hl5tom" bpmnElement="SequenceFlow_1">
+        <di:waypoint x="246" y="180" />
+        <di:waypoint x="300" y="180" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,49 @@
+{
+  "name": "@kunpeng-io/bpmnlint-plugin-kunpeng-compat",
+  "version": "2026.10.3",
+  "description": "A bpmnlint plug-in for kunpeng compatibility",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./rules/*": "./rules/*",
+    "./package.json": "./package.json"
+  },
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/camunda/bpmnlint-plugin-camunda-compat"
+  },
+  "keywords": [
+    "bpmnlint",
+    "plugin"
+  ],
+  "author": {
+    "name": "Philipp Fromme",
+    "url": "https://github.com/philippfromme"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@bpmn-io/moddle-utils": "^0.3.0",
+    "@bpmn-io/semver-compat": "^0.1.0",
+    "@kunpeng-io/expression-analyzer": "workspace:*",
+    "@kunpeng-io/expression-builtins": "workspace:*",
+    "@kunpeng-io/lezer-expression": "workspace:*",
+    "bpmnlint-utils": "catalog:",
+    "min-dash": "catalog:",
+    "semver-compare": "catalog:"
+  },
+  "files": [
+    "rules",
+    "index.js"
+  ],
+  "engines": {
+    "node": ">= 20"
+  },
+  "peerDependencies": {
+    "bpmnlint": ">= 11.6.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

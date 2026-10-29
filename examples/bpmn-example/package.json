@@ -18,6 +18,7 @@
     "@kunpeng-io/bpmn-js-properties-panel": "workspace:*",
     "@kunpeng-io/bpmn-js-toolbar": "workspace:*",
     "@kunpeng-io/kunpeng-bpmn-moddle": "workspace:*",
+    "@kunpeng-io/linting": "workspace:*",
     "@kunpeng-io/properties-panel": "workspace:*",
     "bpmn-js-color-picker": "catalog:",
     "diagram-js": "^15.9.0",
