@@ -665,20 +665,22 @@ export class BpmnRenderer extends BaseRenderer {
     append(visuals, c);
   }
 
-  /** 默认流：源端斜杠标记（规范 §10.5.2）。
-   斜线中心沿连线方向距起点 4px（2026-10-29 用户定规：骑在网关边缘
-   太近，须离开边线作图）——两端点相对中点 n*9 / t*8 取值，中点
-   at + t*4，总长与斜率不随平移改变 */
+  /** 默认流：源端斜杠标记（规范 §10.5.2）。几何参照图标集
+   bpmn-icon-default-flow（用户指认 2026-10-29）：斜杠与走线约 45°
+   （长斜线语言，交点前后各跨 8px）、交点中心距源元素边 10px——
+   4px 版太近（用户复测定规加大），总长 16√2 与图标比例同量级。 */
   private appendSlashMarker(visuals: SVGElement, at: any, next: any, stroke: string): void {
     const angle = Math.atan2(next.y - at.y, next.x - at.x);
     const dx = Math.cos(angle + Math.PI / 2);
     const dy = Math.sin(angle + Math.PI / 2);
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
     const l = create('line');
     attr(l, {
-      x1: at.x + dx * 9,
-      y1: at.y + dy * 9,
-      x2: at.x - dx * 9 + Math.cos(angle) * 8,
-      y2: at.y - dy * 9 + Math.sin(angle) * 8,
+      x1: at.x + dx * 8 + c * 18,
+      y1: at.y + dy * 8 + s * 18,
+      x2: at.x - dx * 8 + c * 2,
+      y2: at.y - dy * 8 + s * 2,
       stroke,
       'stroke-width': 1.5
     });
