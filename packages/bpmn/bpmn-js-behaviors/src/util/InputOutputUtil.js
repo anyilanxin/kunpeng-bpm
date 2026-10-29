@@ -3,7 +3,7 @@ import {
   is
 } from '@kunpeng-io/bpmn-js';
 
-import { createElement } from './ElementUtil';
+import { createElement } from './ElementUtil.js';
 
 /**
  * Get kunpeng:IoMapping from an element.

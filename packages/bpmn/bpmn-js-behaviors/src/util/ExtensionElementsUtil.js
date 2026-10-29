@@ -2,7 +2,6 @@ import {
   getBusinessObject,
   is
 } from '@kunpeng-io/bpmn-js';
-
 import { isArray } from 'min-dash';
 
 /**

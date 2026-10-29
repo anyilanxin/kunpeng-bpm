@@ -2,11 +2,11 @@ import { is } from '@kunpeng-io/bpmn-js';
 
 import { getBusinessObject } from '@kunpeng-io/bpmn-js';
 
-import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor.js';
 
 import { isUndefined } from 'min-dash';
 
-import { removeExtensionElements } from './util/ExtensionElementsUtil';
+import { removeExtensionElements } from './util/ExtensionElementsUtil.js';
 
 const HIGH_PRIORITY = 5000;
 

@@ -1,9 +1,9 @@
 import { isUndefined, without } from 'min-dash';
 
-import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor.js';
 
-import { createElement } from './util/ElementUtil';
-import { getExtensionElementsList } from './util/ExtensionElementsUtil';
+import { createElement } from './util/ElementUtil.js';
+import { getExtensionElementsList } from './util/ExtensionElementsUtil.js';
 
 import { is } from '@kunpeng-io/bpmn-js';
 
@@ -15,7 +15,7 @@ import {
   getUserTaskForm,
   isUserTaskFormKey,
   userTaskFormIdToFormKey
-} from './util/FormsUtil';
+} from './util/FormsUtil.js';
 
 
 /**
@@ -45,22 +45,27 @@ export default class FormsBehavior extends CommandInterceptor {
 
     /**
      * Remove kunpeng:UserTaskForm on user task removed.
+     * （新内核删除走 elements.delete 批量命令：preExecute 时语义树 parent 链完好，
+     * oldParent 语境由 elements 数组 + getRootElement 爬链替代）
      */
-    this.postExecute('shape.delete', function(context) {
+    this.preExecute('elements.delete', function(context) {
       const {
-        oldParent,
-        shape
+        elements
       } = context;
 
-      const rootElement = getRootElement(oldParent);
+      const userTasks = (elements || []).filter(shape => is(shape, 'bpmn:UserTask'));
 
-      const userTaskForm = getUserTaskForm(shape, { rootElement });
+      for (const shape of userTasks) {
+        const rootElement = getRootElement(shape);
 
-      if (!is(shape, 'bpmn:UserTask') || !userTaskForm) {
-        return;
+        const userTaskForm = getUserTaskForm(shape, { rootElement });
+
+        if (!userTaskForm) {
+          continue;
+        }
+
+        removeUserTaskForm(shape, rootElement, userTaskForm);
       }
-
-      removeUserTaskForm(shape, rootElement, userTaskForm);
     }, true);
 
 

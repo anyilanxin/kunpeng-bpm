@@ -39,6 +39,7 @@ import {
 // 上游 bpmn-io 插件（纯 DI 模块声明，additionalModules 直插；color-picker 须走 /colors 子路径）
 import BpmnColorPickerModule from 'bpmn-js-color-picker/colors';
 import gridModule from 'diagram-js-grid';
+import behaviorsModule from '@kunpeng-io/bpmn-js-behaviors';
 // kunpeng 业务协议由组件包内置（BpmnModdle 与上游 bpmn-moddle 标准资源一并注册），宿主无需注入
 import { SamplePluginModule } from './sample-plugin';
 import { CUSTOM_COLOR_PICKER_COLORS } from './color-palette';
@@ -170,7 +171,8 @@ function getModeler(): Modeler | null {
 
 const usePlugin = new URLSearchParams(location.search).get('plugin') !== '0';
 
-/** 编辑态实例的模块装配：组件默认集 + 属性面板三模块 + grid/调色板/缩略图插件（+示例插件） */
+/** 编辑态实例的模块装配：组件默认集 + 属性面板三模块 + grid/调色板/缩略图插件
+ * + kunpeng 扩展缺省行为集（建形补缺省/XML 卫生，源码直出包直插）+ 示例插件 */
 function editorModules(): any[] {
   const modules = [
     BpmnPropertiesPanelModule,
@@ -178,7 +180,8 @@ function editorModules(): any[] {
     KunpengPropertiesProviderModule,
     gridModule,
     BpmnColorPickerModule,
-    MinimapModule
+    MinimapModule,
+    behaviorsModule
   ];
   return usePlugin ? [...modules, SamplePluginModule] : modules;
 }

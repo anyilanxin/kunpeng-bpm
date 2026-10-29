@@ -3,9 +3,9 @@ import {
   is
 } from '@kunpeng-io/bpmn-js';
 
-import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor.js';
 
-import { getExtensionElementsList, removeExtensionElements } from './util/ExtensionElementsUtil';
+import { getExtensionElementsList, removeExtensionElements } from './util/ExtensionElementsUtil.js';
 
 /**
  * Kunpeng BPMN behavior ensuring that kunpeng:subscription is removed from bpmn:Message
@@ -16,7 +16,7 @@ export default class CleanUpSubscriptionBehavior extends CommandInterceptor {
     super(eventBus);
 
     this.postExecuted([
-      'element.updateProperties',
+      'properties.update',
       'element.updateModdleProperties'
     ], context => {
       const element = context.shape || context.newShape || context.element;

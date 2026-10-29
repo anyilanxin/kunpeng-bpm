@@ -1,19 +1,20 @@
 import { getBusinessObject, is } from '@kunpeng-io/bpmn-js';
-import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor.js';
 import { find, without } from 'min-dash';
 
 export default class CleanUpEndEventBehavior extends CommandInterceptor {
   constructor(eventBus, modeling) {
     super(eventBus);
 
-    this.postExecuted('shape.replace', function(event) {
+    // 新内核替换命令为 bpmnReplace（原地换 businessObject，context.element 即新形态）
+    this.postExecuted('bpmnReplace', function(event) {
 
       const {
         context
       } = event;
 
       const {
-        newShape
+        element: newShape
       } = context;
 
       if (!is(newShape, 'bpmn:EndEvent') || !getErrorEventDefinition(newShape)) {

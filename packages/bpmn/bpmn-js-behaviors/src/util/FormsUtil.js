@@ -3,9 +3,9 @@ import {
   is
 } from '@kunpeng-io/bpmn-js';
 
-import { getPrefixedId } from './IdsUtil';
+import { getPrefixedId } from './IdsUtil.js';
 
-import { getExtensionElementsList } from './ExtensionElementsUtil';
+import { getExtensionElementsList } from './ExtensionElementsUtil.js';
 
 const FORM_KEY_PREFIX = 'kunpeng-forms:bpmn:',
       USER_TASK_FORM_ID_PREFIX = 'UserTaskForm_';

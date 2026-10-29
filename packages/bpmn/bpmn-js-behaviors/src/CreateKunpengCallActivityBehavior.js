@@ -1,15 +1,15 @@
 import { has } from 'min-dash';
 
-import { createElement } from './util/ElementUtil';
+import { createElement } from './util/ElementUtil.js';
 
-import { getCalledElement } from './util/CalledElementUtil';
+import { getCalledElement } from './util/CalledElementUtil.js';
 
 import {
   getBusinessObject,
   is
 } from '@kunpeng-io/bpmn-js';
 
-import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor.js';
 
 const HIGH_PRIORITY = 5000;
 

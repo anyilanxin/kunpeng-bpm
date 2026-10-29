@@ -482,3 +482,26 @@ if (!dmnDts.includes('Copyright (c) 2026 anyilanxin zxh') || !dmnDts.includes('"
 }
 
 console.log('dmn-js smoke ok：ESM/CJS 导出、需求连线端点对级矩阵、styles、版权横幅（U2 域层；浏览器交互+字节级往返见 design-docs/dmn-js基于bpmn内核重写U2.md）');
+
+// ---------- @kunpeng-io/bpmn-js-behaviors 源码直出冒烟 ----------
+// 源码直出包（exports→src/index.js，无构建）：Node ESM 必须可裸导入——
+// 相对/diagram-js 子路径 import 全带 .js 后缀是硬约束（kernel-shared 教训）
+const behaviorsModule = (await import('../packages/bpmn/bpmn-js-behaviors/src/index.js')).default;
+if (
+  !Array.isArray(behaviorsModule.__init__) ||
+  behaviorsModule.__init__.length !== 15 ||
+  !behaviorsModule.__init__.includes('createKunpengUserTaskBehavior') ||
+  !behaviorsModule.__init__.includes('formsBehavior')
+) {
+  console.error('bpmn-js-behaviors 模块形态异常（期望 15 个行为服务）');
+  process.exit(1);
+}
+// 移植裁决落位：CopyPaste/DeleteParticipant 两个死行为不得回流注册
+if (
+  behaviorsModule.__init__.includes('copyPasteBehavior') ||
+  behaviorsModule.__init__.includes('deleteParticipantBehaviour')
+) {
+  console.error('bpmn-js-behaviors 含已裁决删除的行为注册');
+  process.exit(1);
+}
+console.log('bpmn-js-behaviors smoke ok：源码直出 ESM 导入、15 行为装载（CopyPaste/DeleteParticipant 已按裁决移除）');

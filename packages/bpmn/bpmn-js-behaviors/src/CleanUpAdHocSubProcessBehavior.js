@@ -3,11 +3,11 @@ import {
   is
 } from '@kunpeng-io/bpmn-js';
 
-import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor.js';
 
 import { without } from 'min-dash';
 
-import { getExtensionElementsList } from './util/ExtensionElementsUtil';
+import { getExtensionElementsList } from './util/ExtensionElementsUtil.js';
 
 const HIGH_PRIORITY = 5000;
 
@@ -54,7 +54,8 @@ export default class CleanUpAdHocSubProcessBehavior extends CommandInterceptor {
     }, true);
 
     /**
-     * Remove kunpeng:additionDynamics when kunpeng:TaskDefinition is removed.
+     * Remove kunpeng:DynamicAdditions when kunpeng:TaskDefinition is removed.
+     * （旧线名 kunpeng:additionDynamics，新 moddle 描述符为 DynamicAdditions）
      */
     this.postExecute('element.updateModdleProperties', HIGH_PRIORITY, function(context) {
       const {
@@ -98,7 +99,7 @@ function getAdHoc(element) {
 function getAdditionDynamics(element) {
   const businessObject = getBusinessObject(element);
 
-  return getExtensionElementsList(businessObject, 'kunpeng:additionDynamics')[ 0 ];
+  return getExtensionElementsList(businessObject, 'kunpeng:DynamicAdditions')[ 0 ];
 }
 
 function getTaskDefinition(element) {
