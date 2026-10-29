@@ -26,7 +26,7 @@ if (typeof cjs.Modeler !== 'function') {
 const { readFileSync } = await import('node:fs');
 const cssPath = new URL('../packages/bpmn/bpmn-js/dist/styles/bpmn-js.css', import.meta.url);
 const css = readFileSync(cssPath, 'utf8');
-if (!css.includes('.djs-palette .entry svg')) {
+if (!css.includes('.djs-palette .entry') || !css.includes('justify-content: center')) {
   console.error('styles 产物缺失或不含功能性覆写规则');
   process.exit(1);
 }

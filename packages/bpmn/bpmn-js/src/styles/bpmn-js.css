@@ -39,9 +39,20 @@
    不覆写宽度——强制窄条会压坏双列布局；也不设 max-height/overflow——
    双列即终态自适应高度，面板永不出现滚动条（产品要求）。 */
 
-/* 元素面板：条目内联自绘 SVG 垂直居中（记法缩样 26px / 工具图标 22px，
-   默认行高 46px，inline 基线对齐会沉底） */
-.djs-palette .entry svg { vertical-align: middle; }
+/* 元素面板：条目内联自绘 SVG 双轴居中（记法缩样 26px / 工具图标 22px，
+   条目固定 46px）。条目 html 是 entryShell 嵌套结构（引擎外层 .entry
+   46px + html 内层 .entry 包装 div），不能依赖 inline 行内居中——
+   text-align / vertical-align 对宿主全局 reset（Tailwind preflight /
+   antd reset 等）普遍设置的 svg display:block 失效，图标贴条目左上角
+   （anyi 宿主实测 22px 图标偏 -12/-12px）。外层条目改 flex 居中容器：
+   内层包装 div（或裸 svg）成为 flex item 自动双轴居中，flex item 的
+   display 会被块化，对任何宿主 svg display 设定免疫；与下方 context
+   pad 三列阵列同语言（2026-10-29 anyi 宿主实测定规） */
+.djs-palette .entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* 弹框标题行循环特性切换钮：内联 SVG 与字体图标基线对齐 */
 .djs-popup-header .entry svg { vertical-align: middle; }
