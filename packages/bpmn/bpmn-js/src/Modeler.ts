@@ -31,6 +31,7 @@ import { BpmnModules, PlatformModules } from './modules';
 import type { BpmnDocumentState } from './xml/DocumentState';
 import type { ModdleExtension } from './xml/BpmnNamespaces';
 import type { BpmnMode, ModelerMode } from './mode/BpmnMode';
+import type { DefinitionsSemantic } from './Types';
 
 export interface ModelerOptions {
   container: string | HTMLElement;
@@ -84,7 +85,14 @@ export class Modeler {
   private readonly diagram: Diagram;
 
   constructor(options: ModelerOptions) {
-    const { container, width, height, modules, additionalModules, ...pluginConfig } = options;
+    const { container: containerOption, width, height, modules, additionalModules, ...pluginConfig } = options;
+
+    // container 契约含选择器串（对齐上游 bpmn-js 惯用法）；diagram-js 的
+    // createContainer 只接受 DOM 节点，选择器在此解析，未命中按未传兜底 document.body
+    const container =
+      typeof containerOption === 'string'
+        ? (document.querySelector<HTMLElement>(containerOption) ?? undefined)
+        : containerOption;
 
     // 插件化契约：除组件自有装配键（modules/additionalModules/canvas）外的
     // 任意选项键整体透传为 diagram config——插件自带的 config 键（如属性面板
@@ -97,9 +105,9 @@ export class Modeler {
 
     this.diagram = new Diagram({
       ...pluginConfig,
-      // 键盘通道缺省绑 document（Ctrl+A 全选/Delete/方向键移动选区）；
-      // 宿主传了 keyboard 配置则以宿主为准
-      keyboard: pluginConfig.keyboard ?? { bindTo: document },
+      // 键盘通道缺省隐式绑定（diagram-js ≥15.26 已移除显式 keyboard.bindTo，
+      // 传了会报 unsupported configuration——issue 661）；宿主显式传 keyboard
+      // （如 bind:false 关闭快捷键）经 pluginConfig 展开自然透传
       canvas: { container, width, height },
       modules: effectiveModules
     });
@@ -152,6 +160,15 @@ export class Modeler {
   }
 
   // ---------- 文档 ----------
+
+  /**
+   * 当前文档 definitions 语义根（对齐上游 BaseViewer#getDefinitions 的公开读口）。
+   * 未导入且未 initEmpty 时为 undefined。对比（bpmn-js-differ）等宿主工具
+   * 以两棵语义树做差异计算，不触碰内部状态服务。
+   */
+  getDefinitions(): DefinitionsSemantic | undefined {
+    return this.get<BpmnDocumentState>('bpmnDocumentState').definitions;
+  }
 
   /** 空图初始化：definitions + 单 Process，画布根承载该语义根 */
   initEmpty(): void {
