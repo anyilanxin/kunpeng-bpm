@@ -305,11 +305,14 @@ export class BpmnContextPadProvider {
     return entries;
   }
 
-  /** 对齐菜单：pad 左缘正下方展开；无搜索 + 图标栅格每行 3 个（2026-10-25 定规） */
+  /** 对齐菜单：选区 bbox 右缘下方展开（贴 pad 触发钮）；无搜索 + 无标题 +
+   * 紧凑图标栅格每行 3 个（2026-10-25 定规；2026-11-04 用户复调=弹框贴钮 +
+   * 内容紧凑 max-content 收缩宽 + 定格条目 + 去标题行） */
   private openAlignMenu(elements: any[]): void {
-    this.bpmnPopup.open(elements, BpmnAlignMenuProvider.MENU_ID, { kind: 'pad', target: elements }, this.i18n.t('对齐 / 分布'), {
+    this.bpmnPopup.open(elements, BpmnAlignMenuProvider.MENU_ID, { kind: 'pad', target: elements }, undefined, {
       search: false,
-      className: 'bpmn-align-popup'
+      className: 'bpmn-align-popup',
+      width: 'max-content'
     });
   }
 

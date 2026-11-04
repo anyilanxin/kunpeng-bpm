@@ -182,17 +182,22 @@
 /* 条目行：舒展行高（参考样式行距明显大于默认 5px 紧排） */
 .djs-popup .djs-popup-body .entry { padding: 6px 8px; }
 
-/* 对齐/分布弹框（bpmn-align-popup）：无搜索的图标栅格，每行 3 个
-   （2026-10-25 产品定规）——组各自成栅格不跨行混排，条目图标居中占格 */
+/* 对齐/分布弹框（bpmn-align-popup）：无搜索的紧凑图标栅格，每行 3 个
+   （2026-10-25 产品定规；2026-11-04 用户复调「内容密集紧凑」——定宽 1fr
+   三等分 300px 家族宽会把 9 个图标摊成 ~100px 列距，改 max-content 收缩
+   + 定格条目 30×26、格距 2，分布组 2 项随行不满列） */
 .djs-popup.bpmn-align-popup .djs-popup-body .djs-popup-group {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, min-content);
+  gap: 2px;
 }
 .djs-popup.bpmn-align-popup .djs-popup-body .djs-popup-group .entry {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 4px;
+  width: 30px;
+  height: 26px;
+  padding: 2px;
 }
 
 /* ── 直编输入框外观 ──

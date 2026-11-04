@@ -88,15 +88,16 @@ export class BpmnPopup {
   /**
    * 打开家族弹框。搜索框在可操作条目多于 5 个时自动出现（PopupMenu
    * 组件契约），小菜单天然无搜索框，无需调用方区分；变体弹框（如对齐
-   * 栅格）可经 options 关搜索并挂根类名（className 拼到 .djs-popup 根，
-   * 变体皮肤的 CSS 挂点）。
+   * 栅格）可经 options 关搜索、挂根类名（className 拼到 .djs-popup 根，
+   * 变体皮肤的 CSS 挂点）与自定义宽度（width——数字 px；字符串原样透传，
+   * 如紧凑栅格弹框传 'max-content' 由内容收缩）。
    */
   open(
     target: unknown,
     menuId: string,
     anchor: BpmnPopupAnchor,
-    title: string,
-    options?: { search?: boolean; className?: string }
+    title?: string,
+    options?: { search?: boolean; className?: string; width?: number | string }
   ): void {
     this.endSession();
     const position = this.place(anchor, null);
@@ -107,11 +108,13 @@ export class BpmnPopup {
     this.session = { anchor, position, stopObserve, signature: this.sizeSignature() };
     // 目标按引擎调用惯例宽松传递（PopupMenuTarget 可为元素/元素数组）
     this.popupMenu.open(target as any, menuId, position, {
-      title,
+      // 组件 displayHeader = title || headerEntries——无标题且无标题行条目
+      // 的弹框（对齐栅格，2026-11-04 用户定规去标题）整行不渲染
+      ...(title ? { title } : {}),
       // 组件层 searchable = isDefined(search) && 条目>5——false 也算"已定义"
       // 会照常开搜索，关搜索必须整个置 undefined（键缺席）
       search: options?.search === false ? undefined : true,
-      width: BpmnPopup.WIDTH,
+      width: options?.width ?? BpmnPopup.WIDTH,
       className: options?.className
     });
     // open() 同步渲染——按弹框真实高度精化一次（首次定位用的是估计高度）
@@ -160,7 +163,9 @@ export class BpmnPopup {
   }
 
   private place(anchor: BpmnPopupAnchor, popup: HTMLElement | null): { x: number; y: number } {
-    const w = BpmnPopup.WIDTH;
+    // 重贴靠时用弹框实测宽（紧凑变体 max-content 收缩后远小于 WIDTH，
+    // 右对齐夹持按真实宽算才贴得住选区右缘）
+    const w = popup?.offsetWidth || BpmnPopup.WIDTH;
     const h = popup?.offsetHeight || BpmnPopup.ESTIMATED_HEIGHT;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
@@ -179,15 +184,26 @@ export class BpmnPopup {
     // elements.changed 后 pad 重建），瞬时节点的 getBoundingClientRect 是垃圾值
     // （实测 left≈0、top 越出视口），弹框会飞到视口左下角（2026-11-04 修复）
     const target = anchor.target as any;
-    const element = Array.isArray(target) ? target[0] : target;
-    const rect = this.canvas.getGraphics(element)?.getBoundingClientRect();
-    if (!rect || rect.width <= 0 || rect.height <= 0) {
+    const elements: any[] = Array.isArray(target) ? target : [target];
+    // 多选 target 取联合包围盒——context pad 挂在选区整体bbox 上，锚第一个
+    // 元素会把弹框甩到选区对角（2026-11-04 用户报障）；单元素即自身矩形
+    const rects = elements
+      .map((el) => this.canvas.getGraphics(el)?.getBoundingClientRect())
+      .filter((r) => r && r.width > 0 && r.height > 0);
+    if (!rects.length) {
       // gfx 瞬态不可量（未挂载/零尺寸）：退视口中部，绝不采纳垃圾坐标
       return {
         x: this.clampX((vw - w) / 2, w, vw),
         y: Math.max(BpmnPopup.TOP_GAP, Math.min(vh - BpmnPopup.BOTTOM_GAP - h, (vh - h) / 2))
       };
     }
+    const rect = rects.reduce<{ left: number; top: number; right: number; bottom: number }>((acc, r) => ({
+      left: Math.min(acc.left, r.left),
+      top: Math.min(acc.top, r.top),
+      right: Math.max(acc.right, r.right),
+      bottom: Math.max(acc.bottom, r.bottom)
+    }), { left: rects[0].left, top: rects[0].top, right: rects[0].right, bottom: rects[0].bottom });
+    const multi = elements.length > 1;
     const below = rect.bottom + 6;
     let y: number;
     if (below + h <= vh - BpmnPopup.BOTTOM_GAP) {
@@ -199,7 +215,8 @@ export class BpmnPopup {
         ? Math.max(BpmnPopup.TOP_GAP, rect.top - 6 - h)
         : shifted;
     }
-    return { x: this.clampX(rect.left, w, vw), y };
+    // 单元素左对齐其下；多选右对齐选区右缘（context pad 所在侧，紧贴触发钮）
+    return { x: this.clampX(multi ? rect.right - w : rect.left, w, vw), y };
   }
 
   /** 横向夹紧：右溢出收回 SIDE_GAP，不向左越出 SIDE_GAP */
