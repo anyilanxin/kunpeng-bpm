@@ -137,8 +137,10 @@ export const SIZES = {
   GATEWAY: 52,
   TASK_W: 116,
   TASK_H: 78,
-  SUBPROCESS_W: 240,
-  SUBPROCESS_H: 160,
+  // 展开态子流程族缺省（2026-11-04 用户定规"默认尺寸 350×200"，对齐老线 palette 拖拽行为契约
+  // ——上游 bpmn-js 18 展开子流程同值；此前 240×160 被评"展开子流程太小"）
+  SUBPROCESS_W: 350,
+  SUBPROCESS_H: 200,
   /** 池默认尺寸=恰容一条最小泳道（MIN_LANE_SPAN+头带 / MIN_LANE_BAND），垂直朝向经 containerSize 转置 */
   POOL_W: 634,
   POOL_H: 250,
@@ -487,10 +489,13 @@ export const SHAPE_TYPES: ShapeTypeMeta[] = [
   { type: 'bpmn:SubProcess', label: '折叠子流程', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'subProcessCollapsed', paletteGroup: 'subProcesses', order: 20, replaceFamily: 'subProcess', resizable: true, family: 'activity', labelMode: 'internal' },
   // 事件子流程（SubProcess triggeredByEvent=true，规范 §10.5.4：虚线边框）
   { type: 'bpmn:SubProcess', label: '事件子流程', width: SIZES.SUBPROCESS_W, height: SIZES.SUBPROCESS_H, symbol: 'subProcessEvent', paletteGroup: 'subProcesses', order: 30, replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
-  // 事务子流程（规范 §10.5.6：双线边框；恒展开态）
-  { type: 'bpmn:Transaction', label: '事务子流程', width: SIZES.SUBPROCESS_W, height: SIZES.SUBPROCESS_H, symbol: 'transaction', paletteGroup: 'subProcesses', order: 40, replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
-  // Ad-hoc 子流程（规范 §10.5.5：底部波浪号标记）
-  { type: 'bpmn:AdHocSubProcess', label: 'Ad-hoc 子流程', width: SIZES.SUBPROCESS_W, height: SIZES.SUBPROCESS_H, symbol: 'adHocSubProcess', paletteGroup: 'subProcesses', order: 50, replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
+  // 事务子流程（规范 §10.5.6：双线边框；恒展开态。创建尺寸=任务盒：2026-11-04 用户定规
+  // "临时/事务与用户任务一样"——恒展开但缺省小盒，容器内容靠用户展开拖放归位后 resize）
+  { type: 'bpmn:Transaction', label: '事务子流程', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'transaction', paletteGroup: 'subProcesses', order: 40, replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
+  // Ad-hoc 子流程（规范 §10.5.5：底部波浪号标记）。无 paletteGroup=不进创建菜单（「更多元素」
+  // 弹框创建走下方折叠条目 116×78，2026-11-04 用户定规）；展开形态仍为替换目标（折叠⇄展开，
+  // 替换菜单按 replaceFamily/五轴匹配不经 paletteGroup）
+  { type: 'bpmn:AdHocSubProcess', label: 'Ad-hoc 子流程', width: SIZES.SUBPROCESS_W, height: SIZES.SUBPROCESS_H, symbol: 'adHocSubProcess', replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
   // 折叠形态排在展开之后：shapeByType 取数组首条，展开态（容器/大尺寸）须胜出
   { type: 'bpmn:AdHocSubProcess', label: 'Ad-hoc 子流程（折叠）', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'adHocSubProcessCollapsed', paletteGroup: 'subProcesses', order: 55, replaceFamily: 'subProcess', resizable: true, family: 'activity', labelMode: 'internal' },
   // ---- 网关 ----
