@@ -519,3 +519,16 @@ export const MARKER_INK: Record<string, { x: number; y: number; w: number; h: nu
   markerMiSequential: { x: 204.8, y: 225.28, w: 614.4, h: 512 },
   markerCompensation: { x: 164.12, y: 235.46, w: 716.93, h: 491.57 }
 };
+
+/**
+ * marker 族等面积光学补偿（2026-11-04 用户质询「并行、串行与标准循环图标
+ * 不一样大」）：等最长边规则下实心条族（‖‖‖/≡）墨量为细环箭头（↻）的
+ * 2 倍（浏览器 400px 栅格实测 67600 vs 34277 px），视觉读感明显更大——
+ * 条族按 √面积比缩至与循环等墨量（视觉质量≈墨迹面积，实心对细线的
+ * 标准光学均衡）。循环 1.0 不动（维持「与波浪线一样大」的 15 上限边）。
+ */
+export const MARKER_OPTICAL: Record<string, number> = {
+  markerLoop: 1,
+  markerMiParallel: 0.71,
+  markerMiSequential: 0.71
+};

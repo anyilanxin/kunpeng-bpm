@@ -32,7 +32,7 @@
  * - 任务族字标置于任务盒左上角（规范 §10.3 标记位约定，面板记法图标同位，见 icons/BpmnIcons）。
  */
 import { append, create, attr } from 'tiny-svg';
-import { GLYPH_CENTERS, iconSetAsset, MARKER_INK, type IconSetKey } from '../icons/IconSet';
+import { GLYPH_CENTERS, iconSetAsset, MARKER_INK, MARKER_OPTICAL, type IconSetKey } from '../icons/IconSet';
 
 export interface StyleTheme {
   stroke: string;
@@ -397,7 +397,9 @@ const MARKER_INK_MAX = 15;
 
 function markerScale(key: IconSetKey): { k: number; inkH: number } {
   const ink = MARKER_INK[key];
-  const k = MARKER_INK_MAX / Math.max(ink.w, ink.h);
+  // 等面积光学补偿：实心条族墨量 2 倍于细环箭头，等最长边下读感更大，
+  // 条族按 MARKER_OPTICAL 缩至等墨量（见 IconSet.MARKER_OPTICAL 实测注）
+  const k = (MARKER_INK_MAX / Math.max(ink.w, ink.h)) * (MARKER_OPTICAL[key] ?? 1);
   return { k, inkH: ink.h * k };
 }
 
