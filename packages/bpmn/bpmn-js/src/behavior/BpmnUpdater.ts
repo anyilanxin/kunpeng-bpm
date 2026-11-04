@@ -86,6 +86,18 @@ export class BpmnUpdater extends CommandInterceptor {
       }
     });
 
+    // 单形 moveShape 命令的语义随迁（executed/reverted 对称：syncAfterMove 按
+    // 画布父级幂等重算——revert 时画布父级已被 handler 复原，重算即还原）。
+    // UI 批量拖拽走 elements.move（上方钩子覆盖，本挂点对其嵌套子命令幂等
+    // 无害）；服务对象=零位移换父类嵌套命令（子流程归属拆分 SubProcessMembership
+    // Behavior 等——layout:false 跳过连线重排，语义仍须与画布父级一致）
+    this.on('shape.move', 'executed', (event: any) => {
+      this.syncAfterMove(event.context.shape);
+    });
+    this.on('shape.move', 'reverted', (event: any) => {
+      this.syncAfterMove(event.context.shape);
+    });
+
     // 注：移动后的连线重排由 diagram-js 核心 MoveShapeHandler.postExecute 负责
     // （modeling.layoutConnection + 移动锚点 hints，最终走本仓 BpmnLayouter），
     // 此处不得重复重排，否则航点会叠加 delta（视觉断线）。

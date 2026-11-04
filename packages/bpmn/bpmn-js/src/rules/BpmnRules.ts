@@ -544,7 +544,7 @@ export class BpmnRules extends RuleProvider {
    * 与豁免集外任一元素相交即冲突——对非落点容器的部分搭界/整包覆盖都算
    * 重叠（整包覆盖落点容器必是 DropTarget 归一结果，不会走到这里）。
    */
-  private placementConflicts(rect: Rect, moved: any[], target: any): boolean {
+  private placementConflicts(rect: Rect, moved: any[], target: any, movedShape?: any): boolean {
     const exempt = new Set<any>();
     const collect = (el: any): void => {
       exempt.add(el);
@@ -557,6 +557,14 @@ export class BpmnRules extends RuleProvider {
     }
     for (let chain: any = target; chain; chain = chain.parent) {
       exempt.add(chain);
+    }
+    // 整装于自家父容器的移动成员：其父链不构成冲突（该成员留守原容器，归属
+    // 由 SubProcessMembershipBehavior 拆分收敛；骑跨者不豁免——与父容器相交即拒）
+    const own = movedShape?.parent;
+    if (own && !this.isRootElement(own) && this.fullyInside(rect, own)) {
+      for (let chain: any = own; chain; chain = chain.parent) {
+        exempt.add(chain);
+      }
     }
     let hit = false;
     const walk = (element: any): void => {
@@ -599,9 +607,17 @@ export class BpmnRules extends RuleProvider {
       // 原地平移（target 为空）以现父为预估父
       const effectiveTarget = target ?? shape.parent;
       if (!this.isRootElement(effectiveTarget) && !this.fullyInsideContainer(rect, effectiveTarget)) {
-        return true;
+        // 自家父容器（展开子流程）内拖动跨界：整装/整出皆放行（2026-11-04
+        // 用户定规——在外者脱离、在内者留守，归属拆分由 SubProcessMembershipBehavior
+        // 收敛），骑跨边界仍是非法位照旧拒绝
+        const ownExpandedSub = effectiveTarget === shape.parent
+          && isSubProcessFamily(effectiveTarget.businessObject?.$type)
+          && effectiveTarget.isExpanded !== false;
+        if (!(ownExpandedSub && !this.rectsIntersect(rect, effectiveTarget))) {
+          return true;
+        }
       }
-      if (this.placementConflicts(rect, movable, effectiveTarget)) {
+      if (this.placementConflicts(rect, movable, effectiveTarget, shape)) {
         return true;
       }
     }
