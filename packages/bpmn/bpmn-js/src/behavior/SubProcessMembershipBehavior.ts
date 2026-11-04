@@ -18,7 +18,14 @@ function inChain(el: any, container: any): boolean {
   return false;
 }
 
-function fullyInside(shape: any, container: any): boolean {
+/** 两矩形有面积交集（贴边共边不算——2026-11-04 二轮定规：骑跨边线=扩容，
+ * 完全脱出（无交集）才脱离；与 BpmnRules.rectsIntersect 同语义，行为层单源） */
+export function rectsOverlap(a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x
+    && a.y < b.y + b.height && a.y + a.height > b.y;
+}
+
+export function fullyInside(shape: any, container: any): boolean {
   return shape.x >= container.x
     && shape.y >= container.y
     && shape.x + shape.width <= container.x + container.width
@@ -26,10 +33,12 @@ function fullyInside(shape: any, container: any): boolean {
 }
 
 /**
- * 展开子流程成员归属拆分（2026-11-04 用户定规）：在展开子流程内部框选多个
- * 元素整体移动后——仍完整在其内的留守成员；完整移出的成员脱离该子流程
- * （画布父级上爬到祖父层，语义 flowElements/引用随 moveShape 的 adopt/orphan
- * 链同步）。骑跨边界是非法位（规则层 moveOverlaps 拒绝），不会进到本行为。
+ * 展开子流程成员归属拆分（2026-11-04 用户两轮定规）：在展开子流程内部
+ * 框选多个元素整体移动后——仍完整在其内的留守成员；**完全脱出**（与子流程
+ * 无面积交集）的成员脱离该子流程（画布父级上爬到祖父层，语义
+ * flowElements/引用随 moveShape 的 adopt/orphan 链同步）。骑跨边线者不
+ * 脱离——规则层放行、AutoResize 边框外延把越缘元素罩住（拖到边线上=
+ * 自动扩大子流程）。
  *
  * 断开链接（2026-11-04 用户澄清）：脱离成员与**留守内部成员**之间的连线删除
  * ——BPMN 顺序流本就不得跨越子流程边界。判定在 flush 时按最终态做：整组
@@ -95,9 +104,10 @@ export class SubProcessMembershipBehavior extends CommandInterceptor {
     if (type === 'bpmn:BoundaryEvent' || type === 'bpmn:Lane' || type === 'bpmn:Participant') {
       return;
     }
-    // ① 上爬脱离
+    // ① 上爬脱离：仅完全脱出（与子流程无任何面积交集）——骑跨边线者留守，
+    // 由 AutoResize 边框外延罩住（2026-11-04 二轮定规「拖到边线上触发扩容」）
     let target: any = shape.parent;
-    while (isExpandedSubProcess(target) && !fullyInside(shape, target)) {
+    while (isExpandedSubProcess(target) && !rectsOverlap(shape, target)) {
       target = target.parent;
     }
     // ② 下探收养：同层内完整装下的最小展开子流程（最小者=最内层）。

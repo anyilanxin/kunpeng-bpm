@@ -559,9 +559,14 @@ export class BpmnRules extends RuleProvider {
       exempt.add(chain);
     }
     // 整装于自家父容器的移动成员：其父链不构成冲突（该成员留守原容器，归属
-    // 由 SubProcessMembershipBehavior 拆分收敛；骑跨者不豁免——与父容器相交即拒）
+    // 由 SubProcessMembershipBehavior 拆分收敛）；自家父容器是展开子流程时
+    // 任意位置豁免（2026-11-04 定规：骑跨边线触发边框外延而非冲突——但父
+    // 容器内的兄弟元素照常参与冲突判定）
     const own = movedShape?.parent;
-    if (own && !this.isRootElement(own) && this.fullyInside(rect, own)) {
+    const ownExpandedSub = own && !this.isRootElement(own)
+      && isSubProcessFamily(own.businessObject?.$type)
+      && own.isExpanded !== false;
+    if (own && !this.isRootElement(own) && (this.fullyInside(rect, own) || ownExpandedSub)) {
       for (let chain: any = own; chain; chain = chain.parent) {
         exempt.add(chain);
       }
@@ -607,13 +612,13 @@ export class BpmnRules extends RuleProvider {
       // 原地平移（target 为空）以现父为预估父
       const effectiveTarget = target ?? shape.parent;
       if (!this.isRootElement(effectiveTarget) && !this.fullyInsideContainer(rect, effectiveTarget)) {
-        // 自家父容器（展开子流程）内拖动跨界：整装/整出皆放行（2026-11-04
-        // 用户定规——在外者脱离、在内者留守，归属拆分由 SubProcessMembershipBehavior
-        // 收敛），骑跨边界仍是非法位照旧拒绝
+        // 自家父容器（展开子流程）内拖动跨界：任意位置放行（2026-11-04 用户
+        // 两轮定规——骑跨边线触发边框外延扩容而非拒绝，AutoResize 罩住越缘
+        // 元素；完全脱出（无交集）者脱离拆分，SubProcessMembershipBehavior 收敛）
         const ownExpandedSub = effectiveTarget === shape.parent
           && isSubProcessFamily(effectiveTarget.businessObject?.$type)
           && effectiveTarget.isExpanded !== false;
-        if (!(ownExpandedSub && !this.rectsIntersect(rect, effectiveTarget))) {
+        if (!ownExpandedSub) {
           return true;
         }
       }

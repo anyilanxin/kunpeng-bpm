@@ -46,6 +46,7 @@ import { rectsEqual, refitLaneBands } from '../util/PoolGeometry';
 import { SIZES, isSubProcessFamily } from '../meta/ElementTypes';
 import type { OrientationService } from '../meta/Orientation';
 import type { SubProcessMembershipBehavior } from './SubProcessMembershipBehavior';
+import { fullyInside, rectsOverlap } from './SubProcessMembershipBehavior';
 
 // 核心 _expand 未进公开类型（d.ts 只暴露 getOffset/getPadding/resize），
 // 原型调用保持继承链上的 this 语义
@@ -95,13 +96,16 @@ export class BpmnAutoResize extends AutoResize {
       return;
     }
     // 展开子流程族目标：本 action 帧内发生过成员脱离（SubProcessMembershipBehavior
-    // detachedSubs）的子流程不扩框——扩框与脱离互斥：若为留住贴缘留守元素而扩容，
-    // 长大的容器会把刚脱离元素几何罩住，重导入按几何收养又挂回容器名下（往返
-    // 自反）。帧收（commandStack.changed）即清标记，创建/普通内移的扩容路径
-    // （最小尺寸随内容增长的产品语义）不受影响
+    // detachedSubs）的子流程默认不因贴缘留守元素扩框——扩容会把刚脱离元素几何
+    // 罩住，重导入按几何收养又挂回容器名下（往返自反）。例外：本帧存在骑跨
+    // 边线的直属子元素（2026-11-04 二轮定规「拖到边线上触发边框外延」）——
+    // 扩容是定规要求的显式结果，优先于防罩。帧收（commandStack.changed）即清
+    // 标记，创建/普通内移的扩容路径（最小尺寸随内容增长）不受影响
     if (isSubProcessFamily((resolved as any).businessObject?.$type)
       && (resolved as any).isExpanded !== false
-      && this.membership.detachedSubs.has(resolved)) {
+      && this.membership.detachedSubs.has(resolved)
+      && !elements.some((e: any) => e.parent === resolved
+        && rectsOverlap(e, resolved as any) && !fullyInside(e, resolved))) {
       return;
     }
     let container: any = resolved;
