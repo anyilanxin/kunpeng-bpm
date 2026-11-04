@@ -100,11 +100,14 @@ export class SubProcessMembershipBehavior extends CommandInterceptor {
     while (isExpandedSubProcess(target) && !fullyInside(shape, target)) {
       target = target.parent;
     }
-    // ② 下探收养：同层内完整装下的最小展开子流程（最小者=最内层）
+    // ② 下探收养：同层内完整装下的最小展开子流程（最小者=最内层）。
+    // 必须排除自身：整装自含 fullyInside(自身,自身) 恒真，误纳会把容器
+    // 父级指到自己（自引用环，画布树遍历死循环——移动展开子流程本体
+    // 整机卡死的根因）
     for (;;) {
       let best: any = null;
       for (const child of target.children ?? []) {
-        if (isExpandedSubProcess(child) && fullyInside(shape, child)
+        if (child !== shape && isExpandedSubProcess(child) && fullyInside(shape, child)
           && (!best || child.width * child.height < best.width * best.height)) {
           best = child;
         }
