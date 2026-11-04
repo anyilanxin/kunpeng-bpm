@@ -32,7 +32,7 @@ import { BpmnAppendMenuProvider, BpmnCreateMenuProvider, BpmnFlowTypeMenuProvide
 import { bpmnEntryHtml } from '../icons/BpmnIcons';
 import { toolEntryHtml } from '../icons/ToolIcons';
 import { alignPadEntryHtml } from '@kunpeng-io/kernel-shared';
-import { BpmnPopup } from './BpmnPopup';
+import { BpmnPopup, type BpmnPopupAnchor } from './BpmnPopup';
 import type { BpmnMode } from '../mode/BpmnMode';
 
 const APPENDABLE_BY_FAMILY: Record<string, string[]> = {
@@ -290,7 +290,7 @@ export class BpmnContextPadProvider {
         title: this.i18n.t('对齐 / 分布'),
         html: alignPadEntryHtml(),
         action: {
-          click: () => this.openAlignMenu(elements)
+          click: (event: MouseEvent) => this.openAlignMenu(elements, event)
         }
       };
     }
@@ -305,11 +305,15 @@ export class BpmnContextPadProvider {
     return entries;
   }
 
-  /** 对齐菜单：选区 bbox 右缘下方展开（贴 pad 触发钮）；无搜索 + 无标题 +
-   * 紧凑图标栅格每行 3 个（2026-10-25 定规；2026-11-04 用户复调=弹框贴钮 +
-   * 内容紧凑 max-content 收缩宽 + 定格条目 + 去标题行） */
-  private openAlignMenu(elements: any[]): void {
-    this.bpmnPopup.open(elements, BpmnAlignMenuProvider.MENU_ID, { kind: 'pad', target: elements }, undefined, {
+  /** 对齐菜单：二级弹框贴触发钮（左侧飞出/顶对齐，钮卸载回落选区锚定）；
+   * 无搜索 + 无标题 + 紧凑图标栅格每行 3 个（2026-10-25 定规；2026-11-04
+   * 用户复调=基于按钮计算 + 内容紧凑 max-content + 定格条目 + 去标题行） */
+  private openAlignMenu(elements: any[], event?: MouseEvent): void {
+    const trigger = (event?.target as HTMLElement | undefined)?.closest?.('.entry') as HTMLElement | null ?? null;
+    const anchor: BpmnPopupAnchor = trigger
+      ? { kind: 'padEntry', trigger, target: elements }
+      : { kind: 'pad', target: elements };
+    this.bpmnPopup.open(elements, BpmnAlignMenuProvider.MENU_ID, anchor, undefined, {
       search: false,
       className: 'bpmn-align-popup',
       width: 'max-content'

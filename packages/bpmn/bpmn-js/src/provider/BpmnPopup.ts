@@ -43,7 +43,13 @@ import { observeBox } from '@kunpeng-io/kernel-shared';
 
 export type BpmnPopupAnchor =
   | { readonly kind: 'palette' }
-  | { readonly kind: 'pad'; readonly target: unknown };
+  | { readonly kind: 'pad'; readonly target: unknown }
+  /**
+   * 二级弹框锚定（2026-11-04 用户定规：二级弹框基于一级弹框的触发按钮图标
+   * 计算，一级才基于元素）：trigger=触发钮 DOM（点击时捕获），弹框自钮左侧
+   * 飞出、顶对齐；target=选区元素——钮已卸载（pad 重建）时回落元素锚定
+   */
+  | { readonly kind: 'padEntry'; readonly trigger: HTMLElement; readonly target: unknown };
 
 /** 贴靠会话：持有引擎 _current.position 的同一引用与尺寸监听，供重贴靠复用 */
 interface PopupSession {
@@ -179,6 +185,21 @@ export class BpmnPopup {
       };
     }
 
+    // 二级弹框：贴一级弹框（context pad）触发钮——左侧飞出、顶对齐按钮
+    // （2026-11-04 用户定规）。钮矩形只在点击路径读取（无命令管线重建瞬态，
+    // fd022d6 教训不适用）；钮已卸载（pad 重建/选区变化后重贴靠）回落元素锚定
+    if (anchor.kind === 'padEntry') {
+      const trigger = anchor.trigger;
+      if (document.contains(trigger)) {
+        const tr = trigger.getBoundingClientRect();
+        if (tr.width > 0 && tr.height > 0) {
+          const tryLeft = tr.left - 6 - w;
+          const x = tryLeft >= BpmnPopup.SIDE_GAP ? tryLeft : this.clampX(tr.right + 6, w, vw);
+          const y = Math.max(BpmnPopup.TOP_GAP, Math.min(tr.top, vh - BpmnPopup.BOTTOM_GAP - h));
+          return { x, y };
+        }
+      }
+    }
     // 锚定取目标元素 gfx 实测矩形（连线=整条线包围盒），不读 context pad html
     // 布局：pad html 在命令管线中存在重建瞬态（如切换钮 updateProperties 触发
     // elements.changed 后 pad 重建），瞬时节点的 getBoundingClientRect 是垃圾值
