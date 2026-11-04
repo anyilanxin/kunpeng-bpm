@@ -185,18 +185,20 @@ export class BpmnPopup {
       };
     }
 
-    // 二级弹框：贴一级弹框（context pad）触发钮——左侧飞出、顶对齐按钮
-    // （2026-11-04 用户定规）。钮矩形只在点击路径读取（无命令管线重建瞬态，
-    // fd022d6 教训不适用）；钮已卸载（pad 重建/选区变化后重贴靠）回落元素锚定
+    // 二级弹框：弹框左上角对齐触发钮下边（2026-11-04 用户定规——左对齐钮
+    // 左缘、顶落钮底缘 +6，下方放不下翻钮上方）。钮矩形只在点击路径读取
+    // （无命令管线重建瞬态，fd022d6 教训不适用）；钮已卸载（pad 重建/选区
+    // 变化后重贴靠）回落元素锚定
     if (anchor.kind === 'padEntry') {
       const trigger = anchor.trigger;
       if (document.contains(trigger)) {
         const tr = trigger.getBoundingClientRect();
         if (tr.width > 0 && tr.height > 0) {
-          const tryLeft = tr.left - 6 - w;
-          const x = tryLeft >= BpmnPopup.SIDE_GAP ? tryLeft : this.clampX(tr.right + 6, w, vw);
-          const y = Math.max(BpmnPopup.TOP_GAP, Math.min(tr.top, vh - BpmnPopup.BOTTOM_GAP - h));
-          return { x, y };
+          const below = tr.bottom + 6;
+          const y = below + h <= vh - BpmnPopup.BOTTOM_GAP
+            ? below
+            : Math.max(BpmnPopup.TOP_GAP, tr.top - 6 - h);
+          return { x: this.clampX(tr.left, w, vw), y };
         }
       }
     }
