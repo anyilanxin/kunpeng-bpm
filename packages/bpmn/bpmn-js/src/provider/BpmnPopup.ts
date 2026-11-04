@@ -38,7 +38,6 @@
  */
 import type PopupMenu from 'diagram-js/lib/features/popup-menu/PopupMenu';
 import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ContextPad from 'diagram-js/lib/features/context-pad/ContextPad';
 import type EventBus from 'diagram-js/lib/core/EventBus';
 import { observeBox } from '@kunpeng-io/kernel-shared';
 
@@ -73,14 +72,13 @@ export class BpmnPopup {
   /** 首次定位用高度估计（渲染前不可量测）：标题+搜索+满高结果区(280)之和 */
   private static readonly ESTIMATED_HEIGHT = 400;
 
-  static $inject = ['popupMenu', 'canvas', 'contextPad', 'eventBus'];
+  static $inject = ['popupMenu', 'canvas', 'eventBus'];
 
   private session: PopupSession | null = null;
 
   constructor(
     private readonly popupMenu: PopupMenu,
     private readonly canvas: Canvas,
-    private readonly contextPad: ContextPad,
     eventBus: EventBus
   ) {
     // 弹框关闭（CLOSE_EVENTS 自动关闭/条目 trigger/再开新框）即结束贴靠会话
@@ -176,27 +174,28 @@ export class BpmnPopup {
       };
     }
 
-    const pad = this.contextPad.getPad(anchor.target as any).html;
-    const rect = pad.getBoundingClientRect();
-    // 连线目标：pad 悬于线中段，pad 下缘贴线本体——锚下移到整条线包围盒
-    // 底缘（含斜杠/菱形标记的 gfx 实测），弹框在整条线下方展开、不压线
-    // 与两端元素（2026-10-29 用户定规：切换弹框与元素重叠）
-    let anchorBottom = rect.bottom;
+    // 锚定取目标元素 gfx 实测矩形（连线=整条线包围盒），不读 context pad html
+    // 布局：pad html 在命令管线中存在重建瞬态（如切换钮 updateProperties 触发
+    // elements.changed 后 pad 重建），瞬时节点的 getBoundingClientRect 是垃圾值
+    // （实测 left≈0、top 越出视口），弹框会飞到视口左下角（2026-11-04 修复）
     const target = anchor.target as any;
-    if (target?.waypoints) {
-      const gfxRect = this.canvas.getGraphics(target)?.getBoundingClientRect();
-      if (gfxRect) {
-        anchorBottom = Math.max(anchorBottom, gfxRect.bottom);
-      }
+    const element = Array.isArray(target) ? target[0] : target;
+    const rect = this.canvas.getGraphics(element)?.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) {
+      // gfx 瞬态不可量（未挂载/零尺寸）：退视口中部，绝不采纳垃圾坐标
+      return {
+        x: this.clampX((vw - w) / 2, w, vw),
+        y: Math.max(BpmnPopup.TOP_GAP, Math.min(vh - BpmnPopup.BOTTOM_GAP - h, (vh - h) / 2))
+      };
     }
-    const below = anchorBottom + 6;
+    const below = rect.bottom + 6;
     let y: number;
     if (below + h <= vh - BpmnPopup.BOTTOM_GAP) {
       y = below;
     } else {
       const shifted = Math.max(BpmnPopup.TOP_GAP, vh - BpmnPopup.BOTTOM_GAP - h);
+      // 上移会盖住元素：翻到元素上方（2026-10-29 用户定规：切换弹框与元素重叠）
       y = shifted < rect.top
-        // 上移会盖住 pad：翻到 pad 上方
         ? Math.max(BpmnPopup.TOP_GAP, rect.top - 6 - h)
         : shifted;
     }
