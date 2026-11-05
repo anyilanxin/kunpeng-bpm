@@ -40,7 +40,7 @@ import type PopupMenu from 'diagram-js/lib/features/popup-menu/PopupMenu';
 import type Canvas from 'diagram-js/lib/core/Canvas';
 import type ContextPad from 'diagram-js/lib/features/context-pad/ContextPad';
 import type EventBus from 'diagram-js/lib/core/EventBus';
-import { observeBox } from '../util/Dom';
+import { observeBox } from '@kunpeng-io/kernel-shared';
 
 export type BpmnPopupAnchor =
   | { readonly kind: 'palette' }
@@ -178,7 +178,18 @@ export class BpmnPopup {
 
     const pad = this.contextPad.getPad(anchor.target as any).html;
     const rect = pad.getBoundingClientRect();
-    const below = rect.bottom + 6;
+    // 连线目标：pad 悬于线中段，pad 下缘贴线本体——锚下移到整条线包围盒
+    // 底缘（含斜杠/菱形标记的 gfx 实测），弹框在整条线下方展开、不压线
+    // 与两端元素（2026-10-29 用户定规：切换弹框与元素重叠）
+    let anchorBottom = rect.bottom;
+    const target = anchor.target as any;
+    if (target?.waypoints) {
+      const gfxRect = this.canvas.getGraphics(target)?.getBoundingClientRect();
+      if (gfxRect) {
+        anchorBottom = Math.max(anchorBottom, gfxRect.bottom);
+      }
+    }
+    const below = anchorBottom + 6;
     let y: number;
     if (below + h <= vh - BpmnPopup.BOTTOM_GAP) {
       y = below;

@@ -1,0 +1,44 @@
+{
+  "name": "colors for DMN (BPMN-in-Color community convention)",
+  "uri": "http://bpmn.io/schema/bpmn/biocolor/1.0",
+  "prefix": "bioc",
+  "types": [
+    {
+      "name": "ColoredShape",
+      "extends": ["dmndi:DMNShape"],
+      "meta": {
+        "description": "Element colors as DMNShape DI attributes. DMNDI 1.3 has no per-shape color slot (DMNStyle is shared/label-style oriented); we follow the BPMN-in-Color community attribute convention (bioc:fill / bioc:stroke) so both kernels in this repo persist colors under the same namespace and attribute names."
+      },
+      "properties": [
+        {
+          "name": "stroke",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "fill",
+          "isAttr": true,
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "ColoredEdge",
+      "extends": ["dmndi:DMNEdge"],
+      "properties": [
+        {
+          "name": "stroke",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "fill",
+          "isAttr": true,
+          "type": "String"
+        }
+      ]
+    }
+  ],
+  "enumerations": [],
+  "associations": []
+}

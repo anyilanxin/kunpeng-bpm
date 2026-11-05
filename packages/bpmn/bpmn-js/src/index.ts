@@ -57,6 +57,7 @@ export {
   isExpanded,
   isInterrupting,
   getBusinessObject,
+  getDi,
   getLabel,
   setLabel,
   isPlane,

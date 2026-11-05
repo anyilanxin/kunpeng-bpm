@@ -29,16 +29,7 @@
  * 不解析语义。
  */
 import { STANDARD_PREFIXES } from './Namespace';
-
-/** moddle 扩展描述符（moddle 资源 JSON 的必备字段子集；types 等其余字段本层不消费） */
-export interface ModdleExtension {
-  /** 扩展名（惯例与 moddleExtensions 键一致，仅供诊断） */
-  name?: string;
-  /** 导出时该命名空间的规范前缀 */
-  prefix: string;
-  /** 扩展命名空间 URI */
-  uri: string;
-}
+import type { ModdleExtension } from '../meta/ModdleExtension';
 
 export class DmnNamespaces {
   static $inject = ['config.moddleExtensions'];

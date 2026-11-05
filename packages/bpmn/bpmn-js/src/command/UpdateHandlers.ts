@@ -51,7 +51,7 @@ export class UpdatePropertiesHandler implements CommandHandler {
       this.ids.claim(bo.id, bo);
     }
     this.eventBus.fire('bpmn.properties.updated', { element, properties });
-    return [element];
+    return UpdatePropertiesHandler.affected(context);
   }
 
   revert(context: any): any[] {
@@ -64,7 +64,74 @@ export class UpdatePropertiesHandler implements CommandHandler {
       this.ids.unclaim(bo.id);
       this.ids.claim(context.renamedFrom, bo);
     }
-    return [element];
+    return UpdatePropertiesHandler.affected(context);
+  }
+
+  /** 变更集：被改元素 + default 引用变更时的全部出线。默认流斜杠画在连线
+   gfx 上（判定读源网关 default 属性）——只通知网关则连线不重绘、斜杠
+   滞留旧默认线（脏标记范围先例同 SetColorHandler 之外部标签）。 */
+  private static affected(context: any): any[] {
+    const element = context.element;
+    if (!('default' in context.properties)) {
+      return [element];
+    }
+    return [element, ...(element.outgoing ?? [])];
+  }
+}
+
+/**
+ * 连线类型切换命令（flow.switchType，2026-10-29 产品定规）：
+ * sequence（普通顺序流）/ conditional（条件流）/ default（默认流）三态。
+ * - default 是源元素的单值引用——改指本线即从旧默认线自动摘除（同源互斥
+ *   天然成立；旧默认线经本体系切换必然无条件表达式，摘除即回落普通顺序流）；
+ * - default 与条件表达式互斥（规范 §10.5.1 语义）：设 default 清条件、
+ *   设条件摘 default 引用；
+ * - 单帧原子（一帧撤销），revert 按快照对称回写。
+ */
+export class FlowSwitchTypeHandler implements CommandHandler {
+  static $inject = ['bpmnFactory'];
+
+  constructor(private readonly bpmnFactory: any) {}
+
+  execute(context: any): any[] {
+    const { element, kind } = context;
+    const sourceBo = element.source.businessObject;
+    const bo = element.businessObject;
+    context.oldDefault = sourceBo.default;
+    context.oldCondition = bo.conditionExpression;
+    if (kind === 'default') {
+      sourceBo.default = bo;
+      bo.conditionExpression = undefined;
+    } else if (kind === 'conditional') {
+      if (sourceBo.default === bo) {
+        sourceBo.default = undefined;
+      }
+      bo.conditionExpression = this.bpmnFactory.create('bpmn:FormalExpression', { body: '' });
+    } else {
+      if (sourceBo.default === bo) {
+        sourceBo.default = undefined;
+      }
+      bo.conditionExpression = undefined;
+    }
+    return FlowSwitchTypeHandler.affected(element);
+  }
+
+  revert(context: any): any[] {
+    const { element } = context;
+    element.source.businessObject.default = context.oldDefault;
+    element.businessObject.conditionExpression = context.oldCondition;
+    return FlowSwitchTypeHandler.affected(element);
+  }
+
+  /** 变更集：连线 + 源元素 + 源的全部出线（斜杠/菱形画在连线 gfx、判定读
+   源引用——通知范围先例同 UpdatePropertiesHandler.affected；须含源形状，
+   实测缺源时菜单切换后连线 mousedown 反查失效——同 UpdatePropertiesHandler
+   的 [源, 出线] 集合形态保持一致）。 */
+  private static affected(element: any): any[] {
+    const source = element.source;
+    return [element, source, ...(source.outgoing ?? [])].filter(
+      (e: any, i: number, arr: any[]) => arr.indexOf(e) === i
+    );
   }
 }
 

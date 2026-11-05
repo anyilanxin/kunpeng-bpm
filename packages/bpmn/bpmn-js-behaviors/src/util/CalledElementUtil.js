@@ -1,8 +1,8 @@
 import { has } from 'min-dash';
 
-import { getOutputParameters } from './InputOutputUtil';
+import { getOutputParameters } from './InputOutputUtil.js';
 
-import { getExtensionElementsList } from './ExtensionElementsUtil';
+import { getExtensionElementsList } from './ExtensionElementsUtil.js';
 
 import {
   getBusinessObject,

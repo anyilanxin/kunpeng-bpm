@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://anyilanxin.com/schema/kunpeng/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0n9flo1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.14.0-dev" modeler:executionPlatform="Kunpeng Cloud" modeler:executionPlatformVersion="8.2.0">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:boundaryEvent id="EscalationBoundaryEvent_1" attachedToRef="CallActivity_1">
+      <bpmn:escalationEventDefinition id="EscalationEventDefinition_1n0kjrs" />
+    </bpmn:boundaryEvent>
+    <bpmn:callActivity id="CallActivity_1">
+      <bpmn:extensionElements>
+        <kunpeng:calledElement processId="foo" propagateAllChildVariables="false" />
+      </bpmn:extensionElements>
+    </bpmn:callActivity>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="Activity_04f9rp4_di" bpmnElement="CallActivity_1">
+        <dc:Bounds x="160" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1i5x106_di" bpmnElement="EscalationBoundaryEvent_1">
+        <dc:Bounds x="242" y="142" width="36" height="36" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

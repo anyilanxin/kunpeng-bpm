@@ -33,6 +33,8 @@
 import { BpmnElementTypes, SIZES, isContainerType, metaId } from '../meta/ElementTypes';
 import type { ShapeTypeMeta } from '../meta/ElementTypes';
 import { bpmnIconHtml } from '../icons/BpmnIcons';
+import { iconSetAsset } from '../icons/IconSet';
+import { isAny } from '../util/ModelUtil';
 import { poolInnerRect } from '../util/PoolGeometry';
 
 /**
@@ -115,7 +117,7 @@ function buildEntries(
     entries[`${keyPrefix}-${metaId(meta)}`] = {
       label: i18n.t(meta.label),
       group: { id: meta.paletteGroup!, name: i18n.t(groupLabels.get(meta.paletteGroup!)!) },
-      imageHtml: bpmnIconHtml(meta),
+      imageHtml: bpmnIconHtml(meta, 20, elementTypes.iconFillOf(meta) ?? 'currentColor'),
       title: i18n.t(meta.label),
       action: () => {
         place(meta, elementFactory.createShape(elementTypes.createAttrs(meta)));
@@ -310,5 +312,95 @@ export class BpmnCreateMenuProvider {
       return null;
     }
     return hits.reduce((smallest: any, el: any) => (el.width * el.height < smallest.width * smallest.height ? el : smallest));
+  }
+}
+
+/**
+ * 连线类型切换弹框 Provider（'bpmn-flow-type'，2026-10-29 产品定规）。
+ * 由 context pad「切换连线类型」钮触发，目标=顺序流连线，可选态按源元素定：
+ * - 事件源（开始/中间/结束）：顺序流无条件/默认语义——无切换选项（isEmpty
+ *   判空即 pad 不出钮）；
+ * - 网关源：默认流 ⇄ 顺序流二态——网关出线本身即条件分支语境，不给条件态；
+ * - 活动源（任务/调用活动/子流程等，XSD tActivity.default 合法）：顺序流/
+ *   条件流/默认流三态全开。默认流互斥由源元素单值引用天然保证（见
+ *   FlowSwitchTypeHandler），设新默认即自动把旧默认线摘为普通顺序流。
+ * 当前态不出条目（菜单只列可切目标，2-3 项不设搜索不设组头）。
+ */
+const FLOW_TYPE_LABELS: Record<'sequence' | 'conditional' | 'default', string> = {
+  sequence: '顺序流',
+  conditional: '条件流',
+  default: '默认流'
+};
+
+/** 三态条目图标=标准图标集资产（bpmn-icon-connection=顺序流、
+ * bpmn-icon-conditional-flow=条件流、bpmn-icon-default-flow=默认流，
+ * 2026-10-29 用户指认；32 视框等比进 18，fill=currentColor 随悬停变色，
+ * 画布上的菱形/斜杠记法同源于这三份 svg 的视觉）。 */
+function flowTypeIconHtml(kind: 'sequence' | 'conditional' | 'default'): string {
+  const KEY = { sequence: 'connection', conditional: 'conditionalFlow', default: 'defaultFlow' } as const;
+  const a = iconSetAsset(KEY[kind]);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18"><g transform="scale(${(18 / a.w).toFixed(6)})" fill="currentColor">${a.body}</g></svg>`;
+}
+
+export class BpmnFlowTypeMenuProvider {
+  static readonly MENU_ID = 'bpmn-flow-type';
+
+  static $inject = ['popupMenu', 'eventBus', 'modeling', 'bpmnI18n'];
+
+  constructor(
+    popupMenu: any,
+    eventBus: any,
+    private readonly modeling: any,
+    private readonly i18n: any
+  ) {
+    this.popupMenu = popupMenu;
+    popupMenu.registerProvider(BpmnFlowTypeMenuProvider.MENU_ID, this);
+  }
+
+  private readonly popupMenu: any;
+
+  getPopupMenuEntries(target: any): Record<string, any> {
+    if (target.businessObject?.$type !== 'bpmn:SequenceFlow') {
+      return {};
+    }
+    const source = target.source;
+    const sourceBo = source?.businessObject;
+    const bo = target.businessObject;
+    // 源族判定走 moddle $instanceOf 继承链（SubProcess/Transaction 等
+    // activity 子型一并覆盖，注册表 family 值域不含 subProcess 细分）
+    let kinds: Array<'sequence' | 'conditional' | 'default'>;
+    if (isAny(sourceBo, ['bpmn:Gateway'])) {
+      kinds = ['sequence', 'default'];
+    } else if (isAny(sourceBo, ['bpmn:Activity'])) {
+      kinds = ['sequence', 'conditional', 'default'];
+    } else {
+      // 事件源（及一切无 default/条件语义的源）：无切换选项
+      return {};
+    }
+    const isDefault = sourceBo.default === bo;
+    const isConditional = !!bo.conditionExpression;
+    const entries: Record<string, any> = {};
+    for (const kind of kinds) {
+      const isCurrent = (kind === 'default' && isDefault)
+        || (kind === 'conditional' && isConditional)
+        || (kind === 'sequence' && !isDefault && !isConditional);
+      if (isCurrent) {
+        continue;
+      }
+      entries[`switch-${kind}`] = {
+        label: this.i18n.t(FLOW_TYPE_LABELS[kind]),
+        group: 'flow-type',
+        imageHtml: flowTypeIconHtml(kind),
+        title: this.i18n.t(FLOW_TYPE_LABELS[kind]),
+        action: () => {
+          this.modeling.switchFlowType(target, kind);
+          // 收起必须在命令后：Inferno 的 click 处理器内同步移除自身容器会
+          // 错乱其事件委托（实测画布 mousedown 反查失效）；命令产生的
+          // elements.changed 触发弹框 refresh 属正常路径，最后收起即可
+          this.popupMenu.close();
+        }
+      };
+    }
+    return entries;
   }
 }

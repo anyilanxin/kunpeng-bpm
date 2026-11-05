@@ -123,7 +123,7 @@ export function containerSize(
 }
 
 /**
- * 泳道插入方向归一（旧 @kunpeng-js 线 API 契约）：'top'/'left' 一律视为
+ * 泳道插入方向归一（旧线 API 契约延续）：'top'/'left' 一律视为
  * 堆叠序列的前端（before），'bottom'/'right' 为后端（after）——两对名字在
  * 两种朝向下都合法，语义锚定"序列前后"而非屏幕方位。
  */

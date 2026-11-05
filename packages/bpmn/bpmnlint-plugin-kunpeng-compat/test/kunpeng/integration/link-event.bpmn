@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0t0ffw7" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.14.0" modeler:executionPlatform="Kunpeng Cloud" modeler:executionPlatformVersion="8.2.0">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:intermediateThrowEvent id="LinkIntermediateThrowEvent_1" name="LinkIntermediateThrowEvent_1">
+      <bpmn:linkEventDefinition id="LinkEventDefinition_1aub5th" name="foo" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateCatchEvent id="LinkIntermediateCatchEvent_1" name="LinkIntermediateCatchEvent_1">
+      <bpmn:linkEventDefinition id="LinkEventDefinition_0oxqcax" name="foo" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="LinkIntermediateCatchEvent_2" name="LinkIntermediateCatchEvent_2">
+      <bpmn:linkEventDefinition id="LinkEventDefinition_1b2oyn8" name="bar" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="LinkIntermediateCatchEvent_3" name="LinkIntermediateCatchEvent_3">
+      <bpmn:linkEventDefinition id="LinkEventDefinition_0n4t8as" name="baz" />
+    </bpmn:intermediateCatchEvent>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="Event_1r63n3h_di" bpmnElement="LinkIntermediateThrowEvent_1">
+        <dc:Bounds x="162" y="82" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="139" y="125" width="82" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_021itnc_di" bpmnElement="LinkIntermediateCatchEvent_1">
+        <dc:Bounds x="162" y="172" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="139" y="215" width="82" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0pi2iyj" bpmnElement="LinkIntermediateCatchEvent_2">
+        <dc:Bounds x="162" y="262" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="139" y="305" width="82" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0owc4zu" bpmnElement="LinkIntermediateCatchEvent_3">
+        <dc:Bounds x="162" y="352" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="139" y="395" width="82" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

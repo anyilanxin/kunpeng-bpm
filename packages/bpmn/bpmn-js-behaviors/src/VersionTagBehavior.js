@@ -1,13 +1,13 @@
 import { isDefined } from 'min-dash';
 
-import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor.js';
 
 import {
   getBusinessObject,
   is,
   isAny
 } from '@kunpeng-io/bpmn-js';
-import { removeExtensionElements } from './util/ExtensionElementsUtil';
+import { removeExtensionElements } from './util/ExtensionElementsUtil.js';
 
 /**
  * Kunpeng BPMN specific version tag behavior.

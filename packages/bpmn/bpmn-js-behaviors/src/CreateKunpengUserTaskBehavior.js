@@ -1,33 +1,34 @@
 import { getBusinessObject, is } from '@kunpeng-io/bpmn-js';
-import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor.js';
 
-import { createElement } from './util/ElementUtil';
-import { getExtensionElementsList } from './util/ExtensionElementsUtil';
+import { createElement } from './util/ElementUtil.js';
+import { getExtensionElementsList } from './util/ExtensionElementsUtil.js';
 
 const HIGH_PRIORITY = 5000;
 
 /**
  * Kunpeng BPMN specific behavior for creating user tasks.
  */
-export default class CreateKunpengngngUserTaskBehavior extends CommandInterceptor {
+export default class CreateKunpengUserTaskBehavior extends CommandInterceptor {
   constructor(bpmnFactory, eventBus, modeling) {
     super(eventBus);
 
     /**
      * Add kunpeng:userTask extension element when creating bpmn:UserTask.
+     * （新内核替换命令 bpmnReplace：原地换 bo，context.element 即新形态）
      */
     this.postExecuted(
-      [ 'shape.create', 'shape.replace' ],
+      [ 'shape.create', 'bpmnReplace' ],
       HIGH_PRIORITY,
       function(context) {
-        const shape = context.shape || context.newShape;
+        const shape = context.shape || context.element;
         const explicitlyDisabled = context.hints && context.hints.createElementsBehavior === false;
 
         if (!is(shape, 'bpmn:UserTask') || explicitlyDisabled) {
           return;
         }
 
-        let userTaskElement = getKunpengngngUserTask(shape);
+        let userTaskElement = getKunpengUserTask(shape);
         if (userTaskElement) {
           return;
         }
@@ -64,7 +65,7 @@ export default class CreateKunpengngngUserTaskBehavior extends CommandIntercepto
   }
 }
 
-CreateKunpengngngUserTaskBehavior.$inject = [ 'bpmnFactory', 'eventBus', 'modeling' ];
+CreateKunpengUserTaskBehavior.$inject = [ 'bpmnFactory', 'eventBus', 'modeling' ];
 
 /**
  * Get kunpeng:userTask extension.
@@ -73,7 +74,7 @@ CreateKunpengngngUserTaskBehavior.$inject = [ 'bpmnFactory', 'eventBus', 'modeli
  *
  * @returns {ModdleElement|null}
  */
-function getKunpengngngUserTask(element) {
+function getKunpengUserTask(element) {
   const businessObject = getBusinessObject(element);
   const userTaskElements = getExtensionElementsList(businessObject, 'kunpeng:UserTask');
 

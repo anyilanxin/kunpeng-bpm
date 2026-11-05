@@ -1,13 +1,14 @@
 import { getBusinessObject, is } from '@kunpeng-io/bpmn-js';
-import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor.js';
 
 
 export default class CleanUpMessageRefBehavior extends CommandInterceptor {
   constructor(eventBus, modeling) {
     super(eventBus, modeling);
 
-    this.postExecuted('shape.replace', function(event) {
-      const newShape = event.context.newShape;
+    // 新内核替换命令 bpmnReplace（原地换 bo，context.element 即新形态）
+    this.postExecuted('bpmnReplace', function(event) {
+      const newShape = event.context.element;
 
       if (!is(newShape, 'bpmn:ThrowEvent')) {
         return;
@@ -29,8 +30,8 @@ export default class CleanUpMessageRefBehavior extends CommandInterceptor {
       });
     });
 
-    this.postExecuted('shape.replace', function(event) {
-      const newShape = event.context.newShape,
+    this.postExecuted('bpmnReplace', function(event) {
+      const newShape = event.context.element,
             bo = getBusinessObject(newShape);
 
       if (!is(bo, 'bpmn:SendTask')) {

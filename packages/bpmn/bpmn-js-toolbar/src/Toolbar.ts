@@ -21,9 +21,11 @@
  */
 /**
  * 悬浮工具栏服务：渲染进画布容器、相对画布水平居中（容器随宿主布局伸缩，
- * 面板让位/窗口缩放下恒居中）。内置动作（撤销重做组 / 缩放组，横纵布局钮嵌
- * 在缩放组内放大与适应画布之间）走内核服务；宿主经 `bpmnToolbar.actions`
- * 注册应用级动作（导入导出、模式切换、取色器等——render() 可放任意控件），
+ * 面板让位/窗口缩放下恒居中）。内置动作（校验钮〔宿主装配 linting 服务时〕/
+ * 颜色组：设置/清除选中元素颜色 / 撤销重做组 / 缩放组，横纵布局钮嵌在缩放
+ * 组内放大与适应画布之间）走内核
+ * 服务；宿主经 `bpmnToolbar.actions`
+ * 注册应用级动作（导入导出、模式切换等——render() 可放任意控件），
  * 按 group 连续成组、换组分隔。
  * 宽度上限 min(画布容器宽 × ½, 视口宽 × ⅓)（常态最多占画布一半、小屏收敛
  * 到屏幕三分之一），装不下的尾段自动收进「更多」弹层（容器尺寸/模式变化
@@ -52,6 +54,22 @@ interface OrientationLike {
 }
 interface ModelingLike {
   setOrientation(orientation: ModelOrientation): void;
+  setColor(elements: ColorElementLike[], colors: { fill?: string; stroke?: string }): void;
+}
+
+/** 校验服务（@kunpeng-io/linting/modeler 装配时存在）：激活开关契约 */
+interface LintingLike {
+  isActive(): boolean;
+  activate(): void;
+  deactivate(): void;
+}
+
+/** 可着色元素结构化类型（colors 为 bioc 显式色，未着色时缺省；标签选中时
+ *  labelTarget 归一到宿主元素——标签无自有颜色，随宿主 bioc 渲染） */
+interface ColorElementLike {
+  id: string;
+  colors?: { fill?: string; stroke?: string };
+  labelTarget?: ColorElementLike;
 }
 interface I18nLike {
   t(text: string): string;
@@ -88,6 +106,10 @@ export interface ToolbarConfig {
 /** 内置缩放步进与示例 App 原工具栏一致（1.2 倍率） */
 const ZOOM_STEP = 1.2;
 
+/** 取色器回显缺省（未着色字段的占位回显，主题无关）：与提交判定同源——
+ *  回显值与缺省相同即"未改"不提交（原生 color input 无"无值"态） */
+const COLOR_DEFAULTS = { fill: '#ffffff', stroke: '#000000' } as const;
+
 export class BpmnToolbar {
   static $inject = [
     'eventBus',
@@ -104,8 +126,10 @@ export class BpmnToolbar {
   /** 只读实例缺 commandStack/modeling（编辑模块不进注入器），相应组整组不建 */
   private readonly commandStack: CommandStack | null;
   private readonly modeling: ModelingLike | null;
+  private readonly linting: LintingLike | null;
   private readonly undoBtn?: HTMLButtonElement;
   private readonly redoBtn?: HTMLButtonElement;
+  private readonly lintBtn?: HTMLButtonElement;
   private readonly orientationBtn?: HTMLButtonElement;
   private readonly customControls: Array<{ spec: ToolbarActionSpec; el: HTMLElement }> = [];
   /** 顶层级段落（组/分隔线/宿主控件）的规范序——溢出收纳每轮全量回栏重排 */
@@ -115,6 +139,17 @@ export class BpmnToolbar {
   private readonly resizeObserver: ResizeObserver;
   private readonly onViewportResize = (): void => this.reflow();
   private onDocPointerDown: ((event: MouseEvent) => void) | null = null;
+  /** 内置颜色组状态：选中中的可着色元素（标签归一宿主去重）与回显代表（首个） */
+  private colorTargets: ColorElementLike[] = [];
+  private colorTarget: ColorElementLike | null = null;
+  private fillColor: string = COLOR_DEFAULTS.fill;
+  private strokeColor: string = COLOR_DEFAULTS.stroke;
+  private colorSetBtn: HTMLButtonElement | null = null;
+  private colorClearBtn: HTMLButtonElement | null = null;
+  private fillColorInput: HTMLInputElement | null = null;
+  private strokeColorInput: HTMLInputElement | null = null;
+  private colorPop: HTMLElement | null = null;
+  private onColorDocDown: ((event: MouseEvent) => void) | null = null;
 
   constructor(
     eventBus: EventBus,
@@ -127,6 +162,7 @@ export class BpmnToolbar {
   ) {
     this.commandStack = injector.get<CommandStack | null>('commandStack', false);
     this.modeling = injector.get<ModelingLike | null>('modeling', false);
+    this.linting = injector.get<LintingLike | null>('linting', false);
 
     const t = (text: string): string => this.bpmnI18n.t(text);
     this.root = document.createElement('div');
@@ -143,9 +179,20 @@ export class BpmnToolbar {
       this.root.appendChild(this.buildCustomControl(spec));
     }
 
-    // 内置组（在后）：撤销重做 → 缩放；横纵布局钮嵌在缩放组内（放大与适应画布
-    // 之间）。编辑服务缺失的组/钮不建（只读实例仅剩缩放组）
+    // 内置组（在后）：校验 → 颜色 → 撤销重做 → 缩放；横纵布局钮嵌在缩放组内（放大与
+    // 适应画布之间）。编辑服务缺失的组/钮不建（只读实例仅剩缩放组）
     if (lastGroup !== null) {
+      this.root.appendChild(separator());
+    }
+    // 校验单钮：宿主装配 @kunpeng-io/linting/modeler（linting 服务）时才有——
+    // 非严格解析缺失即无钮，工具栏对未装校验的宿主零变化；激活态高亮随开关
+    if (this.linting) {
+      this.lintBtn = iconButton('lint', t('开启校验'), ICONS.lint, () => this.toggleLint());
+      this.root.appendChild(this.lintBtn);
+      this.root.appendChild(separator());
+    }
+    if (this.modeling) {
+      this.root.appendChild(this.buildColorsGroup(t));
       this.root.appendChild(separator());
     }
     if (this.commandStack) {
@@ -207,6 +254,9 @@ export class BpmnToolbar {
     this.resizeObserver = new ResizeObserver(() => this.reflow());
     this.resizeObserver.observe(this.canvas.getContainer());
     window.addEventListener('resize', this.onViewportResize);
+    // 构造期容器无宽（宿主页布局未就绪/隐藏挂载）时 RO 与窗口事件都不再有后续
+    // 通知，宽度上限会卡在 0——宿主 canvas.resized() 与导入完成各补一次重排兜住
+    eventBus.on('canvas.resized', () => this.reflow());
 
     eventBus.on('canvas.viewbox.changed', () => this.syncZoom());
     // 朝向变化两路：转置命令（含撤销重做）与导入解析（标记/池 DI 推断）
@@ -214,7 +264,28 @@ export class BpmnToolbar {
       this.syncHistory();
       this.syncOrientation();
     });
-    eventBus.on('import.done', () => this.syncOrientation());
+    // 颜色组回显：选择变化换目标集（标签归一宿主去重）；撤销重做/属性面板
+    // 改色经 elements.changed 跟随受影响元素回显
+    eventBus.on('selection.changed', (event: any) => {
+      this.colorTargets = [
+        ...new Map<string, ColorElementLike>(
+          (event.newSelection ?? []).map(
+            (e: ColorElementLike): [string, ColorElementLike] => [(e.labelTarget ?? e).id, e.labelTarget ?? e]
+          )
+        ).values()
+      ];
+      this.colorTarget = this.colorTargets[0] ?? null;
+      this.syncColors();
+    });
+    eventBus.on('elements.changed', (event: any) => {
+      if (this.colorTarget && event.elements?.some((e: ColorElementLike) => this.colorTargets.includes(e))) {
+        this.syncColors();
+      }
+    });
+    eventBus.on('import.done', () => {
+      this.syncOrientation();
+      this.reflow();
+    });
     eventBus.on('mode.changed', () => this.syncMode());
     eventBus.on('diagram.destroy', () => this.destroy());
 
@@ -222,6 +293,7 @@ export class BpmnToolbar {
     this.syncZoom();
     this.syncHistory();
     this.syncOrientation();
+    this.syncLint();
     this.syncMode();
   }
 
@@ -236,6 +308,7 @@ export class BpmnToolbar {
     this.syncZoom();
     this.syncHistory();
     this.syncOrientation();
+    this.syncLint();
     this.syncMode();
   }
 
@@ -243,6 +316,7 @@ export class BpmnToolbar {
     this.resizeObserver.disconnect();
     window.removeEventListener('resize', this.onViewportResize);
     this.closePopup();
+    this.closeColorPopup();
     this.root.remove();
   }
 
@@ -333,6 +407,151 @@ export class BpmnToolbar {
     return btn;
   }
 
+  /** 内置颜色组：设置颜色（按钮 + 填充/描边两行弹框 + 确定）与同组清除颜色
+      钮；选中空时双钮禁用。外点关闭不提交（下次打开按元素现状回显，未确定
+      的选择自然作废）；清除颜色是同组独立钮不入弹框 */
+  private buildColorsGroup(t: (text: string) => string): HTMLElement {
+    const colors = group('colors', true);
+
+    const wrap = document.createElement('span');
+    wrap.className = 'bpmn-color-action';
+    this.colorSetBtn = iconButton('set-colors', t('设置选中元素颜色'), ICONS.setColor, () => this.toggleColorPopup());
+
+    this.colorPop = document.createElement('div');
+    this.colorPop.className = 'bpmn-color-pop';
+    this.colorPop.hidden = true;
+
+    const makeRow = (kind: 'fill' | 'stroke'): HTMLElement => {
+      const row = document.createElement('label');
+      row.className = 'bpmn-color-row';
+      const text = document.createElement('span');
+      text.textContent = t(kind === 'fill' ? '填充' : '描边');
+      const input = document.createElement('input');
+      input.type = 'color';
+      input.addEventListener('input', () => {
+        if (kind === 'fill') {
+          this.fillColor = input.value;
+        } else {
+          this.strokeColor = input.value;
+        }
+      });
+      if (kind === 'fill') {
+        this.fillColorInput = input;
+      } else {
+        this.strokeColorInput = input;
+      }
+      row.append(text, input);
+      return row;
+    };
+
+    const foot = document.createElement('div');
+    foot.className = 'bpmn-color-foot';
+    const ok = document.createElement('button');
+    ok.type = 'button';
+    ok.className = 'bpmn-color-ok';
+    ok.textContent = t('确定');
+    ok.addEventListener('click', () => {
+      this.commitColors();
+      this.closeColorPopup();
+    });
+    foot.append(ok);
+
+    this.colorPop.append(makeRow('fill'), makeRow('stroke'), foot);
+    wrap.append(this.colorSetBtn, this.colorPop);
+
+    this.colorClearBtn = iconButton('clear-colors', t('清除选中元素颜色'), ICONS.clearColor, () => this.clearColors());
+    colors.append(wrap, this.colorClearBtn);
+    this.syncColors();
+    return colors;
+  }
+
+  private toggleColorPopup(): void {
+    if (this.colorPop?.hidden) {
+      this.openColorPopup();
+    } else {
+      this.closeColorPopup();
+    }
+  }
+
+  private openColorPopup(): void {
+    if (!this.colorPop || !this.colorSetBtn) {
+      return;
+    }
+    this.syncColors();
+    this.colorPop.hidden = false;
+    this.colorSetBtn.classList.add('bpmn-toolbar-btn--active');
+    this.onColorDocDown = (event: MouseEvent) => {
+      if (!this.colorPop!.contains(event.target as Node) && !this.colorSetBtn!.contains(event.target as Node)) {
+        this.closeColorPopup();
+      }
+    };
+    document.addEventListener('mousedown', this.onColorDocDown);
+  }
+
+  private closeColorPopup(): void {
+    if (this.onColorDocDown) {
+      document.removeEventListener('mousedown', this.onColorDocDown);
+      this.onColorDocDown = null;
+    }
+    if (this.colorPop) {
+      this.colorPop.hidden = true;
+    }
+    this.colorSetBtn?.classList.remove('bpmn-toolbar-btn--active');
+  }
+
+  /** 回显弹框与双钮可用态：未着色字段回显固定缺省占位 */
+  private syncColors(): void {
+    const colors = this.colorTarget?.colors;
+    this.fillColor = colors?.fill || COLOR_DEFAULTS.fill;
+    this.strokeColor = colors?.stroke || COLOR_DEFAULTS.stroke;
+    if (this.fillColorInput) {
+      this.fillColorInput.value = this.fillColor;
+    }
+    if (this.strokeColorInput) {
+      this.strokeColorInput.value = this.strokeColor;
+    }
+    const empty = this.colorTargets.length === 0;
+    if (this.colorSetBtn) {
+      this.colorSetBtn.disabled = empty;
+    }
+    if (this.colorClearBtn) {
+      this.colorClearBtn.disabled = empty;
+    }
+  }
+
+  /** 确定：只提交被改字段；未改字段仅在代表元素已有显式色时回传保留（多选
+      时按代表现状统一落到全体——ColorHandler 整替语义，混合色被代表值统一
+      是预期行为）。与回显缺省相同的值不提交：既不把占位回显误写成显式色，
+      也不为无变化生成空命令 */
+  private commitColors(): void {
+    if (!this.modeling || this.colorTargets.length === 0) {
+      return;
+    }
+    const explicit = this.colorTarget?.colors ?? {};
+    const colors: { fill?: string; stroke?: string } = {};
+    let changed = false;
+    for (const kind of ['fill', 'stroke'] as const) {
+      const value = kind === 'fill' ? this.fillColor : this.strokeColor;
+      if (value !== (explicit[kind] ?? COLOR_DEFAULTS[kind])) {
+        colors[kind] = value;
+        changed = true;
+      } else if (explicit[kind]) {
+        colors[kind] = explicit[kind];
+      }
+    }
+    if (changed) {
+      this.modeling.setColor(this.colorTargets, colors);
+    }
+  }
+
+  /** 清除：空 colors 整替（ColorHandler 语义=清除回落主题缺省） */
+  private clearColors(): void {
+    if (!this.modeling || this.colorTargets.length === 0) {
+      return;
+    }
+    this.modeling.setColor(this.colorTargets, {});
+  }
+
   private syncZoom(): void {
     this.zoomLabel.textContent = `${Math.round(this.canvas.zoom() * 100)}%`;
   }
@@ -354,6 +573,28 @@ export class BpmnToolbar {
     const horizontal = this.orientationService.getOrientation() === 'horizontal';
     this.orientationBtn.innerHTML = horizontal ? ICONS.orientationHorizontal : ICONS.orientationVertical;
     this.orientationBtn.title = this.bpmnI18n.t(horizontal ? '切换为纵向布局' : '切换为横向布局');
+  }
+
+  /** 校验钮：激活高亮 + 提示写明点击将切到的目标态 */
+  private toggleLint(): void {
+    if (!this.linting) {
+      return;
+    }
+    if (this.linting.isActive()) {
+      this.linting.deactivate();
+    } else {
+      this.linting.activate();
+    }
+    this.syncLint();
+  }
+
+  private syncLint(): void {
+    if (!this.lintBtn || !this.linting) {
+      return;
+    }
+    const active = this.linting.isActive();
+    this.lintBtn.classList.toggle('bpmn-toolbar-btn--active', active);
+    this.lintBtn.title = this.bpmnI18n.t(active ? '关闭校验' : '开启校验');
   }
 
   private syncMode(): void {

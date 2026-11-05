@@ -57,7 +57,7 @@ import {
   spanStart,
   withSpan
 } from '../util/PoolGeometry';
-import { trimResizeHandles } from '../util/Dom';
+import { trimResizeHandles } from '@kunpeng-io/kernel-shared';
 
 export class LaneBandBehavior extends CommandInterceptor {
   static $inject = ['eventBus', 'modeling', 'orientationService'];

@@ -1,0 +1,29 @@
+---
+name: Propose new Rule
+about: Use this template to propose new modeling rules to be included in the library.
+labels: ['rules']
+---
+
+#### The rule should detect the following modeling patterns
+
+<!-- please share correct and incorrect usage examples as BPMN files -->
+
+-
+-
+
+#### How does the rule improve the BPMN diagram?
+
+<!--
+Describe how people would benefit from this modeling rule.
+-->
+
+#### Rule Details
+
+- Name:
+- Default notification level: `error|warn|off`
+
+#### What alternatives did you consider?
+
+<!--
+Describe alternatives to this rule you considered.
+-->

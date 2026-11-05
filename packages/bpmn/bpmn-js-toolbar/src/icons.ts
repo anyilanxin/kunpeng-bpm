@@ -56,5 +56,12 @@ export const ICONS = {
     '<circle cx="14" cy="24" r="4" fill="currentColor" stroke="none" />' +
       '<circle cx="24" cy="24" r="4" fill="currentColor" stroke="none" />' +
       '<circle cx="34" cy="24" r="4" fill="currentColor" stroke="none" />'
-  )
+  ),
+  setColor: wrap('<path d="M24 6c6 8 12 13.5 12 21a12 12 0 1 1-24 0c0-7.5 6-13 12-21Z" />'),
+  clearColor: wrap(
+    '<path d="M24 6c6 8 12 13.5 12 21a12 12 0 1 1-24 0c0-7.5 6-13 12-21Z" />' +
+      '<path d="M10 38 38 10" />'
+  ),
+  // 校验（圆环+对勾；激活态高亮标识校验进行中）
+  lint: wrap('<path d="M24 6a18 18 0 1 0 0 36 18 18 0 0 0 0-36Z" /><path d="m15 24 6 6 12-12" />')
 } as const;

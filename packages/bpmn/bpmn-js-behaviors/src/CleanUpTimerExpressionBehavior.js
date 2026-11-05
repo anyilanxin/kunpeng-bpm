@@ -2,13 +2,13 @@ import {
   is
 } from '@kunpeng-io/bpmn-js';
 
-import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor.js';
 
 import {
   getTimerEventDefinition,
   isTimerExpressionTypeSupported,
   TIMER_PROPERTIES
-} from './util/TimerUtil';
+} from './util/TimerUtil.js';
 
 /**
  * Kunpeng BPMN behavior ensuring that bpmn:TimerEventDefinition has only allowed time properties of:
@@ -24,9 +24,9 @@ export default class CleanUpTimerExpressionBehavior extends CommandInterceptor {
 
     this.postExecuted([
       'shape.move',
-      'shape.replace',
+      'bpmnReplace',
       'shape.create',
-      'element.updateProperties',
+      'properties.update',
       'element.updateModdleProperties'
     ], context => {
       const element = context.shape || context.newShape || context.element;

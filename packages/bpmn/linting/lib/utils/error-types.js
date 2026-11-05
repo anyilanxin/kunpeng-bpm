@@ -1,5 +1,5 @@
-// ERROR_TYPES 镜像，与 @kunpeng-js/bpmnlint-plugin-kunpeng-compat/rules/utils/error-types
-// 保持一致。本包（@kunpeng-io/linting）以 ESM 形式直接 import 此常量，避免跨包引用
+// ERROR_TYPES 镜像，与 @kunpeng/bpmnlint-plugin-kunpeng-compat/rules/utils/error-types
+// 保持一致。本包（@kunpeng/linting）以 ESM 形式直接 import 此常量，避免跨包引用
 // kunpeng-compat 的 CJS 源文件导致 Vite /@fs/ 无法识别 named export。
 export const ERROR_TYPES = Object.freeze({
   CHILD_ELEMENT_OF_TYPE_REQUIRED: 'camunda.childElementOfTypeRequired',

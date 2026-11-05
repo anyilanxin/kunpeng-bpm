@@ -1,17 +1,17 @@
 import { is } from '@kunpeng-io/bpmn-js';
-import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor.js';
 import { without } from 'min-dash';
 
-import { getExtensionElementsList } from './util/ExtensionElementsUtil';
+import { getExtensionElementsList } from './util/ExtensionElementsUtil.js';
 
 
 export default class CleanUpTaskListenersBehavior extends CommandInterceptor {
   constructor(eventBus, modeling) {
     super(eventBus);
 
-    // remove task listeners of disallowed type on shape replace
-    this.postExecuted('shape.replace', function(event) {
-      const element = event.context.newShape;
+    // remove task listeners of disallowed type on replace（新内核替换命令 bpmnReplace，context.element 即新形态）
+    this.postExecuted('bpmnReplace', function(event) {
+      const element = event.context.element;
 
       updateListeners(element, modeling);
     });

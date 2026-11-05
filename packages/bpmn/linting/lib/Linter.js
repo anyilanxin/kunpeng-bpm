@@ -3,27 +3,27 @@
 import { BpmnModdle } from 'bpmn-moddle';
 
 import { Linter as BpmnLinter } from 'bpmnlint';
-import StaticResolver from 'bpmnlint/lib/resolver/static-resolver';
+import StaticResolver from 'bpmnlint/lib/resolver/static-resolver.js';
 
-import Resolver from './Resolver';
+import Resolver from './Resolver.js';
 
 import { isString } from 'min-dash';
 
 import { is } from 'bpmnlint-utils';
 
-import { resolver as RulesResolver } from './compiled-config';
+import { resolver as RulesResolver } from './compiled-config.js';
 
 import modelerModdle from 'modeler-moddle/resources/modeler.json';
 import kunpengModdle from '@kunpeng-io/kunpeng-bpmn-moddle/resources/kunpeng.json';
 
-import { getErrorMessage } from './utils/error-messages';
-import { getEntryIds } from './utils/properties-panel';
+import { getErrorMessage } from './utils/error-messages.js';
+import { getEntryIds } from './utils/properties-panel.js';
 
-import { toSemverMinor } from './utils/version';
+import { toSemverMinor } from './utils/version.js';
 
-import defaultPlugins from './plugins';
+import defaultPlugins from './plugins/index.js';
 
-import bpmnlintConfig from 'bpmnlint/config/correctness';
+import bpmnlintConfig from 'bpmnlint/config/correctness.js';
 
 const NoopResolver = new StaticResolver({});
 
@@ -32,13 +32,17 @@ const NoopResolver = new StaticResolver({});
  * @param {string} [options.modeler='desktop']
  * @param {Array<Object>} [options.plugins=[]]
  * @param {string} [options.type='cloud']
+ * @param {string} [options.defaultExecutionPlatform='Kunpeng Cloud']
+ * @param {string} [options.defaultExecutionPlatformVersion='8.3.0']
  */
 export class Linter {
   constructor(options = {}) {
     const {
       modeler = 'desktop',
       plugins = [],
-      type = 'cloud'
+      type = 'cloud',
+      defaultExecutionPlatform = 'Kunpeng Cloud',
+      defaultExecutionPlatformVersion = '8.3.0'
     } = options;
 
     this._moddle = new BpmnModdle({
@@ -52,6 +56,13 @@ export class Linter {
 
     this._modeler = modeler;
     this._plugins = [ ...defaultPlugins, ...plugins ];
+
+    // 二开（2026-10-29 @kunpeng-io/bpmn-js 接入）：文档未携带 modeler:executionPlatform
+    // 标记时按缺省平台校验——新内核不写该标记（XML 卫生：未知命名空间属性仅
+    // 随原文档往返），缺省平台让任何文档开箱即可校验；带标记的旧线文档仍按
+    // 自身平台版本取规则集（缺省仅兜底，不覆盖显式标记）。
+    this._defaultExecutionPlatform = defaultExecutionPlatform;
+    this._defaultExecutionPlatformVersion = defaultExecutionPlatformVersion;
   }
 
   async lint(contents) {
@@ -63,8 +74,8 @@ export class Linter {
       rootElement = contents;
     }
 
-    const executionPlatform = rootElement.get('modeler:executionPlatform'),
-          executionPlatformVersion = rootElement.get('modeler:executionPlatformVersion');
+    const executionPlatform = rootElement.get('modeler:executionPlatform') || this._defaultExecutionPlatform,
+          executionPlatformVersion = rootElement.get('modeler:executionPlatformVersion') || this._defaultExecutionPlatformVersion;
 
     if (!executionPlatform || !executionPlatformVersion) {
       return [];
@@ -118,7 +129,7 @@ export class Linter {
   _createConfig(configName) {
     const configs = [
       {
-        extends: `plugin:@kunpeng-js/bpmnlint-plugin-kunpeng-compat/${ configName }`
+        extends: `plugin:@kunpeng-io/bpmnlint-plugin-kunpeng-compat/${ configName }`
       },
       {
         extends: 'bpmnlint:correctness'
@@ -150,7 +161,10 @@ export class Linter {
   }
 
   async _createResolver(configName) {
-    const { configs } = await import('@kunpeng-js/bpmnlint-plugin-kunpeng-compat');
+    // CJS 插件（workspace 链接包）经打包器互操作形态不一：default=module.exports
+    // 或具名直挂，双形态取一
+    const pluginModule = await import('@kunpeng-io/bpmnlint-plugin-kunpeng-compat');
+    const { configs } = pluginModule.default || pluginModule;
 
     let { [ configName ]: config } = configs;
 
@@ -165,7 +179,7 @@ export class Linter {
     });
 
     const ConfigResolver = new StaticResolver({
-      [ `config:@kunpeng-js/bpmnlint-plugin-kunpeng-compat/${ configName }` ]: config,
+      [ `config:@kunpeng-io/bpmnlint-plugin-kunpeng-compat/${ configName }` ]: config,
       'config:bpmnlint/correctness': bpmnlintConfig
     });
 

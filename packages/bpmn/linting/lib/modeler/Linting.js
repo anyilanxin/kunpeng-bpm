@@ -1,8 +1,22 @@
-import { getBusinessObject, is } from '@kunpeng-io/bpmn-js';
-
 import { isArray } from 'min-dash';
 
-import { getErrors, getReportEntryIds } from '../utils/properties-panel';
+import { Linter } from '../Linter.js';
+import { getErrors, getReportEntryIds } from '../utils/properties-panel.js';
+
+// 移植注（2026-10-29，@kunpeng-io/bpmn-js 接入）：原文件从
+// bpmn-js/lib/util/ModelUtil 引入 is/getBusinessObject——家族包禁止构建期
+// 依赖自研内核（GPL/MIT 分发边界 + 依赖方向，见内核 AGENTS 插件契约），
+// 两者改为本地结构访问实现，判定语义同 ModelUtil（moddle $instanceOf
+// 继承链）。
+function is(element, type) {
+  const bo = element && element.businessObject;
+
+  return !!(bo && typeof bo.$instanceOf === 'function' && bo.$instanceOf(type));
+}
+
+function getBusinessObject(element) {
+  return element && element.businessObject;
+}
 
 export default class Linting {
   constructor(canvas, config, elementRegistry, eventBus, injector, lintingAnnotations, selection) {
@@ -13,12 +27,63 @@ export default class Linting {
     this._lintingAnnotations = lintingAnnotations;
     this._selection = selection;
 
+    // 校验核心：config.linting 整体透传 Linter 构造项
+    // （type/modeler/plugins/defaultExecutionPlatform…，active 为本服务自留键）
+    this._linter = new Linter(config || {});
+
+    // 内核门面（约定服务名 bpmnjs）：saveXML 取校验输入。非严格解析——
+    // 宿主自拼底座无该服务时 lint() 返回空集（不抛错，校验静默不可用）
+    this._bpmnjs = injector.get('bpmnjs', false);
+
     this._active = config && config.active || false;
     this._reports = [];
+    this._lintToken = 0;
 
     eventBus.on('selection.changed', () => this._update());
 
     eventBus.on('lintingAnnotations.click', ({ report }) => this.showError(report));
+
+    // 激活态下文档变更自动重校验（命令栈变化/重新导入），结果经令牌去旧
+    eventBus.on('commandStack.changed', () => {
+      if (this._active) {
+        this.lint();
+      }
+    });
+
+    eventBus.on('import.done', () => {
+      if (this._active) {
+        this.lint();
+      }
+    });
+
+    if (this._active) {
+      this.lint();
+    }
+  }
+
+  /**
+   * 立即校验当前文档：saveXML → Linter.lint → 标注/面板错误/完成事件。
+   * 异步竞态以令牌收敛——变更风暴中过期结果被丢弃，末次校验结果生效。
+   */
+  async lint() {
+    if (!this._bpmnjs) {
+      return [];
+    }
+
+    const token = this._lintToken = this._lintToken + 1;
+
+    const { xml } = await this._bpmnjs.saveXML();
+    const reports = await this._linter.lint(xml);
+
+    if (token !== this._lintToken) {
+      return reports;
+    }
+
+    this.setErrors(reports);
+
+    this._eventBus.fire('linting.completed', { reports });
+
+    return reports;
   }
 
   showError(report) {
@@ -66,6 +131,8 @@ export default class Linting {
     this._active = true;
 
     this._update();
+
+    this.lint();
   }
 
   deactivate() {
@@ -80,8 +147,8 @@ export default class Linting {
 
   _update() {
 
-    // 仅在激活时（底部 ProblemsPanel 切到 Problems tab）才展示画布标注与属性面板错误，
-    // 否则清空——Output tab 不污染画布与元素属性面板。
+    // 仅在激活时（宿主/工具栏开启校验）才展示画布标注与属性面板错误，
+    // 否则清空——关闭校验不污染画布与元素属性面板。
     const active = this.isActive();
 
     // set annotations
@@ -141,7 +208,11 @@ export default class Linting {
     const selection = this._selection.get();
 
     if (!selection || !selection.length) {
-      return this._canvas.getRootElement();
+      const root = this._canvas.getRootElement();
+
+      // 画布隐式根（diagram-js 导入间隙/空画布）无 businessObject——本内核
+      // 根仅在文档导入后携带语义根 bo，此时视作无选中元素（报告归集为空）
+      return root && root.businessObject ? root : null;
     }
 
     const selectedElement = selection[ 0 ];

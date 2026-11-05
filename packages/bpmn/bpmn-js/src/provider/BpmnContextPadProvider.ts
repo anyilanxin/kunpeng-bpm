@@ -28,10 +28,10 @@ import type { BpmnElementTypes } from '../meta/ElementTypes';
 import { isContainerType, metaId } from '../meta/ElementTypes';
 import type { AppendPreview } from '../behavior/AppendPreview';
 import { BpmnAlignMenuProvider } from './BpmnAlignMenuProvider';
-import { BpmnAppendMenuProvider, BpmnCreateMenuProvider } from './BpmnElementMenuProvider';
+import { BpmnAppendMenuProvider, BpmnCreateMenuProvider, BpmnFlowTypeMenuProvider } from './BpmnElementMenuProvider';
 import { bpmnEntryHtml } from '../icons/BpmnIcons';
 import { toolEntryHtml } from '../icons/ToolIcons';
-import { alignPadEntryHtml } from '../icons/AlignIcons';
+import { alignPadEntryHtml } from '@kunpeng-io/kernel-shared';
 import { BpmnPopup } from './BpmnPopup';
 import type { BpmnMode } from '../mode/BpmnMode';
 
@@ -111,7 +111,7 @@ export class BpmnContextPadProvider {
           : `${this.i18n.t('追加')} ${this.i18n.t(meta.label)}`;
         entries[`append-${metaId(meta)}`] = {
           group: 'append',
-          html: bpmnEntryHtml(meta),
+          html: bpmnEntryHtml(meta, 18, this.elementTypes.iconFillOf(meta)),
           title: appendTitle,
           action: {
             click: () => {
@@ -139,7 +139,7 @@ export class BpmnContextPadProvider {
       const annotationMeta = this.elementTypes.shapeMeta('bpmn:TextAnnotation')!;
       entries['annotate'] = {
         group: 'append',
-        html: bpmnEntryHtml(annotationMeta),
+        html: bpmnEntryHtml(annotationMeta, 18, this.elementTypes.iconFillOf(annotationMeta)),
         title: this.i18n.t('添加文本注释'),
         action: {
           click: () => {
@@ -155,11 +155,12 @@ export class BpmnContextPadProvider {
       };
     }
 
-    // ---- "…"：全量追加弹框（快捷追加之外的全部可追加类型） ----
+    // ---- "…"：全量追加弹框（快捷追加之外的全部可追加类型）——三点取类型色
+    // 兜底（'*'，2026-10-29 用户定规：与 palette 三点同源同表） ----
     if (appendableFlowNode && !this.popupMenu.isEmpty(element, BpmnAppendMenuProvider.MENU_ID)) {
       entries['append-more'] = {
         group: 'append',
-        html: toolEntryHtml('more'),
+        html: toolEntryHtml('more', 18, this.elementTypes.toolFillOf('more', true)),
         title: this.i18n.t('追加更多元素'),
         action: {
           click: () => this.openElementMenu(element, BpmnAppendMenuProvider.MENU_ID, '追加元素')
@@ -171,7 +172,7 @@ export class BpmnContextPadProvider {
     if (isContainerType(type, element.isExpanded) && !this.popupMenu.isEmpty(element, BpmnCreateMenuProvider.MENU_ID)) {
       entries['create-inside'] = {
         group: 'edit',
-        html: toolEntryHtml('plus'),
+        html: toolEntryHtml('plus', 18, this.elementTypes.toolFillOf('plus')),
         title: this.i18n.t('创建元素'),
         action: {
           click: () => this.openElementMenu(element, BpmnCreateMenuProvider.MENU_ID, '创建元素')
@@ -187,7 +188,7 @@ export class BpmnContextPadProvider {
     if (this.elementTypes.shapeMeta(type)?.replaceFamily) {
       entries['replace'] = {
         group: 'edit',
-        html: toolEntryHtml('wrench'),
+        html: toolEntryHtml('wrench', 18, this.elementTypes.toolFillOf('wrench')),
         title: this.i18n.t('替换类型'),
         action: {
           click: () => this.openElementMenu(element, 'bpmn-replace', '更改元素类型')
@@ -201,42 +202,55 @@ export class BpmnContextPadProvider {
       const afterLabel = this.orientationService.isHorizontal() ? '向下' : '向右';
       entries['lane-add-before'] = {
         group: 'lanes',
-        html: toolEntryHtml('lane-insert-above'),
+        html: toolEntryHtml('lane-insert-above', 18, this.elementTypes.toolFillOf('lane-insert-above')),
         title: this.i18n.t(`${beforeLabel}添加泳道`),
         action: { click: () => this.modeling.addLane(element, 'top') }
       };
       entries['lane-add-after'] = {
         group: 'lanes',
-        html: toolEntryHtml('lane-insert-below'),
+        html: toolEntryHtml('lane-insert-below', 18, this.elementTypes.toolFillOf('lane-insert-below')),
         title: this.i18n.t(`${afterLabel}添加泳道`),
         action: { click: () => this.modeling.addLane(element, 'bottom') }
       };
       if (type === 'bpmn:Lane') {
         entries['lane-divide-two'] = {
           group: 'lanes',
-          html: toolEntryHtml('lane-divide-two'),
+          html: toolEntryHtml('lane-divide-two', 18, this.elementTypes.toolFillOf('lane-divide-two')),
           title: this.i18n.t('分割泳道为 2 段'),
           action: { click: () => this.modeling.addLane(element, 'divide', 2) }
         };
         entries['lane-divide-three'] = {
           group: 'lanes',
-          html: toolEntryHtml('lane-divide-three'),
+          html: toolEntryHtml('lane-divide-three', 18, this.elementTypes.toolFillOf('lane-divide-three')),
           title: this.i18n.t('分割泳道为 3 段'),
           action: { click: () => this.modeling.addLane(element, 'divide', 3) }
         };
         entries['lane-remove'] = {
           group: 'lanes',
-          html: toolEntryHtml('lane'),
+          html: toolEntryHtml('lane', 18, this.elementTypes.toolFillOf('lane')),
           title: this.i18n.t('删除泳道'),
           action: { click: () => this.modeling.removeLane(element) }
         };
       }
     }
 
+    // ---- 连线类型切换（规则见 BpmnFlowTypeMenuProvider：事件源出线无选项
+    //      即 isEmpty 判空不出钮；网关源二态/活动源三态） ----
+    if (type === 'bpmn:SequenceFlow' && !this.popupMenu.isEmpty(element, BpmnFlowTypeMenuProvider.MENU_ID)) {
+      entries['switch-flow-type'] = {
+        group: 'edit',
+        html: toolEntryHtml('wrench', 18, this.elementTypes.toolFillOf('wrench')),
+        title: this.i18n.t('切换连线类型'),
+        action: {
+          click: () => this.openElementMenu(element, BpmnFlowTypeMenuProvider.MENU_ID, '切换连线类型')
+        }
+      };
+    }
+
     // ---- 删除 ----
     entries['delete'] = {
       group: 'edit',
-      html: toolEntryHtml('trash'),
+      html: toolEntryHtml('trash', 18, this.elementTypes.toolFillOf('trash')),
       title: this.i18n.t('删除（Delete）'),
       action: {
         click: () => this.modeling.removeElements([element])
@@ -247,7 +261,7 @@ export class BpmnContextPadProvider {
     if (this.isFlowNode(element) || type === 'bpmn:Participant') {
       entries['connect'] = {
         group: 'connect',
-        html: toolEntryHtml('connect'),
+        html: toolEntryHtml('connect', 18, this.elementTypes.toolFillOf('connect')),
         title: this.i18n.t('连线'),
         action: {
           click: (event: any) => {
@@ -282,7 +296,7 @@ export class BpmnContextPadProvider {
     }
     entries['delete'] = {
       group: 'edit',
-      html: toolEntryHtml('trash'),
+      html: toolEntryHtml('trash', 18, this.elementTypes.toolFillOf('trash')),
       title: this.i18n.t('删除所选（Delete）'),
       action: {
         click: () => this.modeling.removeElements(elements)

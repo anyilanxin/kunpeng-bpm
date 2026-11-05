@@ -5,9 +5,9 @@ import {
 
 import { is } from 'bpmnlint-utils';
 
-import { ERROR_TYPES } from './error-types';
+import { ERROR_TYPES } from './error-types.js';
 
-import { greaterOrEqual } from './version';
+import { greaterOrEqual } from './version.js';
 
 const TIMER_PROPERTIES = [
   'timeDate',

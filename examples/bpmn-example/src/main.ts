@@ -13,6 +13,8 @@ import '@kunpeng-io/properties-panel/assets/properties-panel.css';
 import 'bpmn-js-color-picker/colors/color-picker.css';
 // 工具栏插件皮肤 + 上游 minimap 皮肤（缩略图/视口框）
 import '@kunpeng-io/bpmn-js-toolbar/styles';
+// 校验标注皮肤（@kunpeng-io/linting/modeler 的画布问题标注）
+import '@kunpeng-io/linting/assets/linting.css';
 import 'diagram-js-minimap/assets/diagram-js-minimap.css';
 import './app.css';
 import App from './App.vue';

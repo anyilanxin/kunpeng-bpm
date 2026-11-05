@@ -1,5 +1,5 @@
-import StaticResolver from 'bpmnlint/lib/resolver/static-resolver';
-import rule from 'bpmnlint/rules/no-bpmndi';
+import StaticResolver from 'bpmnlint/lib/resolver/static-resolver.js';
+import rule from 'bpmnlint/rules/no-bpmndi.js';
 
 export default {
   config: {

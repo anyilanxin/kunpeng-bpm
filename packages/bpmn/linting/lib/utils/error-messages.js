@@ -1,4 +1,4 @@
-import { ERROR_TYPES } from './error-types';
+import { ERROR_TYPES } from './error-types.js';
 
 import { is, isAny } from 'bpmnlint-utils';
 
@@ -8,12 +8,12 @@ import {
   isString
 } from 'min-dash';
 
-import { getTypeString } from './types';
+import { getTypeString } from './types.js';
 
 import {
   greaterOrEqual,
   toSemverMinor
-} from './version';
+} from './version.js';
 
 const TIMER_PROPERTIES = [
   'timeCycle',

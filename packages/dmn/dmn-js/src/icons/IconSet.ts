@@ -171,7 +171,7 @@ export interface IconSetAsset {
   body: string;
 }
 
-import { svgShellRect } from './shell';
+import { svgShellRect } from '@kunpeng-io/kernel-shared';
 
 const BODIES: Record<IconSetKey, IconSetAsset> = {
   // icons/bpmn-icon-start-event-none.svg —— 开始事件（单细环）

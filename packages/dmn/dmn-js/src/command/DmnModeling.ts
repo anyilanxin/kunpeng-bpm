@@ -26,6 +26,7 @@
 import Modeling from 'diagram-js/lib/features/modeling/Modeling';
 import { UpdatePropertiesHandler, UpdateModdlePropertiesHandler, UpdateLabelHandler } from './DmnUpdateHandlers';
 import { ListAddHandler, ListRemoveHandler, ClauseAddHandler, ClauseRemoveHandler } from './DmnListHandlers';
+import { SetColorHandler, type DmnElementColors } from './SetColorHandler';
 import type { DmnFactory } from '../factory/DmnFactory';
 import type { BkmExpressionMode } from '../meta/ElementTypes';
 
@@ -46,6 +47,7 @@ export class DmnModeling extends Modeling {
     commandStack.registerHandler('dmn.list.remove', ListRemoveHandler as any);
     commandStack.registerHandler('dmn.table.clause.add', ClauseAddHandler as any);
     commandStack.registerHandler('dmn.table.clause.remove', ClauseRemoveHandler as any);
+    commandStack.registerHandler('element.setColor', SetColorHandler as any);
   }
 
   updateProperties(element: any, properties: Record<string, any>): void {
@@ -58,6 +60,17 @@ export class DmnModeling extends Modeling {
 
   updateLabel(element: any, text: string): void {
     this.commandStack.execute('label.update', { element, text });
+  }
+
+  /**
+   * 元素填充/描边颜色（bioc:fill / bioc:stroke 扩展惯例，DI 属性往返）。
+   * 未传字段保持不变；传 undefined 清除（回落主题缺省）。
+   */
+  setColor(elements: any | any[], colors: DmnElementColors): void {
+    this.commandStack.execute('element.setColor', {
+      elements: Array.isArray(elements) ? elements : [elements],
+      colors
+    });
   }
 
   listAdd(element: any, moddleElement: any, property: string, item: any, index?: number): void {

@@ -665,31 +665,50 @@ export class BpmnRenderer extends BaseRenderer {
     append(visuals, c);
   }
 
-  /** 默认流：源端斜杠标记（规范 §10.5.2） */
+  /** 默认流：源端斜杠标记（规范 §10.5.2）。几何参照图标集
+   bpmn-icon-default-flow（用户指认 2026-10-29）：斜杠与走线约 45°
+   （长斜线语言，交点前后各跨 8px）、交点中心距源元素边 10px——
+   4px 版太近（用户复测定规加大），总长 16√2 与图标比例同量级。 */
   private appendSlashMarker(visuals: SVGElement, at: any, next: any, stroke: string): void {
     const angle = Math.atan2(next.y - at.y, next.x - at.x);
     const dx = Math.cos(angle + Math.PI / 2);
     const dy = Math.sin(angle + Math.PI / 2);
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
     const l = create('line');
     attr(l, {
-      x1: at.x + dx * 9 - Math.cos(angle) * 4,
-      y1: at.y + dy * 9 - Math.sin(angle) * 4,
-      x2: at.x - dx * 9 + Math.cos(angle) * 4,
-      y2: at.y - dy * 9 + Math.sin(angle) * 4,
+      x1: at.x + dx * 8 + c * 18,
+      y1: at.y + dy * 8 + s * 18,
+      x2: at.x - dx * 8 + c * 2,
+      y2: at.y - dy * 8 + s * 2,
       stroke,
       'stroke-width': 1.5
     });
     append(visuals, l);
   }
 
-  /** 条件流：源端菱形标记（规范 §10.5.1） */
+  /** 条件流：源端空心菱形标记（规范 §10.5.1）。随走线取向的宽扁菱形——
+   沿走线半长 9、垂向半高 5（18×10，2026-10-29 用户复调：正方形太"正"，
+   参照外部工具的扁菱形），中心距起点 9 令近端尖角恰抵元素边（零侵入、
+   无前置线段的定规不变）。取向按源段方向构造（布线端向纯净，源段恒
+   正交，但仍按角度算垂向，斜线走线亦成立） */
   private appendDiamondMarker(visuals: SVGElement, at: any, next: any, stroke: string): void {
     const angle = Math.atan2(next.y - at.y, next.x - at.x);
-    const cx = at.x + Math.cos(angle) * 9;
-    const cy = at.y + Math.sin(angle) * 9;
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    const px = -s;
+    const py = c;
+    const along = 9;
+    const across = 5;
+    const cx = at.x + c * along;
+    const cy = at.y + s * along;
     const d = create('path');
     attr(d, {
-      d: diamondPath(cx, cy, 6, 6),
+      d:
+        `M${cx - c * along},${cy - s * along} ` +
+        `L${cx + px * across},${cy + py * across} ` +
+        `L${cx + c * along},${cy + s * along} ` +
+        `L${cx - px * across},${cy - py * across} Z`,
       fill: this.config.defaultFillColor,
       stroke,
       'stroke-width': 1.5

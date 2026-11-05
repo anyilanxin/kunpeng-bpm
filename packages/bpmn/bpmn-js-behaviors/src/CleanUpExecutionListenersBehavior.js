@@ -1,8 +1,8 @@
 import { getBusinessObject, is, isAny } from '@kunpeng-io/bpmn-js';
-import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor.js';
 import { find, without } from 'min-dash';
 
-import { getExtensionElementsList } from './util/ExtensionElementsUtil';
+import { getExtensionElementsList } from './util/ExtensionElementsUtil.js';
 
 const DISALLOWED_START_LISTENER_TYPES = [
   'bpmn:StartEvent',
@@ -13,9 +13,9 @@ export default class CleanUpExecutionListenersBehavior extends CommandIntercepto
   constructor(eventBus, modeling) {
     super(eventBus);
 
-    // remove execution listeners of disallowed type
-    this.postExecuted('shape.replace', function(event) {
-      const element = event.context.newShape;
+    // remove execution listeners of disallowed type（新内核替换命令 bpmnReplace，context.element 即新形态）
+    this.postExecuted('bpmnReplace', function(event) {
+      const element = event.context.element;
 
       const executionListenersContainer = getExecutionListenersContainer(element);
       if (!executionListenersContainer) {

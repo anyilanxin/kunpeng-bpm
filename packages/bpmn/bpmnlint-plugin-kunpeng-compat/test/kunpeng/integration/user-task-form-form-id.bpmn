@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://anyilanxin.com/schema/kunpeng/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1k80tzz" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.4.2" modeler:executionPlatform="Kunpeng Cloud" modeler:executionPlatformVersion="8.1.0">
+  <bpmn:process id="Process_003d7f9" isExecutable="true">
+    <bpmn:userTask id="Activity_0tbaw9y">
+      <bpmn:extensionElements>
+        <kunpeng:formDefinition formId="bar" />
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:userTask id="Activity_0al8bht">
+      <bpmn:extensionElements>
+        <kunpeng:formDefinition formKey="foo" />
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_003d7f9">
+      <bpmndi:BPMNShape id="Activity_1eofini_di" bpmnElement="Activity_0tbaw9y">
+        <dc:Bounds x="160" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_00hzkfi_di" bpmnElement="Activity_0al8bht">
+        <dc:Bounds x="280" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

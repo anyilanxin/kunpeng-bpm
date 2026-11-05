@@ -3,11 +3,11 @@ import {
   is
 } from '@kunpeng-io/bpmn-js';
 
-import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor.js';
 
 import { without } from 'min-dash';
 
-import { getExtensionElementsList } from './util/ExtensionElementsUtil';
+import { getExtensionElementsList } from './util/ExtensionElementsUtil.js';
 
 const HIGH_PRIORITY = 5000;
 
@@ -16,7 +16,8 @@ const HIGH_PRIORITY = 5000;
  * Kunpeng BPMN behavior ensuring that bpmn:BusinessRuleTask only has one of the following:
  *
  * (1) kunpeng:CalledDecision
- * (2) kunpeng:TaskDefinition and kunpeng:additionDynamics
+ * (2) kunpeng:TaskDefinition and kunpeng:DynamicAdditions
+ * （旧线名 kunpeng:additionDynamics，新 moddle 描述符为 DynamicAdditions）
  */
 export default class CleanUpBusinessRuleTaskBehavior extends CommandInterceptor {
   constructor(commandStack, eventBus) {
@@ -54,7 +55,7 @@ export default class CleanUpBusinessRuleTaskBehavior extends CommandInterceptor 
     }, true);
 
     /**
-     * Remove kunpeng:TaskDefinition and kunpeng:additionDynamics if kunpeng:CalledDecision is about to be added.
+     * Remove kunpeng:TaskDefinition and kunpeng:DynamicAdditions if kunpeng:CalledDecision is about to be added.
      */
     this.preExecute('element.updateModdleProperties', HIGH_PRIORITY, function(context) {
       const {
@@ -79,7 +80,7 @@ export default class CleanUpBusinessRuleTaskBehavior extends CommandInterceptor 
         !calledDecision
         && (taskDefinition || additionDynamics)
         && properties.values.find(value => is(value, 'kunpeng:CalledDecision'))
-        && properties.values.find(value => is(value, 'kunpeng:TaskDefinition') || is(value, 'kunpeng:additionDynamics'))
+        && properties.values.find(value => is(value, 'kunpeng:TaskDefinition') || is(value, 'kunpeng:DynamicAdditions'))
       ) {
         properties.values = without(properties.values, (value) => value === taskDefinition || value === additionDynamics);
       }
@@ -111,5 +112,5 @@ function getTaskDefinition(element) {
 function getAdditionDynamics(element) {
   const businessObject = getBusinessObject(element);
 
-  return getExtensionElementsList(businessObject, 'kunpeng:additionDynamics')[ 0 ];
+  return getExtensionElementsList(businessObject, 'kunpeng:DynamicAdditions')[ 0 ];
 }

@@ -29,7 +29,9 @@
  *
  * DMN 1.3：DMNShape（dmnElementRef+bounds）/ DMNEdge（dmnElementRef+
  * waypoint[]）；DS 分割线=DMNShape.decisionServiceDividerLine（Edge 子类
- * 带 waypoint，DMN 特有的内嵌 DI）；颜色无标准位（缓执行 DMNStyle）。
+ * 带 waypoint，DMN 特有的内嵌 DI）；颜色=bioc 扩展属性直挂 DI 节点
+ * （DMNDI 无逐元素颜色位，DMNStyle 面向共享标签样式——按 BPMN-in-Color
+ * 社区惯例与 bpmn 内核同命名空间同属性名，bioc:fill / bioc:stroke）。
  */
 import type { DmnFactory } from '../factory/DmnFactory';
 import { referenceId } from './DmnReader';
@@ -42,6 +44,8 @@ export interface DiView {
   waypoints?: { x: number; y: number }[];
   /** DS 分割线 y（相对 bounds.y；waypoint[0].y 派生读） */
   dividerY?: number;
+  /** bioc 扩展颜色（bioc:fill / bioc:stroke DI 属性） */
+  colors?: { fill?: string; stroke?: string };
   /** 原始 moddle DI 节点（画布元素回挂，几何同步与导出的写回目标） */
   node: any;
 }
@@ -59,6 +63,8 @@ export function readDiView(node: any): DiView | null {
     return null;
   }
   const dividerLine = node.decisionServiceDividerLine;
+  const fill = node.fill;
+  const stroke = node.stroke;
   return {
     kind: isShape ? 'shape' : 'edge',
     dmnElementRef: referenceId(node.dmnElementRef),
@@ -70,11 +76,12 @@ export function readDiView(node: any): DiView | null {
       dividerLine?.waypoint?.[0] !== undefined
         ? dividerLine.waypoint[0].y - (node.bounds?.y ?? 0)
         : undefined,
+    colors: fill || stroke ? { fill: fill || undefined, stroke: stroke || undefined } : undefined,
     node
   };
 }
 
-/** 画布形状元素 → DMNShape DI 字段回写（bounds + DS 分割线） */
+/** 画布形状元素 → DMNShape DI 字段回写（bounds + DS 分割线 + 颜色） */
 export function syncShapeDi(di: any, element: any, factory: DiNodeFactory): void {
   if (element.x !== undefined) {
     di.bounds ??= factory.create<any>({ $type: 'dc:Bounds' });
@@ -94,9 +101,12 @@ export function syncShapeDi(di: any, element: any, factory: DiNodeFactory): void
     const points = [left, right].map((p) => factory.create<any>(p));
     di.decisionServiceDividerLine.waypoint.splice(0, di.decisionServiceDividerLine.waypoint.length, ...points);
   }
+  // 颜色（bioc 扩展属性）：未设置字段按描述移除（序列化不输出）
+  di.set('fill', element.colors?.fill);
+  di.set('stroke', element.colors?.stroke);
 }
 
-/** 画布连线元素 → DMNEdge DI 字段回写（航点逐点重建为独立 moddle 实例） */
+/** 画布连线元素 → DMNEdge DI 字段回写（航点逐点重建为独立 moddle 实例；颜色） */
 export function syncEdgeDi(di: any, element: any, factory: DiNodeFactory): void {
   if (Array.isArray(element.waypoints) && Array.isArray(di.waypoint)) {
     const points = element.waypoints.map((p: any) =>
@@ -104,4 +114,7 @@ export function syncEdgeDi(di: any, element: any, factory: DiNodeFactory): void 
     );
     di.waypoint.splice(0, di.waypoint.length, ...points);
   }
+  // 颜色（bioc 扩展属性）：未设置字段按描述移除（序列化不输出）
+  di.set('fill', element.colors?.fill);
+  di.set('stroke', element.colors?.stroke);
 }

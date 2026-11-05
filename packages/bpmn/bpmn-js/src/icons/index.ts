@@ -33,4 +33,4 @@
  */
 export * from './BpmnIcons';
 export * from './ToolIcons';
-export * from './AlignIcons';
+export { alignIconHtml, alignPadEntryHtml } from '@kunpeng-io/kernel-shared';

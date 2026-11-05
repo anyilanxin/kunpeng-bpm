@@ -15,6 +15,9 @@ catalogs:
     '@bpmn-io/cm-theme':
       specifier: ^0.2.2
       version: 0.2.2
+    '@bpmn-io/diagram-js-ui':
+      specifier: ^0.2.4
+      version: 0.2.4
     '@carbon/icons':
       specifier: ^11.90.0
       version: 11.91.0
@@ -90,9 +93,15 @@ catalogs:
     bpmnlint:
       specifier: ^11.14.0
       version: 11.15.0
+    bpmnlint-utils:
+      specifier: ^1.1.1
+      version: 1.1.1
     classnames:
       specifier: ^2.5.1
       version: 2.5.1
+    clsx:
+      specifier: ^2.1.1
+      version: 2.1.1
     dayjs:
       specifier: ^1.11.23
       version: 1.11.23
@@ -135,6 +144,9 @@ catalogs:
     mitt:
       specifier: ^3.0.1
       version: 3.0.1
+    modeler-moddle:
+      specifier: ^0.2.0
+      version: 0.2.0
     preact:
       specifier: 11.0.1
       version: 11.0.1
@@ -206,6 +218,9 @@ importers:
       '@kunpeng-io/bpmn-js':
         specifier: workspace:*
         version: link:../../packages/bpmn/bpmn-js
+      '@kunpeng-io/bpmn-js-behaviors':
+        specifier: workspace:*
+        version: link:../../packages/bpmn/bpmn-js-behaviors
       '@kunpeng-io/bpmn-js-properties-panel':
         specifier: workspace:*
         version: link:../../packages/bpmn/bpmn-js-properties-panel
@@ -215,6 +230,9 @@ importers:
       '@kunpeng-io/kunpeng-bpmn-moddle':
         specifier: workspace:*
         version: link:../../packages/bpmn/kunpeng-bpmn-moddle
+      '@kunpeng-io/linting':
+        specifier: workspace:*
+        version: link:../../packages/bpmn/linting
       '@kunpeng-io/properties-panel':
         specifier: workspace:*
         version: link:../../packages/common/properties-panel
@@ -353,6 +371,9 @@ importers:
 
   packages/bpmn/bpmn-js:
     dependencies:
+      '@kunpeng-io/kernel-shared':
+        specifier: workspace:*
+        version: link:../../common/kernel-shared
       '@kunpeng-io/kunpeng-bpmn-moddle':
         specifier: workspace:*
         version: link:../kunpeng-bpmn-moddle
@@ -546,6 +567,36 @@ importers:
         specifier: 'catalog:'
         version: 8.3.5(esbuild@0.28.2)
 
+  packages/bpmn/bpmnlint-plugin-kunpeng-compat:
+    dependencies:
+      '@bpmn-io/moddle-utils':
+        specifier: ^0.3.0
+        version: 0.3.0
+      '@bpmn-io/semver-compat':
+        specifier: ^0.1.0
+        version: 0.1.0
+      '@kunpeng-io/expression-analyzer':
+        specifier: workspace:*
+        version: link:../../common/expression-analyzer
+      '@kunpeng-io/expression-builtins':
+        specifier: workspace:*
+        version: link:../../common/expression-builtins
+      '@kunpeng-io/lezer-expression':
+        specifier: workspace:*
+        version: link:../../common/lezer-expression
+      bpmnlint:
+        specifier: '>= 11.6.0'
+        version: 11.15.0
+      bpmnlint-utils:
+        specifier: 'catalog:'
+        version: 1.1.1
+      min-dash:
+        specifier: 'catalog:'
+        version: 5.1.0
+      semver-compare:
+        specifier: 'catalog:'
+        version: 1.0.0
+
   packages/bpmn/element-templates-json-schema: {}
 
   packages/bpmn/element-templates-validator:
@@ -587,6 +638,46 @@ importers:
         version: 8.3.5(esbuild@0.28.2)
 
   packages/bpmn/kunpeng-bpmn-moddle: {}
+
+  packages/bpmn/linting:
+    dependencies:
+      '@bpmn-io/diagram-js-ui':
+        specifier: 'catalog:'
+        version: 0.2.4
+      '@kunpeng-io/bpmnlint-plugin-kunpeng-compat':
+        specifier: workspace:*
+        version: link:../bpmnlint-plugin-kunpeng-compat
+      '@kunpeng-io/kunpeng-bpmn-moddle':
+        specifier: workspace:*
+        version: link:../kunpeng-bpmn-moddle
+      bpmn-moddle:
+        specifier: 'catalog:'
+        version: 10.3.1
+      bpmnlint:
+        specifier: 'catalog:'
+        version: 11.15.0
+      bpmnlint-utils:
+        specifier: 'catalog:'
+        version: 1.1.1
+      clsx:
+        specifier: 'catalog:'
+        version: 2.1.1
+      min-dash:
+        specifier: 'catalog:'
+        version: 5.1.0
+      min-dom:
+        specifier: 'catalog:'
+        version: 5.3.0
+      modeler-moddle:
+        specifier: 'catalog:'
+        version: 0.2.0
+      semver-compare:
+        specifier: 'catalog:'
+        version: 1.0.0
+    devDependencies:
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.5(esbuild@0.28.2)
 
   packages/common/expression-analyzer:
     dependencies:
@@ -680,6 +771,8 @@ importers:
       vite:
         specifier: 'catalog:'
         version: 8.3.5(esbuild@0.28.2)
+
+  packages/common/kernel-shared: {}
 
   packages/common/lang-expression:
     dependencies:
@@ -797,6 +890,9 @@ importers:
 
   packages/dmn/dmn-js:
     dependencies:
+      '@kunpeng-io/kernel-shared':
+        specifier: workspace:*
+        version: link:../../common/kernel-shared
       '@kunpeng-io/kunpeng-bpmn-moddle':
         specifier: workspace:*
         version: link:../../bpmn/kunpeng-bpmn-moddle
@@ -1167,6 +1263,9 @@ packages:
 
   '@bpmn-io/moddle-utils@0.3.0':
     resolution: {integrity: sha512-0kz2PKfjIH3XFtO9Koxh7jV8e1DWWs4rgp0IczhJgluoRHf9Jhq8zX1H3wGJu6+lpg1Rkzc6YW1ezKz+2K8wTg==}
+
+  '@bpmn-io/semver-compat@0.1.0':
+    resolution: {integrity: sha512-hIcW42Ku92MUioL6aknDbRoW1jK8ZEqIe8qZZ+d3cjitDO+PMEFFXj/sezJYIHMe8elu4CBz9qpjkV8WIVG9qw==}
 
   '@carbon/icons@11.91.0':
     resolution: {integrity: sha512-XMFcuwdUHrrI+GK3ZB8TjueZoe2hD6ThCfMKT4ZO64aEvEYgqtpkQ+FvLs1KCWDysQbsMEnKdrheBx54vHTY4w==}
@@ -2670,6 +2769,9 @@ packages:
   moddle@8.2.1:
     resolution: {integrity: sha512-20qzO/ZpMGO9j9gdQgXk9bfGxb9wA3JKnGth/21YZKODLrZE4RW/uVMIL5pTskYm34Z61DucBEPkq93qByNsBQ==}
 
+  modeler-moddle@0.2.0:
+    resolution: {integrity: sha512-l8OUpvX94m3spe+RBwWFQ0bGvPBZ3FBCiSY3yNtDk52j0YRj+cnVOxTMQvVM+i6k1T326IfqYM3F9HJfPZtXRw==}
+
   mri@1.2.0:
     resolution: {integrity: sha512-tzzskb3bG8LvYGFF/mDTpq3jpI6Q9wc3LEmBaghu+DdCssd1FakN7Bc0hVNmEyGq1bq3RgfkCb3cmQLpNPOroA==}
     engines: {node: '>=4'}
@@ -3321,6 +3423,10 @@ snapshots:
   '@bpmn-io/moddle-utils@0.3.0':
     dependencies:
       min-dash: 5.1.0
+
+  '@bpmn-io/semver-compat@0.1.0':
+    dependencies:
+      semver: 7.8.5
 
   '@carbon/icons@11.91.0':
     dependencies:
@@ -4985,6 +5091,8 @@ snapshots:
   moddle@8.2.1:
     dependencies:
       min-dash: 5.1.0
+
+  modeler-moddle@0.2.0: {}
 
   mri@1.2.0: {}
 

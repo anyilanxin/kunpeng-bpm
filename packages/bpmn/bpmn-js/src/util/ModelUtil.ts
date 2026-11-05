@@ -54,6 +54,14 @@ export function isAny(element: any, types: string[]): boolean {
   return types.some((type) => is(element, type));
 }
 
+/**
+ * 画布元素 → DI 节点（BPMNShape/BPMNEdge）。对齐上游 bpmn-js 的
+ * bpmn-js/lib/util/ModelUtil#getDi：颜色等视图插件按 DI 读写样式属性。
+ */
+export function getDi(element: any): any {
+  return element && element.businessObject && element.businessObject.di;
+}
+
 /** 事件子流程（bpmn:SubProcess 的 triggeredByEvent 变体） */
 export function isEventSubProcess(element: any): boolean {
   return getBusinessObject(element)?.triggeredByEvent === true;

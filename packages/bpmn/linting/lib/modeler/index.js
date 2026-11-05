@@ -1,5 +1,5 @@
-import Linting from './Linting';
-import LintingAnnotations from './LintingAnnotations';
+import Linting from './Linting.js';
+import LintingAnnotations from './LintingAnnotations.js';
 
 export default {
   __init__: [

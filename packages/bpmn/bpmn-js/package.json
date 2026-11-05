@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/bpmn-js",
-  "version": "2026.10.3",
+  "version": "2026.10.5",
   "description": "BPMN 2.0 标准化 Web 建模器组件（diagram-js 基座，插件化 / 事件通知 / 命令式操作 / kunpeng 扩展命名空间）",
   "license": "GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0",
   "type": "module",
@@ -28,6 +28,7 @@
     "prepublishOnly": "pnpm run typecheck && pnpm run build"
   },
   "dependencies": {
+    "@kunpeng-io/kernel-shared": "workspace:*",
     "@kunpeng-io/kunpeng-bpmn-moddle": "workspace:*",
     "bpmn-moddle": "^10.3.1",
     "diagram-js": "^15.9.0",

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_00e91r2" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.20.0" modeler:executionPlatform="Kunpeng Cloud" modeler:executionPlatformVersion="8.4.0">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:subProcess id="SubProcess_3" />
+    <bpmn:subProcess id="SubProcess_4" triggeredByEvent="true">
+      <bpmn:startEvent id="StartEvent_2">
+        <bpmn:escalationEventDefinition id="EscalationEventDefinition_0segove" escalationRef="Escalation_1kinire" />
+      </bpmn:startEvent>
+    </bpmn:subProcess>
+    <bpmn:boundaryEvent id="BoundaryEvent_2" attachedToRef="SubProcess_3">
+      <bpmn:escalationEventDefinition id="EscalationEventDefinition_0f7xma7" escalationRef="Escalation_1kinire" />
+    </bpmn:boundaryEvent>
+  </bpmn:process>
+  <bpmn:escalation id="Escalation_1kinire" name="Escalation_1" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="BPMNShape_14oqkdw" bpmnElement="SubProcess_3" isExpanded="true">
+        <dc:Bounds x="160" y="80" width="140" height="120" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_00es7ta" bpmnElement="SubProcess_4" isExpanded="true">
+        <dc:Bounds x="340" y="80" width="140" height="120" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_10v7s2y" bpmnElement="StartEvent_2">
+        <dc:Bounds x="392" y="122" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1fhl22b" bpmnElement="BoundaryEvent_2">
+        <dc:Bounds x="282" y="182" width="36" height="36" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

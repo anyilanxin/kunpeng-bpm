@@ -50,7 +50,7 @@ import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
 import type { OrientationService, ModelOrientation } from '../meta/Orientation';
 import { SIZES, isSubProcessFamily } from '../meta/ElementTypes';
 import { refitLaneBands } from '../util/PoolGeometry';
-import { applyRect, snapshotWaypoints } from '../util/Geometry';
+import { applyRect, snapshotWaypoints } from '@kunpeng-io/kernel-shared';
 
 /** 容器族：转置时随长轴换向（池/泳道/分组 + 展开子流程族） */
 function isTransposingContainer(element: any): boolean {

@@ -1,1 +1,1 @@
-export { default } from './lib/modeler';
+export { default } from './lib/modeler/index.js';

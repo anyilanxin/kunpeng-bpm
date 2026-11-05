@@ -2,8 +2,15 @@ import { groupBy } from 'min-dash';
 
 import { domify } from 'min-dom';
 
-import { renderOverlay } from './OverlayComponent';
-import { is } from '@kunpeng-io/bpmn-js';
+import { renderOverlay } from './OverlayComponent.js';
+
+// 移植注（2026-10-29）：原从 bpmn-js/lib/util/ModelUtil 引入——家族包禁
+// 构建期依赖自研内核，本地实现同语义（moddle $instanceOf 继承链判定）
+function is(element, type) {
+  const bo = element && element.businessObject;
+
+  return !!(bo && typeof bo.$instanceOf === 'function' && bo.$instanceOf(type));
+}
 
 
 export default class LintingAnnotations {

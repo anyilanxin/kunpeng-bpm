@@ -1,11 +1,11 @@
-import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor.js';
 
 import { is } from '@kunpeng-io/bpmn-js';
 
 import {
   getOutputParameters,
   getIoMapping
-} from './util/InputOutputUtil';
+} from './util/InputOutputUtil.js';
 
 const HIGH_PRIORITY = 5000;
 

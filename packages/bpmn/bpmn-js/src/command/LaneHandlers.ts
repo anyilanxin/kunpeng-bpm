@@ -23,8 +23,8 @@
  * 泳道命令：插道（序列前/后，朝向感知）/ 分割（divide 2|3）/ 删道（兄弟回收）。
  *
  * 轴语义（util/PoolGeometry）：水平池泳道=行带沿 y 堆叠、垂直池泳道=列带沿 x
- * 堆叠；'top'/'left' 归一为序列前端、'bottom'/'right' 为后端（旧 @kunpeng-js
- * 线 API 契约，两种朝向下同名同义）。
+ * 堆叠；'top'/'left' 归一为序列前端、'bottom'/'right' 为后端（旧线 API
+ * 契约延续，两种朝向下同名同义）。
  *
  * 简化语义（登记于开发计划）：插入/分割不自动平移既有内容——带在内容下方滑动，
  * 元素归属（flowNodeRef）由 BpmnUpdater 按几何重算。
@@ -51,7 +51,7 @@ import {
   withSpan,
   type RectLike
 } from '../util/PoolGeometry';
-import { applyRect } from '../util/Geometry';
+import { applyRect } from '@kunpeng-io/kernel-shared';
 
 function rectOf(el: any): RectLike {
   return { x: el.x, y: el.y, width: el.width, height: el.height };

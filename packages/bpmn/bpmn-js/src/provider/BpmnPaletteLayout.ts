@@ -42,7 +42,7 @@
 import type EventBus from 'diagram-js/lib/core/EventBus';
 import type Canvas from 'diagram-js/lib/core/Canvas';
 import type Palette from 'diagram-js/lib/features/palette/Palette';
-import { observeBox } from '../util/Dom';
+import { observeBox } from '@kunpeng-io/kernel-shared';
 
 /** 普通条目行高（引擎 CSS 契约） */
 const ENTRY_H = 46;

@@ -26,7 +26,7 @@
  * - 流程图/XML 视图切换是示例自有的卡片组件（components/XmlViewCard.vue），
  *   只消费组件包公开 API（saveXML/importXML），组件包本身不含视图切换功能
  */
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Modeler, Viewer, NavigatedViewer, iconOfElement } from '@kunpeng-io/bpmn-js';
 import { BpmnToolbarModule } from '@kunpeng-io/bpmn-js-toolbar';
 import type { ToolbarActionSpec } from '@kunpeng-io/bpmn-js-toolbar';
@@ -39,6 +39,8 @@ import {
 // 上游 bpmn-io 插件（纯 DI 模块声明，additionalModules 直插；color-picker 须走 /colors 子路径）
 import BpmnColorPickerModule from 'bpmn-js-color-picker/colors';
 import gridModule from 'diagram-js-grid';
+import behaviorsModule from '@kunpeng-io/bpmn-js-behaviors';
+import LintingModelerModule from '@kunpeng-io/linting/modeler';
 // kunpeng 业务协议由组件包内置（BpmnModdle 与上游 bpmn-moddle 标准资源一并注册），宿主无需注入
 import { SamplePluginModule } from './sample-plugin';
 import { CUSTOM_COLOR_PICKER_COLORS } from './color-palette';
@@ -49,110 +51,11 @@ const canvasHost = ref<HTMLDivElement>();
 const panelHost = ref<HTMLDivElement>();
 const fileInput = ref<HTMLInputElement>();
 
-// ---------- 属性面板 / 颜色插件 ----------
+// ---------- 属性面板 ----------
 
 const panelOpen = ref(true);
 /** 面板可见 = 编辑态 + 流程图视图 + 未收起（开关在标题栏右区，非画布工具栏） */
 const panelVisible = computed(() => form.value === 'edit' && view.value === 'diagram' && panelOpen.value);
-
-/** 取色器回显缺省随当前渲染主题（未着色元素的实际观感）：与 RENDERER_THEMES 同源 */
-function pickerDefault(kind: 'fill' | 'stroke'): string {
-  const theme = RENDERER_THEMES[dark.value ? 'dark' : 'light'];
-  return kind === 'fill' ? theme.defaultFillColor : theme.defaultStrokeColor;
-}
-
-const fillColor = ref('#ffffff');
-const strokeColor = ref('#000000');
-/** 选中中的可着色元素集（标签元素归一到宿主并去重；单选=1 项，框选=多项，
- *  2026-10-26 用户定规工具栏设置/清除颜色支持多选）。必须 shallowRef：
- *  深层 ref 读出的是 reactive 代理，传给 modeling.setColor 后
- *  elements.changed 链上 GraphicsFactory 迭代代理的 children 会触发 JS 代理
- *  不变量错误（object-refs 把 children 定义为只读非配置数据属性，代理 get
- *  不得换值）→ DI 同步监听器被跳过、bioc 色落不了 XML、命令栈事件链断 */
-const colorTargets = shallowRef<any[]>([]);
-/** 回显代表 = 首个选中（弹框两行取其现状，主题缺省兜底）；确定时表单值
- *  应用到 colorTargets 全体（ColorHandler 整替语义，多选混合色被代表值
- *  统一是预期行为） */
-const colorTarget = shallowRef<any>(null);
-
-/** 「设置颜色」控件持有（插件 render() 一次性建 DOM：按钮+弹框输入，
- *  示例自持引用随选择/颜色变化回显）；实例重建时插件重跑 render，引用自动换新 */
-let colorButton: HTMLButtonElement | null = null;
-let fillColorInput: HTMLInputElement | null = null;
-let strokeColorInput: HTMLInputElement | null = null;
-let onColorPopupDocDown: ((event: MouseEvent) => void) | null = null;
-
-function bindSelectionEvents(): void {
-  if (!modeler) {
-    return;
-  }
-  modeler.on('selection.changed', (event: any) => {
-    // 标签归一宿主并按 id 去重（同宿主多标签不可能但廉价防御一层）
-    const hosts = [...new Map(
-      event.newSelection.map((e: any) => [(e.labelTarget ?? e).id, e.labelTarget ?? e])
-    ).values()];
-    colorTargets.value = hosts;
-    colorTarget.value = hosts[0] ?? null;
-    syncColorInputs();
-    // 「设置颜色」可用态随选择变化（按钮 disabled 由回显统一写）
-    refreshToolbar();
-  });
-  // 撤销/重做/面板改色都可能改 colors，跟随受影响元素回显
-  modeler.on('elements.changed', (event: any) => {
-    if (colorTarget.value && event.elements?.some((e: any) => colorTargets.value.includes(e))) {
-      syncColorInputs();
-    }
-  });
-}
-
-/** 回显「设置颜色」弹框：选择/颜色变化后写原始 input（工具栏 DOM 是插件一次性
-    建的）；未着色字段回显当前主题缺省（原生 color input 无"无值"态） */
-function syncColorInputs(): void {
-  const colors = colorTarget.value?.colors;
-  fillColor.value = colors?.fill || pickerDefault('fill');
-  strokeColor.value = colors?.stroke || pickerDefault('stroke');
-  if (fillColorInput) {
-    fillColorInput.value = fillColor.value;
-  }
-  if (strokeColorInput) {
-    strokeColorInput.value = strokeColor.value;
-  }
-  if (colorButton) {
-    colorButton.disabled = !colorTargets.value.length;
-  }
-}
-
-/** 确定：只提交被改字段；未改字段仅在代表元素已有显式色时回传保留（多选
-    时按代表现状统一落到全体）。ColorHandler 是 colors 整替语义（未传字段=
-    清除回落主题缺省）——与回显缺省相同的值不提交，既不把"回显用的缺省值"
-    误写成显式色，也不为无变化生成空命令 */
-function commitColors(): void {
-  if (!colorTargets.value.length || !modeler || form.value !== 'edit') {
-    return;
-  }
-  const explicit = colorTarget.value?.colors ?? {};
-  const colors: { fill?: string; stroke?: string } = {};
-  let changed = false;
-  for (const kind of ['fill', 'stroke'] as const) {
-    const value = kind === 'fill' ? fillColor.value : strokeColor.value;
-    if (value !== (explicit[kind] ?? pickerDefault(kind))) {
-      colors[kind] = value;
-      changed = true;
-    } else if (explicit[kind]) {
-      colors[kind] = explicit[kind];
-    }
-  }
-  if (changed) {
-    modeler.get<any>('modeling').setColor(colorTargets.value, colors);
-  }
-}
-
-function clearColors(): void {
-  if (!colorTargets.value.length || !modeler || form.value !== 'edit') {
-    return;
-  }
-  modeler.get<any>('modeling').setColor(colorTargets.value, {});
-}
 
 // ---------- 流程图 / XML 视图切换（示例自有卡片组件，App 只保留视图状态做联动） ----------
 
@@ -170,7 +73,10 @@ function getModeler(): Modeler | null {
 
 const usePlugin = new URLSearchParams(location.search).get('plugin') !== '0';
 
-/** 编辑态实例的模块装配：组件默认集 + 属性面板三模块 + grid/调色板/缩略图插件（+示例插件） */
+/** 编辑态实例的模块装配：组件默认集 + 属性面板三模块 + grid/调色板/缩略图插件
+ * + kunpeng 扩展缺省行为集（建形补缺省/XML 卫生，源码直出包直插）+ 校验集成
+ * （@kunpeng-io/linting：装上即得工具栏「开启校验」钮——激活开关+画布问题
+ * 标注+点击定位，规则=bpmnlint-plugin-kunpeng-compat）+ 示例插件 */
 function editorModules(): any[] {
   const modules = [
     BpmnPropertiesPanelModule,
@@ -178,7 +84,9 @@ function editorModules(): any[] {
     KunpengPropertiesProviderModule,
     gridModule,
     BpmnColorPickerModule,
-    MinimapModule
+    MinimapModule,
+    behaviorsModule,
+    LintingModelerModule
   ];
   return usePlugin ? [...modules, SamplePluginModule] : modules;
 }
@@ -191,12 +99,11 @@ const RENDERER_THEMES = {
 const dark = ref(false);
 
 /** 暗色切换（标题栏钮）：令牌作用域 + 渲染缺省热切换（运行期 setTheme
-    全量重绘，不重建实例）；未着色元素的取色器回显随主题缺省换挡 */
+    全量重绘，不重建实例） */
 function toggleDark(): void {
   dark.value = !dark.value;
   document.documentElement.classList.toggle('dark', dark.value);
   modeler?.get<any>('bpmnRenderer').setTheme(RENDERER_THEMES[dark.value ? 'dark' : 'light']);
-  syncColorInputs();
 }
 
 /** 按形态建实例：工具栏插件三形态通用装配（只读底座缺的编辑组由插件自行不建），
@@ -230,7 +137,6 @@ function bindInstance(next: Modeler, formKind: 'edit' | 'navigated' | 'view'): v
   (window as any).__modeler = next;
   commandStack = formKind === 'edit' ? next.get<any>('commandStack') : null;
   canvas = next.get<any>('canvas');
-  bindSelectionEvents();
 }
 
 onMounted(async () => {
@@ -257,9 +163,6 @@ async function switchForm(next: 'edit' | 'navigated' | 'view'): Promise<void> {
   }
   const { xml } = await modeler.saveXML();
   modeler.destroy();
-  colorTargets.value = [];
-  colorTarget.value = null;
-  syncColorInputs();
   bindInstance(createInstance(next), next);
   form.value = next;
   await modeler.importXML(xml);
@@ -278,8 +181,6 @@ const ICON_NAVIGATE = actionSvg(
   '<path d="M30 24a6 6 0 1 1-12 0 6 6 0 0 1 12 0Z" fill="currentColor" stroke="none" />'
 );
 const ICON_VIEW = actionSvg('<path d="M8 12v24M8 24h18m0-12v24" /><path d="M38 26v10a6 6 0 0 1-6 6h-6" />');
-const ICON_SET_COLOR = actionSvg('<path d="M24 6c6 8 12 13.5 12 21a12 12 0 1 1-24 0c0-7.5 6-13 12-21Z" />');
-const ICON_CLEAR_COLOR = actionSvg('<path d="M24 6c6 8 12 13.5 12 21a12 12 0 1 1-24 0c0-7.5 6-13 12-21Z" /><path d="M10 38 38 10" />');
 const ICON_DARK = actionSvg(
   '<path d="M24 8a16 16 0 1 0 0 32 16 16 0 0 0 0-32Z" />' +
   '<path d="M24 8a16 16 0 0 1 0 32Z" fill="currentColor" stroke="none" />'
@@ -316,111 +217,14 @@ watch(modeMenuOpen, (open) => {
   }
 });
 
-/** 「设置颜色」控件（render 一次性建 DOM）：按钮点开弹框，框内填充/描边两行 +
- *  确定；确定走 commitColors 整合提交，外点关闭不提交（下次打开按元素现状
- *  回显，未确定的选择自然作废）；清除颜色是工具栏同组独立钮，不入弹框 */
-function colorControl(): ToolbarActionSpec {
-  return {
-    id: 'set-colors',
-    title: '设置选中元素颜色',
-    group: 'colors',
-    render: () => {
-      const wrap = document.createElement('span');
-      wrap.className = 'bpmn-color-action';
-
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'bpmn-color-btn';
-      button.title = '设置颜色';
-      button.innerHTML = ICON_SET_COLOR;
-      button.disabled = !colorTargets.value.length;
-
-      const popup = document.createElement('div');
-      popup.className = 'bpmn-color-pop';
-      popup.hidden = true;
-
-      const closePopup = (): void => {
-        popup.hidden = true;
-        button.classList.remove('is-open');
-        if (onColorPopupDocDown) {
-          document.removeEventListener('mousedown', onColorPopupDocDown);
-          onColorPopupDocDown = null;
-        }
-      };
-      button.addEventListener('click', () => {
-        if (!popup.hidden) {
-          closePopup();
-          return;
-        }
-        syncColorInputs();
-        popup.hidden = false;
-        button.classList.add('is-open');
-        onColorPopupDocDown = (event: MouseEvent) => {
-          if (!wrap.contains(event.target as Node)) {
-            closePopup();
-          }
-        };
-        document.addEventListener('mousedown', onColorPopupDocDown);
-      });
-
-      const makeRow = (kind: 'fill' | 'stroke'): HTMLElement => {
-        const row = document.createElement('label');
-        row.className = 'bpmn-color-row';
-        const text = document.createElement('span');
-        text.textContent = kind === 'fill' ? '填充' : '描边';
-        const input = document.createElement('input');
-        input.type = 'color';
-        input.addEventListener('input', () => {
-          if (kind === 'fill') {
-            fillColor.value = input.value;
-          } else {
-            strokeColor.value = input.value;
-          }
-        });
-        if (kind === 'fill') {
-          fillColorInput = input;
-        } else {
-          strokeColorInput = input;
-        }
-        row.append(text, input);
-        return row;
-      };
-
-      const foot = document.createElement('div');
-      foot.className = 'bpmn-color-foot';
-      const ok = document.createElement('button');
-      ok.type = 'button';
-      ok.className = 'bpmn-color-ok';
-      ok.textContent = '确定';
-      ok.addEventListener('click', () => {
-        commitColors();
-        closePopup();
-      });
-      foot.append(ok);
-
-      popup.append(makeRow('fill'), makeRow('stroke'), foot);
-      wrap.append(button, popup);
-      colorButton = button;
-      return wrap;
-    }
-  };
-}
-
-/** 应用级动作集：文件 / 颜色（设置颜色 + 同组清除颜色钮；可用态读 ref，
- *  refresh() 时机重估）；实例形态在标题栏菜单、暗色/面板属宿主应用能力
- *  （标题栏右区），均不入工具栏 */
+/** 应用级动作集：文件组（导入/导出）；设置/清除颜色是插件内置默认动作不属
+ *  宿主槽；实例形态在标题栏菜单、暗色/面板属宿主应用能力（标题栏右区），
+ *  均不入工具栏 */
 function buildToolbarActions(): ToolbarActionSpec[] {
   return [
     { id: 'import', title: '导入 BPMN 文件', group: 'file', svg: ICON_IMPORT, onClick: pickFile, showInPreview: true },
-    { id: 'export', title: '导出 BPMN 文件', group: 'file', svg: ICON_EXPORT, onClick: () => void exportBpmnFile(), showInPreview: true },
-    colorControl(),
-    { id: 'clear-colors', title: '清除选中元素颜色', group: 'colors', svg: ICON_CLEAR_COLOR, onClick: clearColors, isEnabled: () => colorTargets.value.length > 0 }
+    { id: 'export', title: '导出 BPMN 文件', group: 'file', svg: ICON_EXPORT, onClick: () => void exportBpmnFile(), showInPreview: true }
   ];
-}
-
-/** 宿主状态变化后重估工具栏动作激活/可用态（实例重建外的状态迁移调这里） */
-function refreshToolbar(): void {
-  modeler?.get<any>('bpmnToolbar').refresh();
 }
 
 // ---------- BPMN 文件导入/导出 ----------
@@ -777,100 +581,6 @@ console.info(
   overflow: hidden;
 }
 
-/* 「设置颜色」控件（render() 宿主控件，皮肤归示例）：按钮与插件图标钮同语言，
-   弹框与「更多」弹层同语言（--bio-* 令牌，随宿主暗色热切换） */
-.canvas-host :deep(.bpmn-color-action) {
-  position: relative;
-  display: inline-flex;
-}
-
-.canvas-host :deep(.bpmn-color-btn) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  color: var(--bio-text);
-  background: none;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.canvas-host :deep(.bpmn-color-btn svg) {
-  width: 16px;
-  height: 16px;
-}
-
-.canvas-host :deep(.bpmn-color-btn:hover:not(:disabled)),
-.canvas-host :deep(.bpmn-color-btn.is-open) {
-  background: var(--bio-surface-medium);
-}
-
-.canvas-host :deep(.bpmn-color-btn:disabled) {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.canvas-host :deep(.bpmn-color-pop) {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 224px;
-  padding: 12px;
-  background: var(--bio-surface-overlay, #fff);
-  border: 1px solid var(--bio-border, #e2e5ea);
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(15, 19, 30, 0.12);
-}
-
-.canvas-host :deep(.bpmn-color-pop[hidden]) {
-  display: none;
-}
-
-.canvas-host :deep(.bpmn-color-row) {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 12px;
-  color: var(--bio-text);
-  cursor: default;
-}
-
-.canvas-host :deep(.bpmn-color-row input[type='color']) {
-  width: 44px;
-  height: 22px;
-  padding: 0;
-  background: var(--bio-surface);
-  border: 1px solid var(--bio-border);
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.canvas-host :deep(.bpmn-color-foot) {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.canvas-host :deep(.bpmn-color-ok) {
-  height: 24px;
-  padding: 0 12px;
-  font-size: 12px;
-  border-radius: 6px;
-  color: #fff;
-  background: var(--bio-primary, #2d71eb);
-  border: none;
-  cursor: pointer;
-}
-
-.canvas-host :deep(.bpmn-color-ok:hover) {
-  filter: brightness(1.08);
-}
 </style>
 
 <style>
