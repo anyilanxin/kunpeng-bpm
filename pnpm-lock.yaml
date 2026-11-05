@@ -34,10 +34,10 @@ catalogs:
       specifier: ^6.9.7
       version: 6.9.7
     '@codemirror/state':
-      specifier: ^6.7.6
+      specifier: 6.7.6
       version: 6.7.6
     '@codemirror/view':
-      specifier: ^6.43.14
+      specifier: 6.43.15
       version: 6.43.15
     '@lezer/common':
       specifier: ^1.5.3
@@ -99,12 +99,18 @@ catalogs:
     diagram-js:
       specifier: ^15.28.0
       version: 15.28.1
+    diagram-js-direct-editing:
+      specifier: ^3.6.0
+      version: 3.6.0
     diagram-js-grid:
       specifier: ^2.1.0
       version: 2.1.0
     diagram-js-minimap:
       specifier: ^5.4.1
       version: 5.6.0
+    dmn-moddle:
+      specifier: 12.2.1
+      version: 12.2.1
     element-plus:
       specifier: ^2.14.7
       version: 2.14.7
@@ -130,7 +136,7 @@ catalogs:
       specifier: ^3.0.1
       version: 3.0.1
     preact:
-      specifier: ^11.0.1
+      specifier: 11.0.1
       version: 11.0.1
     preact-markup:
       specifier: ^2.1.1
@@ -141,9 +147,6 @@ catalogs:
     react-dom:
       specifier: ^19.3.1
       version: 19.3.1
-    replace-in-file:
-      specifier: ^9.0.0
-      version: 9.0.0
     rimraf:
       specifier: ^6.1.3
       version: 6.1.3
@@ -156,6 +159,12 @@ catalogs:
     sortablejs:
       specifier: ^1.15.7
       version: 1.15.7
+    table-js:
+      specifier: ^9.4.0
+      version: 9.4.0
+    tiny-svg:
+      specifier: ^4.1.4
+      version: 4.1.4
     typescript:
       specifier: ^5.9.3
       version: 5.9.3
@@ -182,6 +191,18 @@ importers:
 
   examples/bpmn-example:
     dependencies:
+      '@codemirror/lang-xml':
+        specifier: ^6.1.0
+        version: 6.1.0
+      '@codemirror/state':
+        specifier: 'catalog:'
+        version: 6.7.6
+      '@codemirror/theme-one-dark':
+        specifier: ^6.1.3
+        version: 6.1.3
+      '@codemirror/view':
+        specifier: 'catalog:'
+        version: 6.43.15
       '@kunpeng-io/bpmn-js':
         specifier: workspace:*
         version: link:../../packages/bpmn/bpmn-js
@@ -224,6 +245,55 @@ importers:
         version: 5.9.3
       vite:
         specifier: ^8.3.5
+        version: 8.3.5(esbuild@0.28.2)
+      vue-tsc:
+        specifier: ^2.1.0
+        version: 2.2.12(typescript@5.9.3)
+
+  examples/dmn-example:
+    dependencies:
+      '@codemirror/lang-xml':
+        specifier: ^6.1.0
+        version: 6.1.0
+      '@codemirror/state':
+        specifier: 'catalog:'
+        version: 6.7.6
+      '@codemirror/theme-one-dark':
+        specifier: ^6.1.3
+        version: 6.1.3
+      '@codemirror/view':
+        specifier: 'catalog:'
+        version: 6.43.15
+      '@kunpeng-io/dmn-js':
+        specifier: workspace:*
+        version: link:../../packages/dmn/dmn-js
+      '@kunpeng-io/dmn-js-properties-panel':
+        specifier: workspace:*
+        version: link:../../packages/dmn/dmn-js-properties-panel
+      '@kunpeng-io/dmn-js-toolbar':
+        specifier: workspace:*
+        version: link:../../packages/dmn/dmn-js-toolbar
+      '@kunpeng-io/kunpeng-dmn-moddle':
+        specifier: workspace:*
+        version: link:../../packages/dmn/kunpeng-dmn-moddle
+      diagram-js:
+        specifier: 'catalog:'
+        version: 15.28.1
+      diagram-js-grid:
+        specifier: 'catalog:'
+        version: 2.1.0
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.44(typescript@5.9.3)
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: 'catalog:'
+        version: 6.0.10(vite@8.3.5(esbuild@0.28.2))(vue@3.5.44(typescript@5.9.3))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
         version: 8.3.5(esbuild@0.28.2)
       vue-tsc:
         specifier: ^2.1.0
@@ -699,6 +769,9 @@ importers:
       min-dom:
         specifier: 'catalog:'
         version: 5.3.0
+      preact:
+        specifier: 'catalog:'
+        version: 11.0.1
     devDependencies:
       '@babel/core':
         specifier: 'catalog:'
@@ -712,15 +785,6 @@ importers:
       babel-plugin-module-resolver:
         specifier: 'catalog:'
         version: 5.0.3
-      fs-extra:
-        specifier: 'catalog:'
-        version: 11.4.1
-      preact:
-        specifier: 'catalog:'
-        version: 11.0.1
-      replace-in-file:
-        specifier: 'catalog:'
-        version: 9.0.0
       rimraf:
         specifier: 'catalog:'
         version: 6.1.3
@@ -730,6 +794,127 @@ importers:
       vite-plugin-babel:
         specifier: 'catalog:'
         version: 1.7.3(@babel/core@7.29.7)(vite@8.3.5(esbuild@0.28.2))
+
+  packages/dmn/dmn-js:
+    dependencies:
+      '@kunpeng-io/kunpeng-bpmn-moddle':
+        specifier: workspace:*
+        version: link:../../bpmn/kunpeng-bpmn-moddle
+      '@kunpeng-io/kunpeng-dmn-moddle':
+        specifier: workspace:*
+        version: link:../kunpeng-dmn-moddle
+      bpmn-moddle:
+        specifier: ^10.3.1
+        version: 10.3.1
+      diagram-js:
+        specifier: 'catalog:'
+        version: 15.28.1
+      diagram-js-direct-editing:
+        specifier: 'catalog:'
+        version: 3.6.0(diagram-js@15.28.1)
+      didi:
+        specifier: ^11.0.1
+        version: 11.0.1
+      dmn-moddle:
+        specifier: 'catalog:'
+        version: 12.2.1
+      htm:
+        specifier: ^3.1.1
+        version: 3.1.1
+      ids:
+        specifier: 'catalog:'
+        version: 3.0.2
+      inferno:
+        specifier: ^5.6.3
+        version: 5.6.3
+      inferno-create-element:
+        specifier: ^5.6.3
+        version: 5.6.3(inferno@5.6.3)
+      inherits-browser:
+        specifier: ^0.1.0
+        version: 0.1.0
+      min-dash:
+        specifier: 'catalog:'
+        version: 5.1.0
+      min-dom:
+        specifier: 'catalog:'
+        version: 5.3.0
+      moddle:
+        specifier: ^8.2.1
+        version: 8.2.1
+      moddle-xml:
+        specifier: ^12.3.1
+        version: 12.3.1(moddle@8.2.1)
+      table-js:
+        specifier: 'catalog:'
+        version: 9.4.0(diagram-js@15.28.1)(inferno@5.6.3)
+      tiny-svg:
+        specifier: 'catalog:'
+        version: 4.1.4
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.5(esbuild@0.28.2)
+
+  packages/dmn/dmn-js-properties-panel:
+    dependencies:
+      diagram-js:
+        specifier: '*'
+        version: 15.28.1
+      min-dash:
+        specifier: 'catalog:'
+        version: 5.1.0
+      min-dom:
+        specifier: 'catalog:'
+        version: 5.3.0
+    devDependencies:
+      '@babel/core':
+        specifier: 'catalog:'
+        version: 7.29.7
+      '@babel/plugin-transform-react-jsx':
+        specifier: 'catalog:'
+        version: 7.29.7(@babel/core@7.29.7)
+      '@kunpeng-io/dmn-js':
+        specifier: workspace:*
+        version: link:../dmn-js
+      '@kunpeng-io/properties-panel':
+        specifier: workspace:*
+        version: link:../../common/properties-panel
+      fs-extra:
+        specifier: 'catalog:'
+        version: 11.4.1
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.5(esbuild@0.28.2)
+      vite-plugin-babel:
+        specifier: 'catalog:'
+        version: 1.7.3(@babel/core@7.29.7)(vite@8.3.5(esbuild@0.28.2))
+
+  packages/dmn/dmn-js-toolbar:
+    devDependencies:
+      '@kunpeng-io/dmn-js':
+        specifier: workspace:*
+        version: link:../dmn-js
+      diagram-js:
+        specifier: ^15.9.0
+        version: 15.28.1
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.5(esbuild@0.28.2)
+
+  packages/dmn/kunpeng-dmn-moddle: {}
 
   packages/form/form-js:
     devDependencies:
@@ -995,6 +1180,9 @@ packages:
   '@codemirror/lang-json@6.0.2':
     resolution: {integrity: sha512-x2OtO+AvwEHrEwR0FyyPtfDUiloG3rnVTSZV1W8UteaLL8/MajQd8DpvUb2YVzC+/T18aSDv0H9mu+xw0EStoQ==}
 
+  '@codemirror/lang-xml@6.1.0':
+    resolution: {integrity: sha512-3z0blhicHLfwi2UgkZYRPioSgVTo9PV5GP5ducFH6FaHy0IAJRg+ixj5gTR1gnT/glAIC8xv4w2VL1LoZfs+Jg==}
+
   '@codemirror/language@6.13.1':
     resolution: {integrity: sha512-zfvU2r3TyylQLMj/te+5CnQ0rSqZi8B1oTCBbQkagcLW4Xc6imab6qN+pEJhsuNOLaJqiRyBXp9UhWA1DhVvDw==}
 
@@ -1006,6 +1194,9 @@ packages:
 
   '@codemirror/streamparser@6.0.0':
     resolution: {integrity: sha512-JTFPF6xrfjt0mnfGPgzcLiMwYmvIyNaoizp8BYzv8FE8KrT6GBGDZ190rtt+O7Wke3gG/MFHyiY9YGNeimof4w==}
+
+  '@codemirror/theme-one-dark@6.1.3':
+    resolution: {integrity: sha512-NzBdIvEJmx6fjeremiGp3t/okrLPYT0d9orIc7AFun8oZcRk58aejkqhv6spnz4MLAevrKNPMQYXEWMg4s+sKA==}
 
   '@codemirror/view@6.43.15':
     resolution: {integrity: sha512-HHsfpqFeHyXLs983pSRe38Xajs0vFWZQ2BuX0m7Ki8w3jZ5iD8cuR3lBz2/5/X53Dhf32SBHKh6rtSTB6tKeGw==}
@@ -1225,6 +1416,9 @@ packages:
 
   '@lezer/lr@1.4.11':
     resolution: {integrity: sha512-UwgZcl1R66H2hDzBrA7kWyYmX6s8p5TQ+e/t7CuvgCtBEPxbEPaHYHu+pJBvTvDotEJpuQkJjbXuHiw5Cixxgw==}
+
+  '@lezer/xml@1.0.6':
+    resolution: {integrity: sha512-CdDwirL0OEaStFue/66ZmFSeppuL6Dwjlk8qk153mSQwiSH/Dlri4GNymrNWnUmPl2Um7QfV1FO9KFUyX3Twww==}
 
   '@marijn/find-cluster-break@1.0.4':
     resolution: {integrity: sha512-Wy0V7+SGUjnF9/TkiM1hKVDPj7jKXduPNboMVtHTA8dySMURWqfg/JZ9E2Sq8JgSJmkl7k7Qe9FLeMSrSraWmQ==}
@@ -1746,14 +1940,6 @@ packages:
     resolution: {integrity: sha512-/6w/C21Pm1A7aZitlI5Ni/2J6FFQN8i1Cvz3kHABAAbw93v/NlvKdVOqz7CCWz/3iv/JplRSEEZ83XION15ovw==}
     engines: {node: '>=6'}
 
-  ansi-regex@6.4.0:
-    resolution: {integrity: sha512-KzTVk2tCWAHtYrvvvaP8bJKJq2pVinhLcGEQdtLIYPbmNGNyYe8QwNaTUYQp2J7/vIsUKt5QCqAfUkYyG9DkOw==}
-    engines: {node: '>=12'}
-
-  ansi-styles@6.2.3:
-    resolution: {integrity: sha512-4Dj6M28JB+oAH8kFkTLUo+a2jwOFkuqb3yucU0CANcRRUbxS0cP0nZYCGjcc3BNXwRIsUVmDGgzawme7zvJHvg==}
-    engines: {node: '>=12'}
-
   antd@6.6.7:
     resolution: {integrity: sha512-6D9oSAot26LIHYmR0ZyquOZY4WIcgRurZ/9//1GEJoo/vWvKV3E1PJPmB3orGkRlmGxArX3vSJFxQfRKr5qHZA==}
     peerDependencies:
@@ -1857,20 +2043,12 @@ packages:
   caniuse-lite@1.0.30001819:
     resolution: {integrity: sha512-LFUqIIAwpzsIuevnKnsR9qnStBcgzPShTX61lBwN9uFkkf8o8zLiebEjbW8AYtZiF+1YKDWfdt/pWDtMuG8Xwg==}
 
-  chalk@6.0.1:
-    resolution: {integrity: sha512-/Ce6KNm3vIbWdMlNna6RVIZ/ICQxnJxCicet5LBKK9ZffBkqzDw0xh9EiKSljdRtiIQ1S1z4YgcscUUGzNCWrA==}
-    engines: {node: '>=22'}
-
   classnames@2.5.1:
     resolution: {integrity: sha512-saHYOzhIQs6wy2sVxTM6bUDsQO4F50V9RQ22qBpEdCW+I+/Wmke2HOl6lS6dTpdxVhb88/I6+Hs+438c3lfUow==}
 
   cli-table@0.3.11:
     resolution: {integrity: sha512-IqLQi4lO0nIB4tcdTpN4LCB9FI3uqrJZK7RC515EnhZ6qBaglkIgICb1wjeAqpdoOabm1+SuQtkXIPdYC93jhQ==}
     engines: {node: '>= 0.2.0'}
-
-  cliui@9.0.1:
-    resolution: {integrity: sha512-k7ndgKhwoQveBL+/1tqGJYNz097I7WOvwbmmU2AR5+magtbjPWQTS1C5vzGkBC8Ym8UWRzfKUzUUqFLypY4Q+w==}
-    engines: {node: '>=20'}
 
   clsx@2.1.1:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
@@ -1887,6 +2065,12 @@ packages:
   commander@7.2.0:
     resolution: {integrity: sha512-QrWXB+ZQSVPmIWIhtEO9H+gwHaMGYiF5ChvoJ+K9ZGHG/sVsa6yiesAD1GC/x46sET00Xlwo1u49RVVVzvcSkw==}
     engines: {node: '>= 10'}
+
+  component-props@1.1.1:
+    resolution: {integrity: sha512-69pIRJs9fCCHRqCz3390YF2LV1Lu6iEMZ5zuVqqUn+G20V9BNXlMs0cWawWeW9g4Ynmg29JmkG6R7/lUJoGd1Q==}
+
+  component-xor@0.0.4:
+    resolution: {integrity: sha512-ZIt6sla8gfo+AFVRZoZOertcnD5LJaY2T9CKE2j13NJxQt/mUafD69Bl7/Y4AnpI2LGjiXH7cOfJDx/n2G9edA==}
 
   compute-scroll-into-view@3.1.1:
     resolution: {integrity: sha512-VRhuHOLoKYOy4UbilLbUzbYg93XLjv2PncJC50EuTWPA3gaja1UjBsUP/D/9/juV3vQFr6XBEzn9KCAHdUvOHw==}
@@ -1973,6 +2157,13 @@ packages:
     resolution: {integrity: sha512-eEBvv5SHBhoCyDX/kOR8UozNfqEkjEXjNCTsE2vWWoxoJ5QC8KXYRTE78mrpdpvXNtSEriLhbgQdD0OkHvLFWQ==}
     engines: {node: '>= 20.12'}
 
+  dmn-moddle@12.2.1:
+    resolution: {integrity: sha512-X0UmMGmF3klrDv3NPHq045InNBAE5whmK2GAmXZJ7QszsIWR2p/EHYcD4XiJSUr2n8F8VghY79yDY/eBeiAhxA==}
+    engines: {node: '>= 20.12'}
+
+  dom-iterator@1.0.2:
+    resolution: {integrity: sha512-BMelEjhy08OpoWF3v/jrPtx7PZCyP1VM9yiB7rJk19UVmt7zTN5rqoC0Jea+EyT0M6v/VokL0LxIlGLUOBJZ2g==}
+
   dom-serializer@1.4.1:
     resolution: {integrity: sha512-VHwB3KfrcOOkelEG2ZOfxqLZdfkil8PtJi4P8N2MMXucZq2yLp75ClViUlOVwyoHEDjYU433Aq+5zWP61+RGag==}
 
@@ -2001,9 +2192,6 @@ packages:
     resolution: {integrity: sha512-lrG7pZyCS+mpCNVpzxxyu5r35+T6V0hzkAeIwn7HA6to772XSTHKuYCZG51OfzlqaxGbNegLxs650zAF1j43gA==}
     peerDependencies:
       vue: ^3.3.7
-
-  emoji-regex@10.6.0:
-    resolution: {integrity: sha512-toUI84YS5YmxW219erniWD0CIVOo46xGKColeNQRgOzDorgBi1v4D71/OFzgD9GO2UGKIv1C3Sp8DAn0+j5w7A==}
 
   entities@2.2.0:
     resolution: {integrity: sha512-p92if5Nz619I0w+akJrLZH0MX0Pb5DX39XOwQTtXSdQQOaYH03S1uIQp4mhOZtAXrxq4ViO67YTiLBo2638o9A==}
@@ -2115,14 +2303,6 @@ packages:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
     engines: {node: '>=6.9.0'}
 
-  get-caller-file@2.0.5:
-    resolution: {integrity: sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg==}
-    engines: {node: 6.* || 8.* || >= 10.*}
-
-  get-east-asian-width@1.7.0:
-    resolution: {integrity: sha512-XjH1AECxf0giL2V1aU8vKyRR2ppRUb5c0EvT7zuJTokQ74bNo52zOtghqdWIqrhUD79fo3x0WfKZdOqxF6LG1Q==}
-    engines: {node: '>=18'}
-
   get-intrinsic@1.3.0:
     resolution: {integrity: sha512-9fSjSaos/fRIVIp+xSJlE6lfwhES7LNtKaCBIamHsjr2na1BiABJPo0mOjjz8GJDURarmCPGqaiVg5mfjb98CQ==}
     engines: {node: '>= 0.4'}
@@ -2194,6 +2374,20 @@ packages:
   ids@3.0.2:
     resolution: {integrity: sha512-t6YJP4mdC+GHF96Nbis/4FEANhP/8VWmYMvUuYpXvSdrhg5hpIVbq2XZlOA3UWTbtdwPCi0q7jEXOdHkAnqOnw==}
     engines: {node: '>= 20.12'}
+
+  inferno-create-element@5.6.3:
+    resolution: {integrity: sha512-blVfnaZt2T06QXXaMNlxkfJSzq1r7Esd/2/5rF8rJjeNxGBGhWz8fAbU2Vm7uzEYUo5SmKUmsee/IuKJEu65tw==}
+    peerDependencies:
+      inferno: ^5
+
+  inferno-shared@5.6.3:
+    resolution: {integrity: sha512-NzhS62Y6BwfkLNmXS9C0Ie7skY1vIoLrVIYnVrMx1xfTLp/AG+ths4oAJGmWcX/AkVSYl+DjP96HEuUdtGmRRw==}
+
+  inferno-vnode-flags@5.6.3:
+    resolution: {integrity: sha512-1V9Pjz5Erm2sP7xlb4D2zW/U8e3RwU41Ruyn9/apke0BFxbLI+LxxVcKWxom4fPetG6YcBNLpZssy8gkigT9gg==}
+
+  inferno@5.6.3:
+    resolution: {integrity: sha512-2m7bEo/6D+pbxFkFKY/2QOVdknxxXyrXyDdVFobJcQyvfv3985MY+VVwyRZoVJylQG+mzPY5/uDNuXygp8jObA==}
 
   inherits-browser@0.1.0:
     resolution: {integrity: sha512-CJHHvW3jQ6q7lzsXPpapLdMx5hDpSF3FSh45pwsj6bKxJJ8Nl8v43i5yXnr3BdfOimGHKyniewQtnAIp3vyJJw==}
@@ -2524,6 +2718,10 @@ packages:
     resolution: {integrity: sha512-8u/hfXFRBD1O0hPUjioLhoWFHRmt6tKA4/vZPyckBr18l1KE9uHrFaFaUi8MDRTpi4uak2goyPTSNJLXX2k2Hw==}
     engines: {node: '>= 0.4'}
 
+  opencollective-postinstall@2.0.3:
+    resolution: {integrity: sha512-8AV/sCtuzUeTo8gQK5qDZzARrulB3egtLzFgteqB2tcT4Mw7B8Kt7JcDHmltjz6FOAHsvTevk70gZEbhM4ZS9Q==}
+    hasBin: true
+
   own-keys@1.0.2:
     resolution: {integrity: sha512-19YVAg7T+WTrxggPukVq7DjTv6+PJ867TmhCvBsYwmbFCsZd344rq2Ld1p0wo8f8Qrrhgp82c6FJRqdXWtSEhg==}
     engines: {node: '>= 0.4'}
@@ -2629,11 +2827,6 @@ packages:
     resolution: {integrity: sha512-dYqgNSZbDwkaJ2ceRd9ojCGjBq+mOm9LmtXnAnEGyHhN/5R7iDW2TRw3h+o/jCFxus3P2LfWIIiwowAjANm7IA==}
     engines: {node: '>= 0.4'}
 
-  replace-in-file@9.0.0:
-    resolution: {integrity: sha512-ACFXyc5ninRlHSVw8ZRht0Fd/BKoje8mpbIDZjbOU/LCaaoZzD9uo3zDQNkULDhcrvhXyL38FCcF1D2SiHM6Vg==}
-    engines: {node: '>=22.12.0'}
-    hasBin: true
-
   require-from-string@2.0.2:
     resolution: {integrity: sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==}
     engines: {node: '>=0.10.0'}
@@ -2686,6 +2879,9 @@ packages:
 
   scroll-into-view-if-needed@3.1.0:
     resolution: {integrity: sha512-49oNpRjWRvnU8NyGVmUaYG4jtTkNonFZI86MmGRDqBphEK2EXT9gdEUoQPZhuBM8yWHxCWbobltqYO5M4XrUvQ==}
+
+  selection-ranges@4.1.1:
+    resolution: {integrity: sha512-MaWca8GVQV+g3IOJDDgDehXFWtB+ycrQD5wkWTTwAQjXvwm1ZeZVoN4IA8KP7R+z8UMOsdkdnpMfo8+40Hru+Q==}
 
   semver-compare@1.0.0:
     resolution: {integrity: sha512-YM3/ITh2MJ5MtzaM429anh+x2jiLVjqILF4m4oyQB18W7Ggea7BfqdH/wGMK7dDiMghv/6WG7znWMwUDzJiXow==}
@@ -2749,14 +2945,6 @@ packages:
   string-convert@0.2.1:
     resolution: {integrity: sha512-u/1tdPl4yQnPBjnVrmdLo9gtuLvELKsAoRapekWggdiQNvvvum+jYF329d84NAa660KQw7pB2n36KrIKVoXa3A==}
 
-  string-width@7.2.0:
-    resolution: {integrity: sha512-tsaTIkKW9b4N+AEj+SVA+WhJzV7/zMhcSu78mLKWSk7cXMOSHsBKFWUs0fWwq8QyK3MgJBQRX6Gbi4kYbdvGkQ==}
-    engines: {node: '>=18'}
-
-  string-width@8.3.0:
-    resolution: {integrity: sha512-ZbmZM0JCihQN91dWnxoipT2KOEyHqEyfRXUyjuRhW8b/xnqPDoq4gWEVApTVa9db2wN8mmoikgFBbjh71+cGeQ==}
-    engines: {node: '>=20'}
-
   string.prototype.trim@1.2.11:
     resolution: {integrity: sha512-PwvK7BU+CMTJGYQCTZb5RWXIML92lftJLhQz1tBzgKiqGxJaMlBAa48POXaNAC2s4y8jr3EFqrkF9+44neS46w==}
     engines: {node: '>= 0.4'}
@@ -2768,10 +2956,6 @@ packages:
   string.prototype.trimstart@1.0.8:
     resolution: {integrity: sha512-UXSH262CSZY1tfu3G3Secr6uGLCFVPMhIqHjlgCUtCCcgihYc/xKs9djMTMUOb2j1mVSeU8EU6NWc/iQKU6Gfg==}
     engines: {node: '>= 0.4'}
-
-  strip-ansi@7.2.0:
-    resolution: {integrity: sha512-yDPMNjp4WyfYBkHnjIRLfca1i6KMyGCtsVgoKe/z1+6vukgaENdgGBZt+ZmKPc4gavvEZ5OgHfHdrazhgNyG7w==}
-    engines: {node: '>=12'}
 
   style-mod@4.1.4:
     resolution: {integrity: sha512-XXWIQt633/EpAFx8aZDOTjBzrCaGmhvEQlQo6MVPfa2OzO2cWo+4hV9h+6UkHYlXGfy+ODXKUdP7Pthmcu5ATw==}
@@ -2790,6 +2974,12 @@ packages:
 
   tabbable@6.5.0:
     resolution: {integrity: sha512-wieBHXygIm7OyQOu5hQlkk62/WyCFYGlWg7L6/ZCUZwx0o398Zkn4pVmMyfYhfMG8kGrj/Krt8eIk6UKC6VzwA==}
+
+  table-js@9.4.0:
+    resolution: {integrity: sha512-m7G/yfFnP2pniz+NMT9QnrYko8MUVBbWsFD+zHY808VBmVZqIHPR68VzCtvWXDF1oCLG4c96BM0nOA4ILzqK+w==}
+    peerDependencies:
+      diagram-js: ^11.3.0 || ^12 || ^13 || ^14 || ^15
+      inferno: ^5.0.5
 
   throttle-debounce@5.0.2:
     resolution: {integrity: sha512-B71/4oyj61iNH0KeCamLuE2rmKuTO5byTOSVwECM5FA7TiAiAW+UqTKZ9ERueC4qvgSttUhdmq1mXC3kJqGX7A==}
@@ -2937,24 +3127,8 @@ packages:
     resolution: {integrity: sha512-wk4Mf4pR5mRP7eYuuTBCIQ9d0ud2Fv2jRLQpfgnRjbOxAFHmjKFValgTpitVKzJJS8ajnYQV2Du1SZ8j6b/EUQ==}
     engines: {node: '>= 0.4'}
 
-  wrap-ansi@9.0.2:
-    resolution: {integrity: sha512-42AtmgqjV+X1VpdOfyTGOYRi0/zsoLqtXQckTmqTeybT+BDIbM/Guxo7x3pE2vtpr1ok6xRqM9OpBe+Jyoqyww==}
-    engines: {node: '>=18'}
-
-  y18n@5.0.8:
-    resolution: {integrity: sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA==}
-    engines: {node: '>=10'}
-
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
-
-  yargs-parser@22.0.0:
-    resolution: {integrity: sha512-rwu/ClNdSMpkSrUb+d6BRsSkLUq1fmfsY6TOpYzTwvwkg1/NRG85KBy3kq++A8LKQwX6lsu+aWad+2khvuXrqw==}
-    engines: {node: ^20.19.0 || ^22.12.0 || >=23}
-
-  yargs@18.2.0:
-    resolution: {integrity: sha512-9OpKOLeaoNFecEp7P6iYbzze/5CqWoH7N3SMs/6y1XF4nMvFMspEGZzJ6uFi9MmQwXhyzqYoSEKO3tvA3Z/o2w==}
-    engines: {node: ^20.19.0 || ^22.12.0 || >=23}
 
 snapshots:
 
@@ -3171,6 +3345,15 @@ snapshots:
       '@codemirror/language': 6.13.1
       '@lezer/json': 1.0.3
 
+  '@codemirror/lang-xml@6.1.0':
+    dependencies:
+      '@codemirror/autocomplete': 6.20.4
+      '@codemirror/language': 6.13.1
+      '@codemirror/state': 6.7.6
+      '@codemirror/view': 6.43.15
+      '@lezer/common': 1.5.4
+      '@lezer/xml': 1.0.6
+
   '@codemirror/language@6.13.1':
     dependencies:
       '@codemirror/state': 6.7.6
@@ -3192,6 +3375,13 @@ snapshots:
       '@marijn/find-cluster-break': 1.0.4
 
   '@codemirror/streamparser@6.0.0': {}
+
+  '@codemirror/theme-one-dark@6.1.3':
+    dependencies:
+      '@codemirror/language': 6.13.1
+      '@codemirror/state': 6.7.6
+      '@codemirror/view': 6.43.15
+      '@lezer/highlight': 1.2.5
 
   '@codemirror/view@6.43.15':
     dependencies:
@@ -3340,6 +3530,12 @@ snapshots:
   '@lezer/lr@1.4.11':
     dependencies:
       '@lezer/common': 1.5.4
+
+  '@lezer/xml@1.0.6':
+    dependencies:
+      '@lezer/common': 1.5.4
+      '@lezer/highlight': 1.2.5
+      '@lezer/lr': 1.4.11
 
   '@marijn/find-cluster-break@1.0.4': {}
 
@@ -3896,10 +4092,6 @@ snapshots:
 
   ansi-colors@4.1.3: {}
 
-  ansi-regex@6.4.0: {}
-
-  ansi-styles@6.2.3: {}
-
   antd@6.6.7(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
       '@ant-design/colors': 8.0.1
@@ -4087,19 +4279,11 @@ snapshots:
 
   caniuse-lite@1.0.30001819: {}
 
-  chalk@6.0.1: {}
-
   classnames@2.5.1: {}
 
   cli-table@0.3.11:
     dependencies:
       colors: 1.0.3
-
-  cliui@9.0.1:
-    dependencies:
-      string-width: 7.2.0
-      strip-ansi: 7.2.0
-      wrap-ansi: 9.0.2
 
   clsx@2.1.1: {}
 
@@ -4108,6 +4292,10 @@ snapshots:
   colors@1.0.3: {}
 
   commander@7.2.0: {}
+
+  component-props@1.1.1: {}
+
+  component-xor@0.0.4: {}
 
   compute-scroll-into-view@3.1.1: {}
 
@@ -4210,6 +4398,17 @@ snapshots:
 
   didi@11.0.1: {}
 
+  dmn-moddle@12.2.1:
+    dependencies:
+      min-dash: 5.1.0
+      moddle: 8.2.1
+      moddle-xml: 12.3.1(moddle@8.2.1)
+
+  dom-iterator@1.0.2:
+    dependencies:
+      component-props: 1.1.1
+      component-xor: 0.0.4
+
   dom-serializer@1.4.1:
     dependencies:
       domelementtype: 2.3.0
@@ -4256,8 +4455,6 @@ snapshots:
       normalize-wheel-es: 1.2.0
       vue: 3.5.44(typescript@5.9.3)
       vue-component-type-helpers: 3.3.13
-
-  emoji-regex@10.6.0: {}
 
   entities@2.2.0: {}
 
@@ -4444,10 +4641,6 @@ snapshots:
 
   gensync@1.0.0-beta.2: {}
 
-  get-caller-file@2.0.5: {}
-
-  get-east-asian-width@1.7.0: {}
-
   get-intrinsic@1.3.0:
     dependencies:
       call-bind-apply-helpers: 1.0.2
@@ -4523,6 +4716,20 @@ snapshots:
   htm@3.1.1: {}
 
   ids@3.0.2: {}
+
+  inferno-create-element@5.6.3(inferno@5.6.3):
+    dependencies:
+      inferno: 5.6.3
+
+  inferno-shared@5.6.3: {}
+
+  inferno-vnode-flags@5.6.3: {}
+
+  inferno@5.6.3:
+    dependencies:
+      inferno-shared: 5.6.3
+      inferno-vnode-flags: 5.6.3
+      opencollective-postinstall: 2.0.3
 
   inherits-browser@0.1.0: {}
 
@@ -4824,6 +5031,8 @@ snapshots:
       define-properties: 1.2.1
       es-object-atoms: 1.1.2
 
+  opencollective-postinstall@2.0.3: {}
+
   own-keys@1.0.2:
     dependencies:
       call-bound: 1.0.4
@@ -4916,12 +5125,6 @@ snapshots:
       gopd: 1.2.0
       set-function-name: 2.0.2
 
-  replace-in-file@9.0.0:
-    dependencies:
-      chalk: 6.0.1
-      glob: 13.0.6
-      yargs: 18.2.0
-
   require-from-string@2.0.2: {}
 
   reselect@4.1.8: {}
@@ -4997,6 +5200,10 @@ snapshots:
     dependencies:
       compute-scroll-into-view: 3.1.1
 
+  selection-ranges@4.1.1:
+    dependencies:
+      dom-iterator: 1.0.2
+
   semver-compare@1.0.0: {}
 
   semver@6.3.1: {}
@@ -5068,17 +5275,6 @@ snapshots:
 
   string-convert@0.2.1: {}
 
-  string-width@7.2.0:
-    dependencies:
-      emoji-regex: 10.6.0
-      get-east-asian-width: 1.7.0
-      strip-ansi: 7.2.0
-
-  string-width@8.3.0:
-    dependencies:
-      get-east-asian-width: 1.7.0
-      strip-ansi: 7.2.0
-
   string.prototype.trim@1.2.11:
     dependencies:
       call-bind: 1.0.9
@@ -5103,10 +5299,6 @@ snapshots:
       define-properties: 1.2.1
       es-object-atoms: 1.1.2
 
-  strip-ansi@7.2.0:
-    dependencies:
-      ansi-regex: 6.4.0
-
   style-mod@4.1.4: {}
 
   stylis@4.4.0: {}
@@ -5124,6 +5316,15 @@ snapshots:
       stable: 0.1.8
 
   tabbable@6.5.0: {}
+
+  table-js@9.4.0(diagram-js@15.28.1)(inferno@5.6.3):
+    dependencies:
+      diagram-js: 15.28.1
+      didi: 11.0.1
+      inferno: 5.6.3
+      min-dash: 5.1.0
+      min-dom: 5.3.0
+      selection-ranges: 4.1.1
 
   throttle-debounce@5.0.2: {}
 
@@ -5278,23 +5479,4 @@ snapshots:
       gopd: 1.2.0
       has-tostringtag: 1.0.2
 
-  wrap-ansi@9.0.2:
-    dependencies:
-      ansi-styles: 6.2.3
-      string-width: 7.2.0
-      strip-ansi: 7.2.0
-
-  y18n@5.0.8: {}
-
   yallist@3.1.1: {}
-
-  yargs-parser@22.0.0: {}
-
-  yargs@18.2.0:
-    dependencies:
-      cliui: 9.0.1
-      escalade: 3.2.0
-      get-caller-file: 2.0.5
-      string-width: 8.3.0
-      y18n: 5.0.8
-      yargs-parser: 22.0.0

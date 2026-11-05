@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/expression-analyzer",
-  "version": "2026.10.4",
+  "version": "2026.10.3",
   "description": "Static FEEL expression analyzer",
   "license": "MIT",
   "type": "module",

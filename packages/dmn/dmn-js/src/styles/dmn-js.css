@@ -1,0 +1,1332 @@
+/*
+ * Copyright (c) 2026 anyilanxin zxh (anyilanxin@aliyun.com). All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  The copyright holder designates
+ * this particular file as subject to the "Classpath" exception as provided
+ * in the LICENSE file and licenses/ directory that accompany this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the licenses/ directory that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+/**
+ * @kunpeng-io/bpmn-js 组件自有功能样式。
+ *
+ * 使用方引入（必须在 diagram-js/assets/diagram-js.css 之后，同特异性靠后胜出）：
+ *   import 'diagram-js/assets/diagram-js.css';
+ *   import '@kunpeng-io/bpmn-js/styles';
+ *
+ * 收录约束（产品决策"观感 = diagram-js.css 默认"，唯弹框家族除外）：
+ * - 只放「功能性覆写」——影响布局/交互行为的规则，缺了组件功能不完整；
+ * - 皮肤类规则（配色/阴影/圆角等观感定制）不入此文件，由宿主自行覆盖；
+ * - 弹框家族（palette "…" 创建 / context pad 替换·追加·创建 / 对齐）皮肤
+ *   按产品给定样式收编为组件标准外观（见下「弹框家族外观」一节）；
+ * - 图标全部为组件内联自绘 SVG（src/icons/），本文件不承担图标样式。
+ */
+
+/* 元素面板单双列：完全交给引擎自动切换（Palette._needsCollapse：容器高 <
+   条目数×46+50 → 切 .two-column 双列 94px；足够高时单列 48px）。本组件
+   不覆写宽度——强制窄条会压坏双列布局；也不设 max-height/overflow——
+   双列即终态自适应高度，面板永不出现滚动条（产品要求）。 */
+
+/* 元素面板：条目内联自绘 SVG 垂直居中（记法缩样 26px / 工具图标 22px，
+   默认行高 46px，inline 基线对齐会沉底） */
+.djs-palette .entry svg { vertical-align: middle; }
+
+/* 弹框标题行循环特性切换钮：内联 SVG 与字体图标基线对齐 */
+.djs-popup-header .entry svg { vertical-align: middle; }
+
+/* 上下文面板布局：条目跨组连续流式三列换行——引擎默认 entry
+   inline-block 随条目数自然撑宽，分组宽度参差、面板右缘不齐；三列等宽
+   阵列（3×22px 钮 + 2×2px 缝 = 70px）与 palette/弹框的规整语言一致。
+   组退化为 display:contents 透明容器（分组语义保留，条目直排父级流），
+   避免各组独立换行在中间留下空位。
+   引擎 .djs-context-pad.open{display:block} 特异性高于容器规则，须
+   同名覆盖为 flex。 */
+.djs-context-pad,
+.djs-context-pad.open {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  width: 70px; /* 三列封行：append 族 6 项两行，工具族顺位续接 */
+}
+.djs-context-pad .group {
+  display: contents;
+}
+.djs-context-pad .entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0; /* 引擎 0 2px 2px 0 外距让位 flex gap */
+}
+
+/* 底色与 palette 同面：引擎默认条目底/白晕取 --bio-surface（纯白），在
+   点阵画布与浅灰面板（--bio-surface-subtle）之间偏白扎眼，暗色下同理
+   偏亮一档——对齐面板同面后令牌级联动（白晕阴影同变量，暗色随宿主令牌） */
+.djs-parent {
+  --context-pad-entry-background-color: var(--bio-surface-subtle);
+}
+
+/* 预览模式（BpmnMode）：隐藏元素面板与上下文面板——只读预览模型。
+ * 规则层（BpmnRules）同步否决全部编辑动作，此为 UI 防线而非唯一防线。 */
+.djs-container.bpmn-preview-mode .djs-palette,
+.djs-container.bpmn-preview-mode .djs-context-pad { display: none !important; }
+
+/* 连线拖拽预览：恢复实心箭头填充。diagram-js 影子样式对 .djs-dragger 容器
+   内全部图形强制 fill:none !important（线框化拖拽影子），但实心箭头是
+   方向语义而非形状轮廓——被线框化后会与空心箭头记法（消息流/数据关联，
+   规范 §8.4.3/§10.4.1）混淆，误传连线类型。本规则特异性 (0,2,1) 高于
+   引擎 .djs-dragger * 的 (0,1,1)，同处 important 层级靠特异性胜出；颜色
+   取拖拽主题色与预览线一致。正常态连线不在 .djs-dragger 容器，不受影响。 */
+.djs-dragger path.bpmn-arrow-filled {
+  fill: var(--element-dragger-color) !important;
+  stroke: var(--element-dragger-color) !important;
+}
+
+/* ── 弹框家族外观（产品给定样式：白底直角轻阴影、加粗标题、整宽搜索、
+      灰色分组头、单列「图标+文字」行、右侧细滚动条）──
+   取值为自有设计：按 48px palette 视觉密度自适配，非抄任何上游实现。 */
+
+/* 无边框线：柔和投影 + 一圈极淡发丝影界定边界，双线（边框+阴影）显重 */
+.djs-popup {
+  border: none;
+  border-radius: 3px; /* 轻圆角：直角生硬，大圆角与画布方角记法不配 */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+/* 标题：比条目主文大一档并加深（层级差），行距给足 */
+.djs-popup .djs-popup-header { margin: 12px 14px 8px; }
+.djs-popup .djs-popup-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* 标题行切换钮（替换弹框循环特性）：与条目同语言的轻底小方钮——
+   引擎默认是 18px 裸按钮（无底色无圆角），在统一皮肤里像外来控件。
+   取值为自有设计：24px 与搜索框 32px 同族的点击区梯度、3px 圆角与弹框
+   同语言、hover/active 6%/8% 灰与条目 hover 同族；active 文字色保持
+   引擎主题色高亮（选中态可辨识），仅补底与形态。 */
+.djs-popup .djs-popup-header-group { margin-left: auto; gap: 2px; }
+.djs-popup .djs-popup-header .entry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+}
+/* 面板/操作钮条目悬停反馈:背景提亮(与弹框条目同族 6% 灰)+ 图标随悬停主题色
+   (diagram-js 默认仅改 color,图标须 currentColor 才可见)+ 抓取光标提示可拖建 */
+.djs-palette .entry,
+.djs-context-pad .entry {
+  cursor: grab;
+}
+
+.djs-palette .entry:active,
+.djs-context-pad .entry:active {
+  cursor: grabbing;
+}
+
+.djs-palette .entry:hover,
+.djs-context-pad .entry:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.djs-popup .djs-popup-header .entry:hover { background: rgba(0, 0, 0, 0.06); }
+.djs-popup .djs-popup-header .entry.active { background: rgba(0, 0, 0, 0.08); }
+
+/* 搜索框：整宽、加高（30px 量级），放大镜图标随高度居中 */
+.djs-popup .djs-popup-search { margin: 8px 14px 10px; }
+.djs-popup .djs-popup-search input {
+  padding: 6px 6px 6px 30px;
+  line-height: 18px;
+  border-radius: 3px;
+}
+.djs-popup .djs-popup-search-icon { left: 9px; top: 9px; }
+
+/* 结果区：左右留白收窄对齐搜索框，滚动条（细样式为引擎默认）贴右缘 */
+.djs-popup .djs-popup-results { margin: 2px 6px 8px 14px; }
+
+/* 分组头：灰一档且小于条目主文（次级层级），组间距略收紧 */
+.djs-popup .djs-popup-body .entry-header {
+  font-size: 12px;
+  color: #7f7f7f;
+}
+.djs-popup .djs-popup-body .entry-header:not(:first-child) { margin-top: 6px; }
+
+/* 条目行：舒展行高（参考样式行距明显大于默认 5px 紧排） */
+.djs-popup .djs-popup-body .entry { padding: 6px 8px; }
+
+/* 对齐/分布弹框（bpmn-align-popup）：无搜索的图标栅格，每行 3 个
+   （2026-10-25 产品定规）——组各自成栅格不跨行混排，条目图标居中占格 */
+.djs-popup.bpmn-align-popup .djs-popup-body .djs-popup-group {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+.djs-popup.bpmn-align-popup .djs-popup-body .djs-popup-group .entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px;
+}
+
+/* ── 直编输入框外观 ──
+   diagram-js-direct-editing 的 TextBox 默认内联「白底 + 1px #ccc 边」，且
+   内联样式压过普通 CSS——边框/底色全部由 Provider 按族内联下发
+   （LabelEditingProvider TRANSPARENT_STYLE），本表零皮肤干预（无边框、
+   无底色、**无圆角**——2026-10-26 用户定规方形直角）。全族隐形框
+   （2026-10-26 用户定稿）：编辑期已渲染标签由 LabelBehavior 加
+   label-editing marker 藏去——画布上只见光标闪烁，看不出输入框；
+   调宽手柄（resizable）已按用户定规去掉，勿回加。 */
+
+.djs-element.label-editing text {
+  visibility: hidden;
+}
+
+/* 文字区：行距与左右呼吸感——行高 1.4 与卡片高度测量（internalCard）同
+   参数；左右垫 4 使换行宽=元素宽−20，与渲染排版宽（internalLabelBox
+   padX 8×2 + 渲染 padding 2×2）严格同宽，换行点所见即所得，勿单独改 */
+.djs-direct-editing-parent .djs-direct-editing-content {
+  padding: 3px 4px;
+  line-height: 1.4;
+}
+
+/* ── 下钻徽标（折叠子流程右下角外侧，plane/DrillBadges）──
+   蓝底白角标（用户定规色 #0095ff）：22px 点击区；overlays 为 HTML 通道
+   不随画布缩放，恒定像素可点。无阴影、无 hover/active 底色变化
+   （用户定规：悬浮反馈不要，鼠标手型即可）。 */
+.bpmn-drill-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: #0095ff;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+/* ── 平面面包屑（plane/PlaneBreadcrumb）：画布左上角层级路径 ──
+   主平面隐藏（[hidden] 显式声明——display:flex 会盖掉 UA 的 [hidden] 隐藏，
+   同悬浮卡弹层陷阱）；祖先段主题蓝可点、当前段加重不可点。
+   无卡片底（用户定规：不悬浮——白底/投影/圆角/内距全无，裸排画布上）。
+   起点避让左上悬浮 palette（20 + 94 两列宽 + 16 间距）；16px 字号（用户定规）。
+   层级过多不换行：容器单行溢出隐藏，早期段优先收缩成省略号
+   （flex-shrink 阶梯），当前段恒完整可见。 */
+.bpmn-plane-breadcrumb {
+  position: absolute;
+  top: 10px;
+  left: 130px;
+  right: 16px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  font-size: 16px;
+  line-height: 22px;
+  color: #1a1a1a;
+  user-select: none;
+}
+.bpmn-plane-breadcrumb[hidden] {
+  display: none;
+}
+.bpmn-plane-breadcrumb-crumb {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: #0095ff;
+  cursor: pointer;
+  /* 非当前段可收缩（挤让空间），下限 24px 保省略号可点回跳 */
+  flex-shrink: 1;
+  min-width: 24px;
+  max-width: 260px;
+}
+.bpmn-plane-breadcrumb-crumb:hover {
+  text-decoration: underline;
+}
+.bpmn-plane-breadcrumb-crumb.current {
+  color: inherit;
+  font-weight: 600;
+  cursor: default;
+  /* 当前段不收缩不截断——层级再深也完整可见 */
+  flex-shrink: 0;
+  max-width: none;
+}
+.bpmn-plane-breadcrumb-crumb.current:hover {
+  text-decoration: none;
+}
+.bpmn-plane-breadcrumb-separator {
+  color: #7f7f7f;
+  flex-shrink: 0;
+}
+
+/* ===================== 下钻角标 + 同页面下钻视图（G4，用户定规 2026-10-26 终版） ===================== */
+
+/* ---- DMN 专属面颜色令牌（2026-10-27 暗色模式）：亮色缺省声明于 :root，
+   暗色集在文件尾 .dark 作用域覆盖（宿主切 html.dark 即全暗，也可按令牌定制）。
+   通用画布 UI（palette/弹框/直编）不在此列——走 diagram-js 的 --bio-* 变量。 */
+:root {
+  --dmn-surface: #fff;
+  --dmn-surface-alt: #f7f8fa;
+  --dmn-surface-hover: #f2f4f7;
+  --dmn-surface-muted: hsl(225 10% 97%);
+  --dmn-surface-raised: #fafafa;
+  --dmn-menu-hover: #eef3f9;
+  --dmn-line: hsl(225 10% 15%);
+  --dmn-line-soft: hsl(225 10% 75%);
+  --dmn-border: #ddd;
+  --dmn-border-strong: #d6dade;
+  --dmn-sep: #e0e0e0;
+  --dmn-text: hsl(225 10% 15%);
+  --dmn-text-title: #333;
+  --dmn-text-soft: hsl(225 10% 35%);
+  --dmn-text-meta: #888;
+  --dmn-text-faint: #999;
+  --dmn-text-weak: hsl(225 10% 55%);
+  --dmn-text-disabled: #aaa;
+  --dmn-text-toolbar: #2c3340;
+  --dmn-close: #666;
+  --dmn-accent: hsl(205 100% 45%);
+  --dmn-accent-bright: hsl(205 100% 50%);
+  --dmn-accent-soft: hsl(205 100% 45% / 30%);
+  --dmn-accent-strong: #205691;
+  --dmn-accent-deep: #1d5fae;
+  --dmn-focus-ring: rgb(32 86 145 / 15%);
+  --dmn-danger: hsl(360 100% 45%);
+  --dmn-hover-wash: hsl(0 0% 0% / 10%);
+  --dmn-shadow: rgb(16 24 40 / 14%);
+  --dmn-badge-halo: #fff;
+  --dmn-badge-shadow: rgb(0 0 0 / 20%);
+}
+
+/* 右上角蓝底白网格角标（overlays 挂载的 DOM 按钮）：原生点击不进画布
+   事件链（不误触选中/拖拽）；预览模式隐藏（只读浏览不提供编辑入口） */
+.dmn-drill-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: all;
+}
+.dmn-drill-badge svg {
+  display: block;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1.5px var(--dmn-badge-halo), 0 1px 3px var(--dmn-badge-shadow);
+}
+.dmn-drill-badge:hover svg {
+  filter: brightness(1.08);
+}
+.bpmn-preview-mode .djs-overlay .dmn-drill-badge {
+  display: none;
+}
+
+/* 下钻编辑视图：整面覆盖画布区（同页面切换，画布 DOM 保持挂载不动） */
+.dmn-drill-view {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  background: var(--dmn-surface);
+}
+.dmn-drill-view-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--dmn-sep);
+  flex-shrink: 0;
+}
+.dmn-drill-back {
+  padding: 4px 12px;
+  border: 1px solid var(--dmn-border);
+  border-radius: 4px;
+  background: var(--dmn-surface);
+  font: 400 13px/1.4 Arial, "Helvetica Neue", Helvetica, "PingFang SC", sans-serif;
+  color: var(--dmn-text-title);
+  cursor: pointer;
+}
+.dmn-drill-back:hover {
+  border-color: var(--dmn-accent-strong);
+  color: var(--dmn-accent-strong);
+}
+.dmn-drill-view-title {
+  font: 400 15px/1.4 Arial, "Helvetica Neue", Helvetica, "PingFang SC", sans-serif;
+  color: var(--dmn-text-title);
+}
+.dmn-drill-view-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* ===================== G5：表达式编辑器视图（决策表/字面/BKM boxed，用户截图版式） ===================== */
+
+/* 编辑器层（整面覆盖画布区；画布 DOM 保持挂载）；首行概览工具条 + 内容行 */
+.dmn-editor-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  background: var(--dmn-surface);
+}
+/* 概览工具条（Edit DRD / Open overview，样式对齐 kunpeng-modeler） */
+.dmn-overview-toolbar {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.dmn-overview-toolbar button {
+  background: var(--dmn-surface);
+  padding: 8px 14px;
+  border: 1px solid var(--dmn-border-strong);
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: Arial, "Helvetica Neue", Helvetica, "PingFang SC", sans-serif;
+  color: var(--dmn-text-toolbar);
+  cursor: pointer;
+}
+.dmn-overview-toolbar button:hover {
+  background: var(--dmn-surface-hover);
+}
+/* 内容行：概览面板（左缘，可折叠）+ 编辑内容 */
+.dmn-editor-body-row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.dmn-overview-panel {
+  width: 0;
+  flex-shrink: 0;
+  visibility: hidden;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: var(--dmn-surface-alt);
+  border: 1px solid var(--dmn-border-strong);
+  transition: width 0.2s ease;
+}
+.dmn-overview-panel.open {
+  visibility: visible;
+  position: relative;
+  margin: 0 10px 10px;
+  align-self: stretch;
+  border-radius: 4px;
+}
+.dmn-overview-panel .dmn-overview-resize-handle {
+  cursor: ew-resize;
+  z-index: 11;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -3px;
+  width: 6px;
+  user-select: none;
+}
+.dmn-overview-panel .dmn-overview-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 11;
+  opacity: 0.5;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--dmn-close);
+}
+.dmn-overview-panel .dmn-overview-close:hover {
+  opacity: 1;
+  color: var(--dmn-accent-deep);
+}
+.dmn-overview-panel.resizing,
+.dmn-overview-panel:has(.dmn-overview-resize-handle:hover) {
+  border-right: 3px solid var(--dmn-accent-deep);
+}
+/* 概览内 DRD 快照容器 */
+.dmn-overview-viewer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.dmn-overview-viewer svg {
+  pointer-events: none;
+}
+.dmn-overview-viewer .djs-outline {
+  display: none;
+}
+.dmn-editor-content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  /* 所有下钻视图统一边距（2026-10-28 用户终版定规：左右各 4px）——
+     决策表/字面/Boxed/空态在此一处收口，子视图不再各自设边距 */
+  padding: 0 4px;
+}
+
+/* 头部行（命中策略/变量名/类型/表达式语言/形态标签） */
+.dmn-editor-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--dmn-sep);
+  border-radius: 4px;
+  background: var(--dmn-surface-raised);
+}
+.dmn-editor-name {
+  font: 400 14px/1.4 Arial, "Helvetica Neue", Helvetica, "PingFang SC", sans-serif;
+  color: var(--dmn-text-title);
+  margin-right: 2px;
+}
+.dmn-editor-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--dmn-border);
+  margin: 0 4px;
+}
+.dmn-editor-label {
+  font: 400 12px/1.4 Arial, "Helvetica Neue", Helvetica, "PingFang SC", sans-serif;
+  color: var(--dmn-text-meta);
+}
+.dmn-editor-input,
+.dmn-editor-select {
+  padding: 3px 8px;
+  border: 1px solid var(--dmn-border);
+  border-radius: 4px;
+  font: 400 13px/1.4 Arial, "Helvetica Neue", Helvetica, "PingFang SC", sans-serif;
+  color: var(--dmn-text-title);
+  background: var(--dmn-surface);
+  min-width: 120px;
+}
+.dmn-editor-input:focus,
+.dmn-editor-select:focus,
+.dmn-editor-textarea:focus {
+  outline: none;
+  border-color: var(--dmn-accent-strong);
+  box-shadow: 0 0 0 2px var(--dmn-focus-ring);
+}
+.dmn-editor-select {
+  min-width: 90px;
+  padding-right: 20px;
+}
+.dmn-editor-textarea {
+  width: 100%;
+  min-height: 180px;
+  padding: 10px 12px;
+  border: 1px solid var(--dmn-border);
+  border-radius: 4px;
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--dmn-text-title);
+  background: var(--dmn-surface);
+  resize: vertical;
+  box-sizing: border-box;
+}
+.dmn-editor-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.dmn-kind-tag {
+  padding: 3px 10px;
+  border: 1px solid var(--dmn-border);
+  border-radius: 3px;
+  background: var(--dmn-surface);
+  font: 400 12px/1.4 Arial, "Helvetica Neue", Helvetica, "PingFang SC", sans-serif;
+  color: var(--dmn-text-title);
+  cursor: pointer;
+  margin-left: auto;
+}
+.dmn-kind-tag:hover {
+  border-color: var(--dmn-accent-strong);
+}
+.dmn-kind-menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: 4px;
+  border: 1px solid var(--dmn-border);
+  border-radius: 4px;
+  background: var(--dmn-surface);
+  box-shadow: 0 6px 20px var(--dmn-shadow);
+  z-index: 900;
+}
+.dmn-kind-item {
+  text-align: left;
+  padding: 6px 10px;
+  border: none;
+  background: none;
+  font: 400 13px/1.4 Arial, "Helvetica Neue", Helvetica, "PingFang SC", sans-serif;
+  color: var(--dmn-text-title);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.dmn-kind-item:hover:not([disabled]) {
+  background: var(--dmn-menu-hover);
+}
+.dmn-kind-item[disabled] {
+  color: var(--dmn-text-disabled);
+  cursor: default;
+}
+.dmn-editor-empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--dmn-text-faint);
+  font: 400 13px/1.5 Arial, "Helvetica Neue", Helvetica, "PingFang SC", sans-serif;
+  border: 1px dashed var(--dmn-border);
+  border-radius: 4px;
+}
+
+/* 决策表（table-js 底座，版式对齐 kunpeng-modeler 的 dmn-js 决策表：
+   Arial 14、完整网格线、输入|输出 3px 双线、表头 3px double 底、行号 56 右对齐
+   +hover 删行钮、偶数行斑马纹、空输入格 - 居中、蓝 outline 选择、双击浮层编辑、
+   hover 骑缝圆钮加列、表头铅笔开列编辑弹层、标题条=表名+Hit policy、footer 整行 hover 加行） */
+.dmn-tablejs-host {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  font-family: 'Arial', 'Helvetica Neue', Helvetica, 'PingFang SC', sans-serif;
+  font-size: 14px;
+  color: var(--dmn-text);
+  /* 水平边距统一在 .dmn-editor-content（所有下钻视图一处收口） */
+}
+.dmn-decision-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.dmn-tablejs-host .tjs-container {
+  display: flex;
+  flex-direction: column;
+  /* 水平填满宿主（表 100%+min-width=列宽和，空间富余时列随表拉伸）；
+     原 min-content 收缩会让决策表右侧留大片空白 */
+  width: 100%;
+  height: 100%;
+}
+.dmn-tablejs-host .tjs-table-container {
+  overflow: auto;
+  border: solid 1px var(--dmn-line);
+  border-top: none;
+}
+.dmn-tablejs-host .tjs-table {
+  max-height: 100%;
+  position: relative;
+  /* 填满容器；下限（列宽和）由 syncTableMetrics 以行内 min-width 施加——
+     列宽不足容器时列按固定布局分配富余空间，超限则撑开水平滚动 */
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--dmn-surface);
+}
+.dmn-tablejs-host th,
+.dmn-tablejs-host td {
+  position: relative;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  background-clip: padding-box;
+  text-align: left;
+}
+.dmn-tablejs-host thead th {
+  text-align: center;
+  font-weight: normal;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: var(--dmn-surface);
+  border-bottom: 3px double var(--dmn-line);
+}
+.dmn-tablejs-host thead th:first-child {
+  left: 0;
+  z-index: 4;
+}
+/* hover 列提层：骑缝加列圆钮右半 otherwise 被邻列 sticky th 的层叠上下文盖住（同 z 按 DOM 序后者居上） */
+.dmn-tablejs-host thead th:hover {
+  z-index: 3;
+}
+.dmn-tablejs-host tbody td {
+  border-top: solid 1px var(--dmn-line);
+}
+.dmn-tablejs-host th:not(:first-child),
+.dmn-tablejs-host td:not(:first-child) {
+  padding: 4px;
+  border-left: solid 1px var(--dmn-line);
+}
+.dmn-tablejs-host thead th:first-child,
+.dmn-tablejs-host tbody td:first-child {
+  border-right: solid 1px var(--dmn-line);
+}
+.dmn-tablejs-host thead th:nth-child(2),
+.dmn-tablejs-host tbody td:nth-child(2),
+.dmn-tablejs-host tfoot td:nth-child(2) {
+  border-left: none;
+}
+.dmn-tablejs-host tbody td:first-child {
+  position: sticky;
+  left: 0;
+  background-color: var(--dmn-surface);
+  z-index: 1;
+}
+.dmn-tablejs-host tbody tr:last-child td {
+  border-bottom: solid 1px var(--dmn-line);
+}
+.dmn-tablejs-host tbody tr:first-child td {
+  border-top: none;
+}
+/* 行号列：56px、数字右对齐、hover 行浮现删行钮 */
+.dmn-tablejs-host th.index-column {
+  width: 56px;
+}
+.dmn-tablejs-host td.rule-index {
+  text-align: right;
+  padding-right: 8px;
+}
+.dmn-tablejs-host td.rule-index .rule-index-remove {
+  display: none;
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--dmn-text-soft);
+  font-size: 12px;
+  padding: 2px;
+}
+.dmn-tablejs-host tbody tr:hover td.rule-index .rule-index-remove {
+  display: inline-block;
+}
+.dmn-tablejs-host td.rule-index .rule-index-remove:hover {
+  color: var(--dmn-danger);
+}
+/* 斑马纹：偶数行浅灰 */
+.dmn-tablejs-host tbody tr:nth-child(2n) {
+  background-color: var(--dmn-surface-muted);
+}
+/* 空输入格：- 居中 */
+.dmn-tablejs-host td.input-cell:not(.focussed).empty {
+  text-align: center;
+}
+/* 输入区 → 输出区的双线分隔（表体/表头/footer 同规） */
+.dmn-tablejs-host th.input-cell + th.output-cell,
+.dmn-tablejs-host td.input-cell + td.output-cell,
+.dmn-tablejs-host tfoot td.input-cell + td.output-cell {
+  border-left: 3px double var(--dmn-line);
+}
+/* 选择：蓝 outline */
+.dmn-tablejs-host .selected {
+  outline: var(--dmn-accent);
+  outline-offset: -1px;
+}
+/* 就地编辑浮层（对齐 dmn-js content-editable） */
+.dmn-tablejs-host td.editing {
+  position: relative;
+}
+.dmn-tablejs-host .content-editable-input {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  border: none;
+  background-color: var(--dmn-surface);
+  box-shadow: 0 0 0 1px var(--dmn-accent), 0 2px 6px var(--dmn-line);
+  cursor: text;
+  font: inherit;
+  color: inherit;
+  outline: none;
+}
+/* 表头格内文案：clause 族标 / 名 16px / 类型 12px 右对齐 */
+.dmn-tablejs-host thead .clause {
+  font-size: 12px;
+  text-align: left;
+  color: var(--dmn-text-soft);
+}
+.dmn-tablejs-host thead .input-expression,
+.dmn-tablejs-host thead .output-name {
+  display: -webkit-box;
+  margin: 16px 6px;
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  cursor: text;
+}
+.dmn-tablejs-host thead .input-expression:empty::before {
+  content: 'Input';
+  opacity: 0.5;
+}
+.dmn-tablejs-host thead .output-name:empty::before {
+  content: 'Output';
+  opacity: 0.5;
+}
+.dmn-tablejs-host thead .input-variable,
+.dmn-tablejs-host thead .output-variable {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+  font-size: 12px;
+  color: var(--dmn-text-soft);
+}
+/* hover 浮现：表头加列圆钮（骑右缘中点）与铅笔 */
+.dmn-tablejs-host thead th .actionable,
+.dmn-tablejs-host thead th .edit-button {
+  opacity: 0;
+  transition: opacity 120ms ease-in-out;
+}
+.dmn-tablejs-host thead th:hover .actionable,
+.dmn-tablejs-host thead th:hover .edit-button {
+  opacity: 1;
+}
+.dmn-tablejs-host thead th .add-input.actionable,
+.dmn-tablejs-host thead th .add-output.actionable {
+  position: absolute;
+  top: 50%;
+  right: -1px;
+  transform: translate(50%, -50%);
+  z-index: 5;
+  border-radius: 100%;
+  padding: 6px;
+}
+.dmn-tablejs-host thead th .add-input .action-icon,
+.dmn-tablejs-host thead th .add-output .action-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  color: #fff;
+  background-color: var(--dmn-text-soft);
+  box-shadow: 0 0 0 2px var(--dmn-surface);
+  font: 700 13px/1 Arial, sans-serif;
+  cursor: pointer;
+}
+.dmn-tablejs-host thead th .add-input.actionable:hover .action-icon,
+.dmn-tablejs-host thead th .add-output.actionable:hover .action-icon {
+  background-color: var(--dmn-accent);
+}
+.dmn-tablejs-host thead th .edit-button {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  z-index: 5;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--dmn-text-soft);
+  font-size: 13px;
+  padding: 2px;
+}
+.dmn-tablejs-host thead th .edit-button:hover {
+  color: var(--dmn-accent-bright);
+}
+/* footer 加行：整行 hover 变色 */
+.dmn-tablejs-host tfoot.add-rule td {
+  border-color: var(--dmn-line-soft);
+  color: var(--dmn-line-soft);
+}
+.dmn-tablejs-host tfoot.add-rule td.add-rule-add {
+  text-align: right;
+  padding-right: 4px;
+}
+.dmn-tablejs-host tfoot.add-rule .action-icon.tjs-plus {
+  border: none;
+  background: none;
+  color: inherit;
+  font: 700 16px/1 Arial, sans-serif;
+  cursor: pointer;
+  padding: 2px;
+}
+.dmn-tablejs-host tfoot.add-rule:hover td.input-cell + td.output-cell {
+  border-left-color: var(--dmn-line);
+}
+.dmn-tablejs-host tfoot.add-rule:hover td {
+  border-color: var(--dmn-line);
+  color: var(--dmn-line);
+}
+/* 标题条：表名 21px 就地编辑 + 竖分隔 + Hit policy */
+.dmn-tablejs-host .decision-table-properties {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--dmn-line);
+  background-color: var(--dmn-surface);
+  padding: 10px;
+}
+.dmn-tablejs-host .decision-table-name {
+  position: relative;
+  display: block;
+  flex-grow: 1;
+  margin: 0;
+  width: 0;
+  min-width: 100px;
+  max-width: min-content;
+  font-size: 21px;
+  font-weight: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.dmn-tablejs-host .decision-table-name.editable {
+  cursor: text;
+}
+.dmn-tablejs-host .decision-table-name.editing .content-editable-input {
+  position: relative;
+  inset: auto;
+  min-width: 120px;
+  padding: 0 2px;
+  box-shadow: 0 0 0 1px var(--dmn-accent);
+  align-items: baseline;
+}
+.dmn-tablejs-host .decision-table-header-separator {
+  display: block;
+  height: 32px;
+  border-left: 2px solid var(--dmn-line-soft);
+  margin: 0 10px;
+}
+.dmn-tablejs-host .hit-policy {
+  display: flex;
+  align-items: center;
+}
+.dmn-tablejs-host .dms-label {
+  font-weight: bold;
+  white-space: nowrap;
+  margin-right: 5px;
+}
+.dmn-tablejs-host .dms-input-select {
+  display: inline-block;
+  position: relative;
+  min-width: 128px;
+}
+.dmn-tablejs-host .dms-input {
+  outline: none;
+  padding: 3px 24px 3px 6px;
+  border: 1px solid var(--dmn-line-soft);
+  background: none;
+  font-size: 14px;
+  font-family: inherit;
+  color: inherit;
+  min-height: 26px;
+  cursor: pointer;
+}
+.dmn-tablejs-host .dms-input-select-icon {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--dmn-text-soft);
+  font-size: 12px;
+  pointer-events: none;
+}
+/* 下拉浮层（Hit policy）与列编辑弹层 */
+.dmn-tablejs-host .dms-select-options {
+  position: absolute;
+  background-color: var(--dmn-surface);
+  border: solid 1px var(--dmn-line-soft);
+  border-radius: 2px;
+  font-size: 14px;
+  color: var(--dmn-text);
+  box-shadow: 1px 1px 1px 1px var(--dmn-hover-wash);
+  z-index: 60;
+  cursor: pointer;
+  overflow: auto;
+}
+.dmn-tablejs-host .dms-select-options .option {
+  padding: 4px 9px;
+}
+.dmn-tablejs-host .dms-select-options .option:hover {
+  background-color: var(--dmn-hover-wash);
+}
+.dmn-tablejs-host .dms-select-options .option.active {
+  color: var(--dmn-accent);
+  font-weight: bold;
+}
+.dmn-tablejs-host .ref-clause-editor {
+  min-width: 220px;
+  padding: 8px;
+  background-color: var(--dmn-surface);
+  border: solid 1px var(--dmn-line-soft);
+  border-radius: 2px;
+  box-shadow: 1px 1px 1px 1px var(--dmn-hover-wash);
+  color: var(--dmn-text);
+}
+.dmn-tablejs-host .ref-clause-editor .dms-form-control {
+  margin-bottom: 8px;
+  position: relative;
+}
+.dmn-tablejs-host .ref-clause-editor .dms-label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 3px;
+  color: var(--dmn-text-soft);
+}
+.dmn-tablejs-host .ref-clause-editor .dms-input-label,
+.dmn-tablejs-host .ref-clause-editor .clause-type-native {
+  width: 100%;
+  box-sizing: border-box;
+  border: solid 1px var(--dmn-line-soft);
+  border-radius: 2px;
+  padding: 4px 6px;
+  font-size: 14px;
+  background-color: var(--dmn-surface);
+  color: var(--dmn-text);
+}
+.dmn-tablejs-host .ref-clause-editor .dms-input-label:focus,
+.dmn-tablejs-host .ref-clause-editor .clause-type-native:focus {
+  outline: none;
+  border-color: var(--dmn-accent-bright);
+}
+.dmn-tablejs-host .ref-clause-editor .remove-clause-action {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 5px 6px;
+  border: none;
+  border-radius: 2px;
+  background: none;
+  color: var(--dmn-danger);
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+}
+.dmn-tablejs-host .ref-clause-editor .remove-clause-action:hover:not(:disabled) {
+  background-color: var(--dmn-hover-wash);
+}
+.dmn-tablejs-host .ref-clause-editor .remove-clause-action:disabled {
+  color: var(--dmn-text-weak);
+  cursor: default;
+}
+/* 列宽拖拽手柄：骑表头格右缘 ±4px */
+.tjs-colresize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -4px;
+  width: 8px;
+  cursor: col-resize;
+  z-index: 4;
+}
+.tjs-colresize:hover,
+.tjs-colresize.is-active {
+  background: var(--dmn-accent-soft);
+}
+.tjs-table--resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+/* 死样式清理：dmn-editor-pad 已无引用（字面/Boxed 边距统一在 .dmn-editor-content） */
+.dmn-decision-editor > .dmn-editor-empty,
+.dmn-bkm-editor > .dmn-editor-empty {
+  margin: 12px 0;
+}
+
+/* 字面表达式（对齐 kunpeng-modeler dmn-js：名字头/表达式区/属性区 三段全宽滚动列） */
+.dmn-editor-content .dmn-literal-expression-container {
+  --le-border-color: var(--dmn-line);
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Arial', 'Helvetica Neue', Helvetica, 'PingFang SC', sans-serif;
+  color: var(--dmn-text);
+}
+.dmn-literal-expression-container .decision-properties {
+  padding: 10px 75px 10px 10px;
+  background-color: var(--dmn-surface);
+  position: relative;
+  min-width: 192px;
+  border: 1px solid var(--le-border-color);
+  border-bottom: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dmn-literal-expression-container .decision-name {
+  margin: 0;
+  flex: 1;
+  font-size: 21px;
+  font-weight: normal;
+  white-space: pre;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  cursor: text;
+}
+.dmn-literal-expression-container .decision-name.editing {
+  position: relative;
+  cursor: text;
+}
+.dmn-literal-expression-container .decision-name.editing .content-editable-input {
+  position: relative;
+  min-width: 120px;
+  padding: 0 2px;
+  box-shadow: 0 0 0 1px var(--dmn-accent);
+  font: inherit;
+  border: none;
+  outline: none;
+  background: var(--dmn-surface);
+}
+.dmn-literal-expression-container .textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px;
+  font-family: monospace;
+  line-height: 1.4;
+  white-space: pre;
+  font-size: 14px;
+  color: var(--dmn-text);
+  min-height: 250px;
+  overflow: auto;
+  border: 1px solid var(--le-border-color);
+  resize: vertical;
+  display: block;
+}
+.dmn-literal-expression-container .literal-expression-properties {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--le-border-color);
+  border-top: none;
+  font-size: 14px;
+}
+.dmn-literal-expression-container .variables-table {
+  border-spacing: 8px;
+  border-collapse: separate;
+}
+.dmn-literal-expression-container .variables-table tr td:first-child {
+  font-weight: bold;
+  white-space: nowrap;
+}
+.dmn-literal-expression-container .variables-table tr td:last-child {
+  min-width: 100px;
+}
+
+/* BKM boxed（对齐 kunpeng-modeler dmn-js：header 名 / F(x,y) 网格 body / Result footer） */
+.dmn-editor-content .dmn-boxed-expression-container {
+  --le-border-color: var(--dmn-line);
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Arial', 'Helvetica Neue', Helvetica, 'PingFang SC', sans-serif;
+  color: var(--dmn-text);
+}
+.dmn-boxed-expression-container .dmn-boxed-expression-section {
+  border: 1px solid var(--le-border-color);
+}
+.dmn-boxed-expression-container .dmn-boxed-expression-section + .dmn-boxed-expression-section {
+  border-top: none;
+}
+.dmn-boxed-expression-container .element-properties {
+  padding: 20px;
+  position: relative;
+  min-width: 192px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dmn-boxed-expression-container .element-name {
+  margin: 0;
+  flex: 1;
+  font-size: 21px;
+  font-weight: normal;
+  white-space: pre;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  cursor: text;
+}
+.dmn-boxed-expression-container .element-name.editing .content-editable-input {
+  position: relative;
+  min-width: 120px;
+  padding: 0 2px;
+  box-shadow: 0 0 0 1px var(--dmn-accent);
+  font: inherit;
+  border: none;
+  outline: none;
+  background: var(--dmn-surface);
+}
+/* F(x, y) 网格：左上 F 字 / 右上参数区（左缘线）/ 下方 body（顶缘线 span2） */
+.dmn-boxed-expression-container .function-definition {
+  display: grid;
+  grid-template-columns: 50px auto;
+  grid-template-rows: 50px auto;
+}
+.dmn-boxed-expression-container .function-definition-kind {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  font-size: 21px;
+  position: relative;
+}
+.dmn-boxed-expression-container .function-definition-parameters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 12px;
+  min-height: 50px;
+  border-left: 1px solid var(--le-border-color);
+  font-size: 16px;
+  position: relative;
+}
+.dmn-boxed-expression-container .function-definition-body {
+  grid-column: span 2;
+  border-top: 1px solid var(--le-border-color);
+}
+.dmn-boxed-expression-container .function-definition-body .textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px;
+  font-family: monospace;
+  line-height: 1.4;
+  white-space: pre;
+  font-size: 14px;
+  color: var(--dmn-text);
+  min-height: 180px;
+  overflow: auto;
+  border: none;
+  resize: vertical;
+  display: block;
+}
+/* 参数 chip：名（点击编辑）+ 类型（点击换）+ 删 */
+.dmn-boxed-expression-container .parameter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--dmn-line-soft);
+  border-radius: 2px;
+  padding: 2px 6px;
+  background: var(--dmn-surface);
+  font-size: 14px;
+}
+.dmn-boxed-expression-container .parameter-chip-name {
+  cursor: text;
+}
+.dmn-boxed-expression-container .parameter-chip-type {
+  cursor: pointer;
+  color: var(--dmn-text-soft);
+}
+.dmn-boxed-expression-container .parameter-chip-type:hover {
+  color: var(--dmn-accent-bright);
+}
+.dmn-boxed-expression-container .parameter-chip-remove {
+  border: none;
+  background: none;
+  color: var(--dmn-text-weak);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 2px;
+}
+.dmn-boxed-expression-container .parameter-chip-remove:hover {
+  color: var(--dmn-danger);
+}
+.dmn-boxed-expression-container .parameter-add {
+  border: none;
+  background: none;
+  color: var(--dmn-accent-bright);
+  font: 700 16px/1 Arial, sans-serif;
+  cursor: pointer;
+  padding: 0 6px;
+}
+.dmn-boxed-expression-container .parameter-add:hover {
+  color: var(--dmn-accent);
+}
+/* Result footer：两列 grid */
+.dmn-boxed-expression-container .element-variable {
+  padding: 20px;
+  display: inline-grid;
+  grid: auto / 1fr 1fr;
+  gap: 10px 20px;
+}
+.dmn-boxed-expression-container .element-variable > h2 {
+  grid-column: span 2;
+  margin: 0;
+  font-size: 16px;
+}
+.dmn-boxed-expression-container .element-variable .element-variable-name-label,
+.dmn-boxed-expression-container .element-variable .element-variable-type-label {
+  display: block;
+  padding-bottom: 7px;
+  color: var(--dmn-text-soft);
+  font-weight: bold;
+}
+
+/* ---- 暗色令牌集（2026-10-27）：宿主切 html.dark（或任意 .dark 祖先）即全暗，
+   也可按同名令牌定制；通用画布 UI 走 --bio-* 由宿主一并覆盖 ---- */
+.dark {
+  --dmn-surface: #26262a;
+  --dmn-surface-alt: #1f1f23;
+  --dmn-surface-hover: #333338;
+  --dmn-surface-muted: #2e2e33;
+  --dmn-surface-raised: #2a2a2f;
+  --dmn-menu-hover: #34343a;
+  --dmn-line: #6a6a74;
+  --dmn-line-soft: #4a4a52;
+  --dmn-border: #4a4a52;
+  --dmn-border-strong: #4a4a52;
+  --dmn-sep: #3d3d44;
+  --dmn-text: #d6d6da;
+  --dmn-text-title: #d6d6da;
+  --dmn-text-soft: #a8a8b2;
+  --dmn-text-meta: #9a9aa2;
+  --dmn-text-faint: #8a8a92;
+  --dmn-text-weak: #7f7f88;
+  --dmn-text-disabled: #6f6f78;
+  --dmn-text-toolbar: #d6d6da;
+  --dmn-close: #9a9aa2;
+  --dmn-accent: #4d8fff;
+  --dmn-accent-bright: #74a7ff;
+  --dmn-accent-soft: rgb(77 143 255 / 30%);
+  --dmn-accent-strong: #74a7ff;
+  --dmn-accent-deep: #74a7ff;
+  --dmn-focus-ring: rgb(77 143 255 / 25%);
+  --dmn-danger: #ff7a7a;
+  --dmn-hover-wash: hsl(0 0% 100% / 10%);
+  --dmn-shadow: rgb(0 0 0 / 40%);
+  --dmn-badge-halo: #26262a;
+  --dmn-badge-shadow: rgb(0 0 0 / 50%);
+}

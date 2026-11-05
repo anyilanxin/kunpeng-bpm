@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/expression-lint",
-  "version": "2026.10.4",
+  "version": "2026.10.3",
   "description": "Linter for FEEL expressions.",
   "type": "module",
   "exports": {

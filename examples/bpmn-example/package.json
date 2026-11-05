@@ -9,9 +9,13 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@codemirror/lang-xml": "^6.1.0",
+    "@codemirror/state": "catalog:",
+    "@codemirror/theme-one-dark": "^6.1.3",
+    "@codemirror/view": "catalog:",
     "@kunpeng-io/bpmn-js": "workspace:*",
-    "@kunpeng-io/bpmn-js-toolbar": "workspace:*",
     "@kunpeng-io/bpmn-js-properties-panel": "workspace:*",
+    "@kunpeng-io/bpmn-js-toolbar": "workspace:*",
     "@kunpeng-io/kunpeng-bpmn-moddle": "workspace:*",
     "@kunpeng-io/properties-panel": "workspace:*",
     "bpmn-js-color-picker": "catalog:",

@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/extract-process-variables",
-  "version": "2026.10.4",
+  "version": "2026.10.3",
   "description": "A util for bpmn-js to extract Camunda BPM process variables from a BPMN 2.0 diagram.",
   "main": "dist/index.js",
   "type": "module",

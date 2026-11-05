@@ -373,3 +373,112 @@ for (const rel of ['form-js.es.js', 'form-js.cjs']) {
 }
 
 console.log('form-js smoke ok：ESM/CJS 导出、字节级往返、引擎行为（默认值/隐藏跳过/必填/越界/非法抛错）、table（结构校验正反例/emptyRow/三段定位/行数界/表引用联动）、版权横幅');
+
+// ---------- @kunpeng-io/dmn-js 冒烟（U2：fork bpmn-js 内核 + DMN 域层） ----------
+const dmnEsm = await import('../packages/dmn/dmn-js/dist/dmn-js.es.js');
+const dmnExpected = [
+  'Modeler', 'Viewer', 'NavigatedViewer',
+  'DmnElementTypes', 'SIZES', 'SHAPE_TYPES', 'CONNECTION_TYPES',
+  'DmnRules', 'connectionTypeFor',
+  'DmnModules', 'ViewerModules', 'NavigatedViewerModules',
+  'DmnFactory', 'DmnModeling', 'DmnUpdater',
+  'mainDiagram', 'diagramOfElement', 'referenceId',
+  // 图标基座（用户资产 dmnicons）+ BKM 表达式模式/下钻判定（2026-10-26 定规）
+  'DmnIcons', 'dmnIconBody', 'bkmExpressionMode', 'isDrillableElement'
+];
+const dmnMissing = dmnExpected.filter((name) => !(name in dmnEsm));
+if (dmnMissing.length > 0) {
+  console.error('dmn-js ESM 导出缺失:', dmnMissing.join(', '));
+  process.exit(1);
+}
+const dmnCjs = require('../packages/dmn/dmn-js/dist/dmn-js.cjs');
+if (typeof dmnCjs.Modeler !== 'function' || typeof dmnCjs.connectionTypeFor !== 'function') {
+  console.error('dmn-js CJS 导出缺失: Modeler / connectionTypeFor');
+  process.exit(1);
+}
+
+// 图标基座行为（用户资产 dmnicons 映射=index.js 定规；面板运行时注入契约）
+const iconSvg = dmnEsm.DmnIcons.iconOfElement({ $type: 'dmn:Decision' }, 32);
+if (!iconSvg.includes('viewBox="0 0 32 32"') || !iconSvg.includes('width="32"') || dmnEsm.DmnIcons.iconOfElement({ $type: 'dmn:Unknown' }) !== '') {
+  console.error('DmnIcons.iconOfElement 映射/尺寸/未知类型回落不符定规');
+  process.exit(1);
+}
+if (!dmnEsm.DmnIcons.iconOfElement({ $type: 'dmn:DecisionTable' }).includes('M3.56334224')) {
+  console.error('DecisionTable→DRD 网格图标映射缺失（index.js 定规）');
+  process.exit(1);
+}
+// BKM 表达式模式判定（encapsulatedLogic 在=literal，缺=empty）
+if (dmnEsm.bkmExpressionMode({ encapsulatedLogic: {} }) !== 'literal' || dmnEsm.bkmExpressionMode({}) !== 'empty') {
+  console.error('bkmExpressionMode 判定不符定规');
+  process.exit(1);
+}
+
+// 需求连线端点对级矩阵行为（DmnRules 单一裁决源 connectionTypeFor）
+// 矩阵依据 DMN 1.3 §6.2.2/§6.2.3：IR=InputData/Decision/DS→Decision；
+// KR=BKM→Decision/BKM/DS；AR=KS/DS→Decision/BKM/KS（授权向）+
+// Decision/InputData→KS（分析派生向，tKnowledgeSource.authorityRequirement）
+const matrixCases = [
+  ['dmn:InputData', 'dmn:Decision', 'dmn:InformationRequirement'],
+  ['dmn:Decision', 'dmn:Decision', 'dmn:InformationRequirement'],
+  ['dmn:DecisionService', 'dmn:Decision', 'dmn:InformationRequirement'],
+  ['dmn:BusinessKnowledgeModel', 'dmn:Decision', 'dmn:KnowledgeRequirement'],
+  ['dmn:BusinessKnowledgeModel', 'dmn:BusinessKnowledgeModel', 'dmn:KnowledgeRequirement'],
+  ['dmn:BusinessKnowledgeModel', 'dmn:DecisionService', 'dmn:KnowledgeRequirement'],
+  ['dmn:KnowledgeSource', 'dmn:Decision', 'dmn:AuthorityRequirement'],
+  ['dmn:KnowledgeSource', 'dmn:BusinessKnowledgeModel', 'dmn:AuthorityRequirement'],
+  ['dmn:KnowledgeSource', 'dmn:KnowledgeSource', 'dmn:AuthorityRequirement'],
+  ['dmn:DecisionService', 'dmn:KnowledgeSource', 'dmn:AuthorityRequirement'],
+  ['dmn:InputData', 'dmn:KnowledgeSource', 'dmn:AuthorityRequirement'],
+  ['dmn:Decision', 'dmn:KnowledgeSource', 'dmn:AuthorityRequirement'],
+  ['dmn:Decision', 'dmn:TextAnnotation', 'dmn:Association'],
+  ['dmn:TextAnnotation', 'dmn:Decision', 'dmn:Association']
+];
+for (const [source, target, expected] of matrixCases) {
+  if (dmnEsm.connectionTypeFor(source, target) !== expected) {
+    console.error(`connectionTypeFor(${source}, ${target}) 不符预期 ${expected}`);
+    process.exit(1);
+  }
+}
+for (const [source, target] of [
+  ['dmn:Decision', 'dmn:DecisionService'],
+  ['dmn:Decision', 'dmn:BusinessKnowledgeModel'],
+  ['dmn:KnowledgeSource', 'dmn:InputData'],
+  ['dmn:InputData', 'dmn:DecisionService'],
+  ['dmn:DecisionService', 'dmn:InputData']
+]) {
+  if (dmnEsm.connectionTypeFor(source, target) !== null) {
+    console.error(`非法端点对 ${source}→${target} 未被矩阵拦截`);
+    process.exit(1);
+  }
+}
+
+// 组件样式随包发布 + 预览模式隐藏规则就位
+const dmnCss = readFileSync(new URL('../packages/dmn/dmn-js/dist/styles/dmn-js.css', import.meta.url), 'utf8');
+if (!dmnCss.includes('.bpmn-preview-mode') && !dmnCss.includes('.dmn-preview-mode')) {
+  console.error('dmn-js styles 产物缺失或不含预览模式隐藏规则');
+  process.exit(1);
+}
+
+// GPLv2+CE 分发合规：横幅 / 第三方 MIT 声明（dmn-moddle 域）就位，Apache 不内联
+for (const rel of ['dmn-js.es.js', 'dmn-js.cjs']) {
+  const js = readFileSync(new URL(`../packages/dmn/dmn-js/dist/${rel}`, import.meta.url), 'utf8');
+  if (
+    !js.includes('Copyright (c) 2026 anyilanxin zxh') ||
+    !js.includes('"Classpath" exception as provided') ||
+    !js.includes('dmn-moddle')
+  ) {
+    console.error(`dmn-js ${rel} 缺版权横幅或 dmn-moddle MIT 声明`);
+    process.exit(1);
+  }
+  if (js.includes('Apache License')) {
+    console.error(`dmn-js ${rel} 含 Apache-2.0 代码（htm 应为外部依赖）`);
+    process.exit(1);
+  }
+}
+const dmnDts = readFileSync(new URL('../packages/dmn/dmn-js/dist/types/index.d.ts', import.meta.url), 'utf8');
+if (!dmnDts.includes('Copyright (c) 2026 anyilanxin zxh') || !dmnDts.includes('"Classpath" exception as provided')) {
+  console.error('dmn-js dist/types/index.d.ts 缺版权头');
+  process.exit(1);
+}
+
+console.log('dmn-js smoke ok：ESM/CJS 导出、需求连线端点对级矩阵、styles、版权横幅（U2 域层；浏览器交互+字节级往返见 design-docs/dmn-js基于bpmn内核重写U2.md）');
