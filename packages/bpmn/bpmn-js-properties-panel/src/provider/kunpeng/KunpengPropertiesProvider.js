@@ -5,6 +5,7 @@ import { findIndex } from 'min-dash';
 import {
   ActiveElementsProps,
   AdditionProps,
+  AddSignProps,
   AdHocCompletionProps,
   AdHocSubProcessImplementationProps,
   AssignmentDefinitionProps,
@@ -64,6 +65,7 @@ const KUNPENG_GROUPS = [
   AdHocSubProcessImplementationGroup,
   TaskDefinitionGroup,
   AssignmentDefinitionGroup,
+  AddSignGroup,
   ActiveElementsGroup,
   FormGroup,
   ConditionGroup,
@@ -162,6 +164,18 @@ function MessagePublishGroup(element, injector) {
     id: 'messagePublish',
     label: translate('MessagePublish'),
     entries: [...MessagePublishProps({ element })],
+    component: Group,
+  };
+
+  return group.entries.length ? group : null;
+}
+
+function AddSignGroup(element, injector) {
+  const translate = injector.get('translate');
+  const group = {
+    id: 'addSign',
+    label: translate('Add sign'),
+    entries: [...AddSignProps({ element })],
     component: Group,
   };
 

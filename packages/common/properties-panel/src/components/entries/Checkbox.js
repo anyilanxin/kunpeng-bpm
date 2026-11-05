@@ -33,7 +33,9 @@ function Checkbox(props) {
 
   const handleChange = e => {
     handleChangeCallback(e);
-    setLocalValue(e.target.value);
+    // 复选框的 e.target.value 恒为字符串 "on"（非布尔），回显必须取 checked，
+    // 否则勾选/取消后本地状态恒为 truthy，复选框永远显示勾选（须重选元素才纠正）
+    setLocalValue(e.target.checked);
   };
 
   useEffect(() => {
