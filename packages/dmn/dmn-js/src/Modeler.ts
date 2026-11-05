@@ -55,11 +55,19 @@ export class Modeler {
       ? [...(modules as ModuleDeclaration[]), hostAccess]
       : [...this.resolveModules(options), ...((additionalModules ?? []) as ModuleDeclaration[]), hostAccess];
 
+    // 画布尺寸键仅在宿主显式给出时透传——undefined 键会经 Object.assign 压掉
+    // diagram-js createContainer 的 '100%' 默认值，.djs-container 拿不到内联
+    // 宽高，主 SVG 的 height="100%" 对不确定高度解析失败回退默认 150px，
+    // 宿主侧表现为画布只剩一条小带（2026-11-05 kunpeng-modeler/anyi 接入实测）
+    const canvasConfig: { container?: HTMLElement | string; height?: number | string; width?: number | string } = { container };
+    if (width !== undefined) canvasConfig.width = width;
+    if (height !== undefined) canvasConfig.height = height;
+
     this.diagram = new Diagram({
       ...pluginConfig,
       // 键盘通道：diagram-js 15 隐式绑画布 svg（canvas.init 后生效，获焦即
       // 可用）——勿传 keyboard.bindTo（v15 已移除该配置，传了只打 console 错误）
-      canvas: { container, width, height },
+      canvas: canvasConfig,
       modules: effectiveModules
     });
 
