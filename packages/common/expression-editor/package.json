@@ -47,16 +47,16 @@
     "@codemirror/lint": "catalog:",
     "@codemirror/state": "catalog:",
     "@codemirror/view": "catalog:",
-    "@lezer/highlight": "catalog:",
-    "min-dom": "catalog:",
-    "mitt": "catalog:",
     "@kunpeng-io/expression-builtins": "workspace:*",
     "@kunpeng-io/expression-lint": "workspace:*",
-    "@kunpeng-io/lang-expression": "workspace:*"
+    "@kunpeng-io/lang-expression": "workspace:*",
+    "@lezer/highlight": "catalog:",
+    "min-dom": "catalog:",
+    "mitt": "catalog:"
   },
   "devDependencies": {
-    "vite": "catalog:",
-    "rimraf": "catalog:"
+    "rimraf": "catalog:",
+    "vite": "catalog:"
   },
   "types": "./dist/index.d.ts"
 }

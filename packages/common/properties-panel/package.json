@@ -61,21 +61,21 @@
     "@codemirror/lint": "catalog:",
     "@codemirror/state": "catalog:",
     "@codemirror/view": "catalog:",
+    "@kunpeng-io/expression-editor": "workspace:*",
     "classnames": "catalog:",
     "focus-trap": "catalog:",
     "min-dash": "catalog:",
     "min-dom": "catalog:",
-    "preact": "catalog:",
-    "@kunpeng-io/expression-editor": "workspace:*"
+    "preact": "catalog:"
   },
   "devDependencies": {
-    "vite": "catalog:",
-    "vite-plugin-babel": "catalog:",
+    "@babel/core": "catalog:",
     "@babel/plugin-transform-react-jsx": "catalog:",
     "babel-plugin-inline-react-svg": "catalog:",
     "babel-plugin-module-resolver": "catalog:",
     "rimraf": "catalog:",
-    "@babel/core": "catalog:"
+    "vite": "catalog:",
+    "vite-plugin-babel": "catalog:"
   },
   "types": "./dist/index.d.ts"
 }

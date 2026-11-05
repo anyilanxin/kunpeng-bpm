@@ -40,8 +40,8 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "vite": "catalog:",
-    "rimraf": "catalog:"
+    "rimraf": "catalog:",
+    "vite": "catalog:"
   },
   "dependencies": {
     "@codemirror/language": "catalog:",

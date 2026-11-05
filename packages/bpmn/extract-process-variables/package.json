@@ -20,8 +20,8 @@
   },
   "homepage": "https://github.com/bpmn-io/extract-process-variables#readme",
   "devDependencies": {
-    "vite": "catalog:",
-    "rimraf": "catalog:"
+    "rimraf": "catalog:",
+    "vite": "catalog:"
   },
   "dependencies": {
     "min-dash": "catalog:"

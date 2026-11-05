@@ -15,8 +15,8 @@
   "sideEffects": false,
   "devDependencies": {
     "@lezer/generator": "catalog:",
-    "vite": "catalog:",
-    "rimraf": "catalog:"
+    "rimraf": "catalog:",
+    "vite": "catalog:"
   },
   "dependencies": {
     "@lezer/common": "catalog:",

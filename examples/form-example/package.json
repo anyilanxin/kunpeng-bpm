@@ -18,14 +18,14 @@
     "element-plus": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "vue": "^3.5.0"
+    "vue": "^3.5.44"
   },
   "devDependencies": {
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-vue": "^6.0.10",
-    "typescript": "^5.6.0",
-    "vite": "^8.3.5",
-    "vue-tsc": "^2.1.0"
+    "typescript": "^5.9.3",
+    "vite": "^8.3.6",
+    "vue-tsc": "^2.2.12"
   }
 }

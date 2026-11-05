@@ -48,6 +48,7 @@
   "dependencies": {
     "@kunpeng-io/element-templates-validator": "workspace:*",
     "@kunpeng-io/extract-process-variables": "workspace:*",
+    "bpmn-moddle": "catalog:",
     "bpmnlint": "catalog:",
     "classnames": "catalog:",
     "ids": "catalog:",
@@ -56,19 +57,18 @@
     "preact-markup": "catalog:",
     "semver": "catalog:",
     "semver-compare": "catalog:",
-    "uuid": "catalog:",
-    "bpmn-moddle": "catalog:"
+    "uuid": "catalog:"
   },
   "devDependencies": {
-    "vite": "catalog:",
-    "vite-plugin-babel": "catalog:",
     "@babel/plugin-transform-react-jsx": "catalog:",
-    "fs-extra": "catalog:",
-    "rimraf": "catalog:",
+    "@kunpeng-io/bpmn-js": "workspace:*",
     "@kunpeng-io/bpmn-js-properties-panel": "workspace:*",
     "@kunpeng-io/kunpeng-bpmn-moddle": "workspace:*",
     "@kunpeng-io/properties-panel": "workspace:*",
-    "@kunpeng-io/bpmn-js": "workspace:*"
+    "fs-extra": "catalog:",
+    "rimraf": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-babel": "catalog:"
   },
   "peerDependencies": {
     "@kunpeng-io/bpmn-js": "*",

@@ -26,8 +26,8 @@
     "clean": "rimraf dist"
   },
   "devDependencies": {
+    "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:",
-    "rimraf": "catalog:"
+    "vite": "catalog:"
   }
 }
