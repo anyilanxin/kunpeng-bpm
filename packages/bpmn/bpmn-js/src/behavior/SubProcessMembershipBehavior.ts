@@ -104,6 +104,20 @@ export class SubProcessMembershipBehavior extends CommandInterceptor {
     if (type === 'bpmn:BoundaryEvent' || type === 'bpmn:Lane' || type === 'bpmn:Participant') {
       return;
     }
+    // 旧父链上最近的展开子流程（脱离判定基准；也是骑跨回落目标）
+    let from: any = oldParent;
+    while (from && !isExpandedSubProcess(from)) {
+      from = from.parent;
+    }
+    // ⓪ 骑跨回落（2026-11-05 用户定规三轮「只要停留在边线上就扩边」）：基座
+    // 移动按元素中心选落点父级——过半在外（中心越出）即被换父到根，但只要
+    // 与原子流程仍有面积交集就该留守扩边；拉回最内层仍交叠的旧子流程
+    if (from && rectsOverlap(shape, from) && !fullyInside(shape, from)) {
+      const pulled = this.pullBackInto(shape, from);
+      if (pulled) {
+        return;
+      }
+    }
     // ① 上爬脱离：仅完全脱出（与子流程无任何面积交集）——骑跨边线者留守，
     // 由 AutoResize 边框外延罩住（2026-11-04 二轮定规「拖到边线上触发扩容」）
     let target: any = shape.parent;
@@ -128,18 +142,46 @@ export class SubProcessMembershipBehavior extends CommandInterceptor {
       target = best;
     }
     if (target === shape.parent) {
+      // 基座自换父路径（中心越出的拖拽，Move 按元素中心选落点父级）：无嵌套
+      // 换父命令可发，但脱离事实已发生——记账/切线不依赖嵌套命令
+      if (from && !inChain(shape.parent, from)) {
+        this.detachedSubs.add(from);
+        this.collectCuts(shape, from);
+      }
       return;
     }
-    // 脱离来源：旧父链上最近的展开子流程（跨界连线判定基准）
-    let from: any = oldParent;
-    while (from && !isExpandedSubProcess(from)) {
-      from = from.parent;
-    }
-    if (from) {
+    if (from && !inChain(target, from)) {
       this.detachedSubs.add(from);
       this.collectCuts(shape, from);
     }
     this.modeling.moveShape(shape, { x: 0, y: 0 }, target, undefined, { layout: false });
+  }
+
+  /**
+   * 骑跨拉回：元素仍与旧子流程交叠（基座因中心越出换父到根）——嵌套零位
+   * 移 moveShape 挂回该子流程（或其内更小且整装的内层），留守扩边；不记
+   * 脱离、不切连线。目标与现父相同（无需拉回）返回 true 视为已收敛。
+   */
+  private pullBackInto(shape: any, from: any): boolean {
+    let target = from;
+    for (;;) {
+      let best: any = null;
+      for (const child of target.children ?? []) {
+        if (child !== shape && isExpandedSubProcess(child) && fullyInside(shape, child)
+          && (!best || child.width * child.height < best.width * best.height)) {
+          best = child;
+        }
+      }
+      if (!best) {
+        break;
+      }
+      target = best;
+    }
+    if (target === shape.parent) {
+      return true;
+    }
+    this.modeling.moveShape(shape, { x: 0, y: 0 }, target, undefined, { layout: false });
+    return true;
   }
 
   /** 脱离成员的进出连线中，另一端仍在子流程内的登记待切（flush 再按最终态复核） */
