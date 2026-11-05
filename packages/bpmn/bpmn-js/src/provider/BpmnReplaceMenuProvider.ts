@@ -34,10 +34,9 @@ import { loopKindOf, type LoopKind } from '../meta/LoopCharacteristics';
 import { replaceTarget } from '../command/ReplaceElementHandler';
 import { planeHasContent } from '../plane/PlaneService';
 import { PopupMenuEntriesCache } from './BpmnElementMenuProvider';
-import { BpmnPopup } from './BpmnPopup';
 
 export class BpmnReplaceMenuProvider {
-  static $inject = ['popupMenu', 'eventBus', 'bpmnElementTypes', 'modeling', 'bpmnFactory', 'bpmnPopup', 'bpmnI18n'];
+  static $inject = ['popupMenu', 'eventBus', 'bpmnElementTypes', 'modeling', 'bpmnFactory', 'bpmnI18n'];
 
   static readonly MENU_ID = 'bpmn-replace';
 
@@ -47,7 +46,6 @@ export class BpmnReplaceMenuProvider {
     private readonly elementTypes: BpmnElementTypes,
     private readonly modeling: any,
     private readonly bpmnFactory: BpmnFactory,
-    private readonly bpmnPopup: BpmnPopup,
     private readonly i18n: any
   ) {
     this.cache = new PopupMenuEntriesCache(eventBus);
@@ -100,7 +98,7 @@ export class BpmnReplaceMenuProvider {
 
   /**
    * 标题行循环特性切换钮（diagram-js PopupMenu 契约：getPopupMenuHeaderEntries）。
-   * 动态读当前态；active 高亮当前标记。
+   * 动态读当前态；active 高亮当前标记。选中即关闭弹框（不重开）。
    */
   getPopupMenuHeaderEntries(target: any): Record<string, any> {
     // BPMN 2.0 §10.2.2：loopCharacteristics 仅活动类可有——事件/网关/数据/容器不出钮
@@ -110,8 +108,9 @@ export class BpmnReplaceMenuProvider {
     const toggle = (kind: LoopKind) => () => {
       const current = loopKindOf(target.businessObject);
       const next = current === kind ? null : this.bpmnFactory.createLoopCharacteristics(kind);
+      // 选中即关（2026-11-04 用户定规）：updateProperties 触发 commandStack.changed
+      // → PopupMenu CLOSE_EVENTS 自动收起，此后保持关闭、不重开
       this.modeling.updateProperties(target, { loopCharacteristics: next });
-      this.reopen(target);
     };
     const entry = (kind: LoopKind, label: string) => ({
       group: 'loop',
@@ -125,14 +124,5 @@ export class BpmnReplaceMenuProvider {
       'toggle-sequential-mi': entry('sequential', '顺序多实例'),
       'toggle-loop': entry('loop', '标准循环')
     };
-  }
-
-  /**
-   * 切换后重开弹框：引擎 CLOSE_EVENTS 含 commandStack.changed（PopupMenu
-   * _bindAutoClose 契约），updateProperties 必然收起弹框；切换钮语义要求可
-   * 连续切换/再选类型，故按同一 pad 锚定重开（BpmnPopup 统一参数与锚定）。
-   */
-  private reopen(target: any): void {
-    this.bpmnPopup.open(target, BpmnReplaceMenuProvider.MENU_ID, { kind: 'pad', target }, this.i18n.t('更改元素类型'));
   }
 }

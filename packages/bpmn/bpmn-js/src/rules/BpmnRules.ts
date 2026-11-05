@@ -544,7 +544,7 @@ export class BpmnRules extends RuleProvider {
    * 与豁免集外任一元素相交即冲突——对非落点容器的部分搭界/整包覆盖都算
    * 重叠（整包覆盖落点容器必是 DropTarget 归一结果，不会走到这里）。
    */
-  private placementConflicts(rect: Rect, moved: any[], target: any): boolean {
+  private placementConflicts(rect: Rect, moved: any[], target: any, movedShape?: any): boolean {
     const exempt = new Set<any>();
     const collect = (el: any): void => {
       exempt.add(el);
@@ -557,6 +557,19 @@ export class BpmnRules extends RuleProvider {
     }
     for (let chain: any = target; chain; chain = chain.parent) {
       exempt.add(chain);
+    }
+    // 整装于自家父容器的移动成员：其父链不构成冲突（该成员留守原容器，归属
+    // 由 SubProcessMembershipBehavior 拆分收敛）；自家父容器是展开子流程时
+    // 任意位置豁免（2026-11-04 定规：骑跨边线触发边框外延而非冲突——但父
+    // 容器内的兄弟元素照常参与冲突判定）
+    const own = movedShape?.parent;
+    const ownExpandedSub = own && !this.isRootElement(own)
+      && isSubProcessFamily(own.businessObject?.$type)
+      && own.isExpanded !== false;
+    if (own && !this.isRootElement(own) && (this.fullyInside(rect, own) || ownExpandedSub)) {
+      for (let chain: any = own; chain; chain = chain.parent) {
+        exempt.add(chain);
+      }
     }
     let hit = false;
     const walk = (element: any): void => {
@@ -599,9 +612,17 @@ export class BpmnRules extends RuleProvider {
       // 原地平移（target 为空）以现父为预估父
       const effectiveTarget = target ?? shape.parent;
       if (!this.isRootElement(effectiveTarget) && !this.fullyInsideContainer(rect, effectiveTarget)) {
-        return true;
+        // 自家父容器（展开子流程）内拖动跨界：任意位置放行（2026-11-04 用户
+        // 两轮定规——骑跨边线触发边框外延扩容而非拒绝，AutoResize 罩住越缘
+        // 元素；完全脱出（无交集）者脱离拆分，SubProcessMembershipBehavior 收敛）
+        const ownExpandedSub = effectiveTarget === shape.parent
+          && isSubProcessFamily(effectiveTarget.businessObject?.$type)
+          && effectiveTarget.isExpanded !== false;
+        if (!ownExpandedSub) {
+          return true;
+        }
       }
-      if (this.placementConflicts(rect, movable, effectiveTarget)) {
+      if (this.placementConflicts(rect, movable, effectiveTarget, shape)) {
         return true;
       }
     }

@@ -32,7 +32,7 @@
  * - 任务族字标置于任务盒左上角（规范 §10.3 标记位约定，面板记法图标同位，见 icons/BpmnIcons）。
  */
 import { append, create, attr } from 'tiny-svg';
-import { GLYPH_CENTERS, iconSetAsset, type IconSetKey } from '../icons/IconSet';
+import { GLYPH_CENTERS, iconSetAsset, MARKER_INK, MARKER_OPTICAL, type IconSetKey } from '../icons/IconSet';
 
 export interface StyleTheme {
   stroke: string;
@@ -387,20 +387,39 @@ export function drawDataStoreShape(g: Element, shape: { x: number; y: number; wi
 export type LoopMarkerKind = 'loop' | 'parallel' | 'sequential';
 
 /**
- * 活动 loopCharacteristics 标记：底部中央标记行（规范 §10.3.1）。
- * 标记字形=标准图标集剪影（markerLoop 环形箭头 / markerMiParallel 三竖条 /
- * markerMiSequential 三横条，icons/IconSet 同源），边长 14——与折叠 [+] 方块 16
- * 同族略小，保持标记行两级视觉。cx 可选：与折叠 [+] 并存时错开。
+ * 标记行补偿取值：marker 族墨迹上限边对齐 Ad-hoc 波浪墨迹宽 15（2026-11-04
+ * 用户定规「循环/串行多实例/并行多实例标记应与波浪线一样大」）。此前按盒边长
+ * 14 传参，而 marker 族资产未按 100 盒归一（墨迹覆盖率仅 50%~70%），有效墨迹
+ * 缩水至 7~9.8px，明显小于波浪的 15px。k 按各资产墨迹上限边反推，墨迹底缘
+ * 统一落在框内底缘上方 3（与波浪底缘 height-7.4 同量级，行内底对齐）。
  */
-export function drawLoopMarker(g: Element, shape: { width: number; height: number }, kind: LoopMarkerKind, theme: StyleTheme, cx?: number): void {
-  const centerX = cx ?? shape.width / 2;
-  const bottom = shape.height - 4;
-  iconSetGlyph(g, loopMarkerAssetKey(kind), centerX, bottom - 7, 14, theme.stroke);
+const MARKER_INK_MAX = 15;
+
+function markerScale(key: IconSetKey): { k: number; inkH: number } {
+  const ink = MARKER_INK[key];
+  // 等面积光学补偿：实心条族墨量 2 倍于细环箭头，等最长边下读感更大，
+  // 条族按 MARKER_OPTICAL 缩至等墨量（见 IconSet.MARKER_OPTICAL 实测注）
+  const k = (MARKER_INK_MAX / Math.max(ink.w, ink.h)) * (MARKER_OPTICAL[key] ?? 1);
+  return { k, inkH: ink.h * k };
 }
 
-/** 补偿活动标记（规范 §10.5：底部标记行双三角）：图标集 markerCompensation 剪影同源 */
+/**
+ * 活动 loopCharacteristics 标记：底部中央标记行（规范 §10.3.1）。
+ * 标记字形=标准图标集剪影（markerLoop 环形箭头 / markerMiParallel 三竖条 /
+ * markerMiSequential 三横条，icons/IconSet 同源），有效墨迹上限边 15（与
+ * 波浪/折叠 [+] 同量级）。cx 可选：与折叠 [+] 并存时错开。
+ */
+export function drawLoopMarker(g: Element, shape: { width: number; height: number }, kind: LoopMarkerKind, theme: StyleTheme, cx?: number): void {
+  const key = loopMarkerAssetKey(kind);
+  const { k, inkH } = markerScale(key);
+  const cy = shape.height - 7 - inkH / 2;
+  iconSetGlyph(g, key, cx ?? shape.width / 2, cy, iconSetAsset(key).w * k, theme.stroke);
+}
+
+/** 补偿活动标记（规范 §10.5：底部标记行双三角）：图标集 markerCompensation 剪影同源，墨迹补偿同循环标记 */
 export function drawCompensationMarker(g: Element, cx: number, bottom: number, theme: StyleTheme): void {
-  iconSetGlyph(g, 'markerCompensation', cx, bottom - 7, 14, theme.stroke);
+  const { k, inkH } = markerScale('markerCompensation');
+  iconSetGlyph(g, 'markerCompensation', cx, bottom - 3 - inkH / 2, iconSetAsset('markerCompensation').w * k, theme.stroke);
 }
 
 /**
@@ -469,14 +488,14 @@ export function drawActivityMarkerRow(
     if (row.adHoc) {
       drawAdHocMarker(g, plusCx + 7 + 4.5 + 7.5, shape.height - 11, theme);
     }
-    // 补偿/循环挂 [+] 左，右缘依次向左排开（少见组合）
+    // 补偿/循环挂 [+] 左，右缘依次向左排开（少见组合）；墨迹上限边 15 → 半宽 7.5
     let left = plusCx - 7 - 4.5;
     if (row.compensation) {
-      drawCompensationMarker(g, left - 7, bottom, theme);
-      left -= 14 + 4.5;
+      drawCompensationMarker(g, left - 7.5, bottom, theme);
+      left -= 15 + 4.5;
     }
     if (row.loop) {
-      drawLoopMarker(g, shape, row.loop!, theme, left - 7);
+      drawLoopMarker(g, shape, row.loop!, theme, left - 7.5);
     }
     return;
   }

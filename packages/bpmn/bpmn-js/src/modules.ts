@@ -95,6 +95,8 @@ import { BpmnModeling } from './command/BpmnModeling';
 import { BpmnUpdater } from './behavior/BpmnUpdater';
 import { BpmnAutoResize } from './behavior/BpmnAutoResize';
 import { LaneBandBehavior } from './behavior/LaneBandBehavior';
+import { MinResizeBehavior } from './behavior/MinResizeBehavior';
+import { SubProcessMembershipBehavior } from './behavior/SubProcessMembershipBehavior';
 import { LabelBehavior } from './behavior/LabelBehavior';
 import { AutoPlacementBehavior } from './behavior/AutoPlacementBehavior';
 import { CollaborationBehavior } from './behavior/CollaborationBehavior';
@@ -244,12 +246,16 @@ export const BpmnRulesModule: ModuleDeclaration = {
 /** 建模命令与语义同步（__depends__ 自包含：commandStack/changeSupport 基座链） */
 export const BpmnModelingModule: ModuleDeclaration = {
   __depends__: [ModelingModule],
-  __init__: ['bpmnUpdater', 'collaborationBehavior', 'laneBandBehavior'],
+  __init__: ['bpmnUpdater', 'collaborationBehavior', 'laneBandBehavior', 'minResizeBehavior', 'subProcessMembershipBehavior'],
   'modeling': ['type', BpmnModeling],
   'bpmnUpdater': ['type', BpmnUpdater],
   'collaborationBehavior': ['type', CollaborationBehavior],
+  // 展开子流程成员归属拆分（在内留守/整出脱离，shape.move executed 单点）
+  'subProcessMembershipBehavior': ['type', SubProcessMembershipBehavior],
   // 泳道带几何：带 resize=移带界（邻带/池沿跟随）、池直改后带重铺、带最小尺寸下限
   'laneBandBehavior': ['type', LaneBandBehavior],
+  // 展开态子流程族 resize 最小尺寸（展开 350×200 / 事务=任务盒，resize.start 钳制）
+  'minResizeBehavior': ['type', MinResizeBehavior],
   // 覆盖基座 auto-resize 服务（didi 后注册者胜）：泳道目标重定向到池 + 扩池后泳道带重铺
   'autoResize': ['type', BpmnAutoResize]
 };

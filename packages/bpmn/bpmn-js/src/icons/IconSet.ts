@@ -498,5 +498,37 @@ export const GLYPH_CENTERS: Partial<Record<IconSetKey, { x: number; y: number }>
   glyphGatewayXor: { x: 50, y: 50 },
   glyphGatewayParallel: { x: 50, y: 50 },
   glyphGatewayInclusive: { x: 50, y: 50 },
-  glyphGatewayComplex: { x: 50, y: 50 }
+  glyphGatewayComplex: { x: 50, y: 50 },
+  // marker 族（1026 盒资产，墨迹不居中：竖向中心 ~481 偏离盒中心 512 达 31 单位，
+  // 按盒中心平移会让标记整体下沉——2026-11-04 墨迹补偿改造一并实测补齐）
+  markerLoop: { x: 495.25, y: 481.26 },
+  markerMiParallel: { x: 512, y: 481.28 },
+  markerMiSequential: { x: 512, y: 481.28 },
+  markerCompensation: { x: 522.58, y: 481.24 }
+};
+
+/**
+ * marker 族资产的实际墨迹 bbox（浏览器 getBBox 实测，资产坐标）：marker 族
+ * 未随 glyph* 族按 100 盒归一（1026 盒内墨迹覆盖率仅 50%~70%，见各值），
+ * 调用方按盒边长传参会把墨迹缩小近三成。MARKER_INK 供补偿取值（Symbols
+ * 标记行按「墨迹上限边」定尺寸）与墨迹裁剪 viewBox（BpmnIcons 小图标）。
+ */
+export const MARKER_INK: Record<string, { x: number; y: number; w: number; h: number }> = {
+  markerLoop: { x: 145.41, y: 179.19, w: 699.69, h: 604.13 },
+  markerMiParallel: { x: 256, y: 174.08, w: 512, h: 614.4 },
+  markerMiSequential: { x: 204.8, y: 225.28, w: 614.4, h: 512 },
+  markerCompensation: { x: 164.12, y: 235.46, w: 716.93, h: 491.57 }
+};
+
+/**
+ * marker 族等面积光学补偿（2026-11-04 用户质询「并行、串行与标准循环图标
+ * 不一样大」）：等最长边规则下实心条族（‖‖‖/≡）墨量为细环箭头（↻）的
+ * 2 倍（浏览器 400px 栅格实测 67600 vs 34277 px），视觉读感明显更大——
+ * 条族按 √面积比缩至与循环等墨量（视觉质量≈墨迹面积，实心对细线的
+ * 标准光学均衡）。循环 1.0 不动（维持「与波浪线一样大」的 15 上限边）。
+ */
+export const MARKER_OPTICAL: Record<string, number> = {
+  markerLoop: 1,
+  markerMiParallel: 0.71,
+  markerMiSequential: 0.71
 };

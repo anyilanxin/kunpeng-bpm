@@ -339,7 +339,7 @@ export class DiagramBuilder {
       ...(di.colors ? { colors: di.colors } : {}),
       di: di.node
     });
-    const parent = this.resolveParent(shape, fallbackParent);
+    const parent = this.resolveParent(shape, bo, fallbackParent);
     this.canvas.addShape(shape, parent);
     if (isPoolFamily(bo.$type) || isSubProcessFamily(bo.$type)) {
       this.containerIndex.push(shape);
@@ -376,14 +376,20 @@ export class DiagramBuilder {
    * 容器互为包含关系，不包含者其子容器亦不可能包含该点）。候选取建图期
    * 自上而下收集的 containerIndex（容器先于内容创建，推导时索引已完备），
    * 免去逐形状自根递归扫画布——无池大图导入 O(n²) 热点的根除。
+   *
+   * 几何候选须**语义合法**（2026-11-04 立）：候选.bo === bo.$parent（直接
+   * 语义父——子流程/根流程）、泳道 flowNodeRef 引用本元素、池 processRef
+   * 承载本元素所属流程；否则回落语义父（fallbackParent）。纯几何收养会把
+   * 「扩容后容器几何罩住的已脱离元素」重新挂回容器名下（画布/语义树分叉，
+   * 骑跨扩容+整出脱离同帧即触发）——语义树是序列化事实源，导入不得改写归属。
    */
-  private resolveParent(shape: any, fallbackParent: any): any {
+  private resolveParent(shape: any, bo: any, fallbackParent: any): any {
     const cx = shape.x + shape.width / 2;
     const cy = shape.y + shape.height / 2;
     let best: any = null;
     let bestArea = Infinity;
     for (const container of this.containerIndex) {
-      if (contains(container, cx, cy)) {
+      if (contains(container, cx, cy) && semanticallyLegal(container, bo)) {
         const area = container.width * container.height;
         if (area < bestArea) {
           bestArea = area;
@@ -397,6 +403,29 @@ export class DiagramBuilder {
 
 function contains(shape: any, x: number, y: number): boolean {
   return x >= shape.x && x <= shape.x + shape.width && y >= shape.y && y <= shape.y + shape.height;
+}
+
+/**
+ * 几何候选容器的语义合法性：候选.bo 是元素的直接语义父（bo.$parent——
+ * Process 根/SubProcess）、泳道 flowNodeRef 引用本元素、或池的 processRef
+ * 承载本元素所属流程。三律之外的几何包含不构成归属（语义树单一事实源）。
+ */
+function semanticallyLegal(container: any, bo: any): boolean {
+  const cbo = container?.businessObject;
+  if (!cbo || !bo) {
+    return false;
+  }
+  if (cbo === bo.$parent) {
+    return true;
+  }
+  const type = cbo.$type;
+  if (type === 'bpmn:Lane') {
+    return (cbo.flowNodeRef ?? []).some((ref: any) => ref?.id === bo.id);
+  }
+  if (type === 'bpmn:Participant') {
+    return cbo.processRef === bo.$parent;
+  }
+  return false;
 }
 
 /** 平面 DI 节点 → 视图映射（按平面收集；空平面/无平面返回空表） */

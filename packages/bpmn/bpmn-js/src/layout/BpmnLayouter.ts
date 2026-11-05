@@ -58,6 +58,13 @@ import { repairConnection } from 'diagram-js/lib/layout/ManhattanLayout';
 const STRAIGHT_TYPES = new Set(['bpmn:MessageFlow', 'bpmn:Association']);
 /** 肘形判定容差：|dy| < 8 视为水平对齐（自有取值） */
 const ALIGN_TOLERANCE = 8;
+/**
+ * 越界例外噪声带（自有取值）：本端中心越出对端交叉轴跨度 10px 以内视为
+ * 拖拽贴缘噪声，不翻转入线方位——1px 级越出即改取越出侧顶点会让连线从
+ * 「侧向 Z 肘」突变为「沿对端底/顶缘外侧横穿后 1px 竖戳」（2026-11-05
+ * 用户报障的诡异形态，远距元素垂直靠近到跨度边缘 1px 时必触发）。
+ */
+const EDGE_NOISE = 10;
 
 /** 规范锚引用：锚点坐标 + 出线轴向（E/W 水平、S/N 垂直），布线按轴走肘 */
 type Anchor = { point: { x: number; y: number }; axis: 'h' | 'v' };
@@ -265,10 +272,10 @@ function facingPair(
     const selfCross = horizontal ? e.y + e.height / 2 : e.x + e.width / 2;
     const otherLo = horizontal ? o.y : o.x;
     const otherHi = horizontal ? o.y + o.height : o.x + o.width;
-    if (selfCross > otherHi) {
-      end = midAnchor(other, cross[0]); // 越出下/右缘 → 对端 S/E 顶点
-    } else if (selfCross < otherLo) {
-      end = midAnchor(other, cross[1]); // 越出上/左缘 → 对端 N/W 顶点
+    if (selfCross > otherHi + EDGE_NOISE) {
+      end = midAnchor(other, cross[0]); // 越出下/右缘（噪声带外）→ 对端 S/E 顶点
+    } else if (selfCross < otherLo - EDGE_NOISE) {
+      end = midAnchor(other, cross[1]); // 越出上/左缘（噪声带外）→ 对端 N/W 顶点
     }
     return { start, end };
   }

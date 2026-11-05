@@ -56,7 +56,7 @@ import {
 import { EventDefinitions } from '../meta/EventDefinitions';
 import { isEventFamily, isGatewayFamily } from '../meta/ElementTypes';
 import { loopKindOf, type LoopKind } from '../meta/LoopCharacteristics';
-import { iconSetSvg, type IconSetKey } from './IconSet';
+import { iconSetAsset, iconSetSvg, MARKER_INK, MARKER_OPTICAL, type IconSetKey } from './IconSet';
 import { svgShell, entryShell } from '@kunpeng-io/kernel-shared';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -349,9 +349,24 @@ export function bpmnEntryHtml(meta: BpmnIconMeta, size = 18, fill = 'currentColo
 /**
  * 循环/多实例标记小图标（replace 弹框标题行切换钮）：图标集剪影（markerLoop /
  * markerMiParallel / markerMiSequential），currentColor 随按钮态着色（active 高亮）。
+ * viewBox 按 MARKER_INK 墨迹裁剪——marker 族 1026 盒内墨迹仅占 50%~70%，
+ * 整盒缩放会把图标缩成细线（与画布标记行墨迹补偿同源，面板=画布）。
+ * 叠加 MARKER_OPTICAL 等面积补偿：viewBox 围墨迹中心等比扩 1/f，墨迹在
+ * size 框内按 f 缩放——实心条族与细环箭头等墨量（IconSet.MARKER_OPTICAL）。
  */
 export function loopMarkerIconHtml(kind: LoopMarkerKind, size = 16): string {
-  return iconSetSvg(loopMarkerAssetKey(kind), size, 'currentColor');
+  const key = loopMarkerAssetKey(kind);
+  const ink = MARKER_INK[key];
+  const f = MARKER_OPTICAL[key] ?? 1;
+  const cx = ink.x + ink.w / 2;
+  const cy = ink.y + ink.h / 2;
+  const w = ink.w / f;
+  const h = ink.h / f;
+  return (
+    `<svg width="${size}" height="${size}" viewBox="${cx - w / 2} ${cy - h / 2} ${w} ${h}" fill="currentColor">` +
+    iconSetAsset(key).body +
+    '</svg>'
+  );
 }
 
 /**
