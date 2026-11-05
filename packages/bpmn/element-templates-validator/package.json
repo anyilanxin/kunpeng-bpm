@@ -31,10 +31,10 @@
   },
   "homepage": "https://github.com/bpmn-io/element-templates-validator#readme",
   "devDependencies": {
-    "vite": "catalog:",
-    "rimraf": "catalog:",
     "ajv": "catalog:",
-    "ajv-errors": "catalog:"
+    "ajv-errors": "catalog:",
+    "rimraf": "catalog:",
+    "vite": "catalog:"
   },
   "dependencies": {
     "@kunpeng-io/element-templates-json-schema": "workspace:*",

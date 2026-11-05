@@ -33,20 +33,20 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@kunpeng-io/extract-process-variables": "workspace:*",
     "array-move": "catalog:",
     "ids": "catalog:",
     "min-dash": "catalog:",
-    "min-dom": "catalog:",
-    "@kunpeng-io/extract-process-variables": "workspace:*"
+    "min-dom": "catalog:"
   },
   "devDependencies": {
-    "vite": "catalog:",
-    "vite-plugin-babel": "catalog:",
-    "@babel/plugin-transform-react-jsx": "catalog:",
-    "rimraf": "catalog:",
     "@babel/core": "catalog:",
+    "@babel/plugin-transform-react-jsx": "catalog:",
+    "@kunpeng-io/bpmn-js": "workspace:*",
     "@kunpeng-io/properties-panel": "workspace:*",
-    "@kunpeng-io/bpmn-js": "workspace:*"
+    "rimraf": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-babel": "catalog:"
   },
   "peerDependencies": {
     "diagram-js": "*",

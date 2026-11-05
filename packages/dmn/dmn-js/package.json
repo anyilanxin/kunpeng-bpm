@@ -31,7 +31,6 @@
     "@kunpeng-io/kernel-shared": "workspace:*",
     "@kunpeng-io/kunpeng-bpmn-moddle": "workspace:*",
     "@kunpeng-io/kunpeng-dmn-moddle": "workspace:*",
-    "table-js": "catalog:",
     "bpmn-moddle": "^10.3.1",
     "diagram-js": "catalog:",
     "diagram-js-direct-editing": "catalog:",
@@ -45,7 +44,8 @@
     "min-dash": "catalog:",
     "min-dom": "catalog:",
     "moddle": "^8.2.1",
-    "moddle-xml": "^12.3.1",
+    "moddle-xml": "^12.3.2",
+    "table-js": "catalog:",
     "tiny-svg": "catalog:"
   },
   "devDependencies": {

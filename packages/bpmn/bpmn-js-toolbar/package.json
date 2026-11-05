@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@kunpeng-io/bpmn-js": "workspace:*",
-    "diagram-js": "^15.9.0",
+    "diagram-js": "^15.28.1",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:"

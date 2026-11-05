@@ -19,10 +19,10 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "ids": "catalog:",
-    "min-dash": "catalog:",
+    "@kunpeng-io/bpmn-js": "workspace:*",
     "diagram-js": "catalog:",
-    "@kunpeng-io/bpmn-js": "workspace:*"
+    "ids": "catalog:",
+    "min-dash": "catalog:"
   },
   "files": [
     "src"

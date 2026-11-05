@@ -24,12 +24,12 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "@lezer/common": "catalog:",
-    "@kunpeng-io/lezer-expression": "workspace:*"
+    "@kunpeng-io/lezer-expression": "workspace:*",
+    "@lezer/common": "catalog:"
   },
   "devDependencies": {
-    "vite": "catalog:",
-    "rimraf": "catalog:"
+    "rimraf": "catalog:",
+    "vite": "catalog:"
   },
   "engines": {
     "node": ">= 20"

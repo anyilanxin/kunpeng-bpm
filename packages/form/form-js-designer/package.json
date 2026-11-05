@@ -39,6 +39,6 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vue": "catalog:",
-    "vue-tsc": "^2.1.0"
+    "vue-tsc": "^2.2.12"
   }
 }
