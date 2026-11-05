@@ -438,6 +438,18 @@
       ]
     },
     {
+      "name": "AddSign",
+      "superClass": [
+        "Element"
+      ],
+      "meta": {
+        "allowedIn": [
+          "bpmn:UserTask"
+        ]
+      },
+      "properties": []
+    },
+    {
       "name": "PriorityDefinition",
       "superClass": [
         "Element"

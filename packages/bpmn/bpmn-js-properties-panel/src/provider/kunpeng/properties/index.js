@@ -1,3 +1,4 @@
+export { AddSignProps } from './AddSignProps';
 export { ActiveElementsProps } from './ActiveElementsProps';
 export { AdHocCompletionProps } from './AdHocCompletionProps';
 export { AdHocSubProcessImplementationProps } from './AdHocSubProcessImplementationProps';
