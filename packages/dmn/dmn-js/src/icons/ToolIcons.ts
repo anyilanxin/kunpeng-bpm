@@ -37,9 +37,11 @@ function setScaled18(key: Parameters<typeof iconSetAsset>[0]): string {
   return `<g transform="scale(${(18 / a.w).toFixed(6)})" fill="currentColor">${a.body}</g>`;
 }
 
-/** DMN 记法资产缩进 18 视框（用户资产 dmnicons，32 视框等比 0.5625） */
+/** DMN 记法资产缩进 18 视框（用户资产 dmnicons，32 视框等比 0.5625；
+ * fill=currentColor 与 setScaled18 对齐——漏注时暗色主题下调色板/上下文
+ * pad 图标继承默认黑，暗底不可见，2026-11-05 修） */
 function dmnScaled18(name: DmnIconName): string {
-  return `<g transform="scale(${18 / 32})">${dmnIconBody(name)}</g>`;
+  return `<g transform="scale(${18 / 32})" fill="currentColor">${dmnIconBody(name)}</g>`;
 }
 
 const ICON_BODIES = {

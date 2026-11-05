@@ -186,6 +186,16 @@ export const PlatformModules: ModuleDeclaration[] = [
   ...EditorPlatformModules
 ];
 
+/** translate 工厂（$inject 显式注解版，防宿主 minify 改形参名——见 BpmnCoreModule 注释） */
+const translateFactory = (bpmnI18n: BpmnI18n) => (text: string, replace?: Record<string, string>) => {
+  let translated = bpmnI18n.t(text);
+  if (replace) {
+    translated = translated.replace(/\{(\w+)\}/g, (match, key) => replace[key] ?? match);
+  }
+  return translated;
+};
+translateFactory.$inject = ['bpmnI18n'];
+
 /** BPMN 核心：类型表 / 工厂 / 渲染 / 词典（三形态恒装——BPMN 层插件的公共依赖基座） */
 export const BpmnCoreModule: ModuleDeclaration = {
   // bpmnRenderer 必须急切构造：BaseRenderer 仅在构造时向 eventBus 注册，
@@ -205,13 +215,9 @@ export const BpmnCoreModule: ModuleDeclaration = {
   'bpmnI18n': ['type', BpmnI18n],
   // translate：面板等插件的通用文案服务（词条查 bpmnI18n 词典，未命中透传原文；
   // {token} 占位按第二参替换）。工厂注入 bpmnI18n，保持与词典服务同源单实例。
-  'translate': ['factory', (bpmnI18n: BpmnI18n) => (text: string, replace?: Record<string, string>) => {
-    let translated = bpmnI18n.t(text);
-    if (replace) {
-      translated = translated.replace(/\{(\w+)\}/g, (match, key) => replace[key] ?? match);
-    }
-    return translated;
-  }],
+  // $inject 必须显式注解：didi 对无注解工厂靠 fn.toString() 解析形参名注入，
+  // 宿主生产构建 minify 改名形参后解析成不存在的服务名直接炸（2026-11-05 修）
+  'translate': ['factory', translateFactory],
   'orientationService': ['type', OrientationService]
 };
 
@@ -350,6 +356,10 @@ export const BpmnContextPadModule: ModuleDeclaration = {
 };
 
 /** 导入导出 */
+/** moddle 别名工厂（$inject 显式注解，防宿主 minify 改形参名） */
+const moddleAliasFactory = (bpmnModdle: BpmnModdle) => bpmnModdle.moddle();
+moddleAliasFactory.$inject = ['bpmnModdle'];
+
 export const BpmnIOModule: ModuleDeclaration = {
   // bpmnNamespaces 急切初始化：moddleExtensions 描述符非法（缺 prefix/uri、撞标准命名空间）在实例化即报错
   __init__: ['bpmnDocumentState', 'bpmnNamespaces'],
@@ -357,8 +367,9 @@ export const BpmnIOModule: ModuleDeclaration = {
   'bpmnNamespaces': ['type', BpmnNamespaces],
   'bpmnModdle': ['type', BpmnModdle],
   // moddle：引擎实例别名服务（生态插件按 moddle 通用名取 moddle 引擎——
-  // getTypeDescriptor/create 等实例方法；工厂回注同一惰性单例，不产生第二份元模型状态）
-  'moddle': ['factory', (bpmnModdle: BpmnModdle) => bpmnModdle.moddle()],
+  // getTypeDescriptor/create 等实例方法；工厂回注同一惰性单例，不产生第二份元模型状态）。
+  // $inject 显式注解同 translate：无注解工厂的形参名注入过不了宿主 minify
+  'moddle': ['factory', moddleAliasFactory],
   'bpmnReader': ['type', BpmnReader],
   'bpmnWriter': ['type', BpmnWriter],
   'diagramBuilder': ['type', DiagramBuilder]
