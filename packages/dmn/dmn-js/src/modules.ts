@@ -136,6 +136,10 @@ export const PlatformModules: ModuleDeclaration[] = [
 /** DMN 核心：类型表/工厂/渲染/词典/模式/下钻（三形态恒装）+ 下钻视图三模块
  * （2026-10-27 用户裁定恒装：决策表/字面/boxed 各为内部插件模块，经
  * __depends__ 装配，DmnViews 注册表承接分派） */
+/** translate 工厂（$inject 显式注解版，防宿主 minify 改形参名） */
+const dmnTranslateFactory = (dmnI18n: { t(s: string): string }) => (text: string) => dmnI18n.t(text);
+dmnTranslateFactory.$inject = ['dmnI18n'];
+
 export const DmnCoreModule: ModuleDeclaration = {
   __depends__: [DmnDecisionTableModule, DmnLiteralViewModule, DmnBoxedViewModule],
   // dmnRenderer 必须急切构造：BaseRenderer 仅在构造时向 eventBus 注册，
@@ -153,7 +157,9 @@ export const DmnCoreModule: ModuleDeclaration = {
   })],
   'dmnRenderer': ['type', DmnRenderer],
   'dmnI18n': ['type', DmnI18n],
-  'translate': ['factory', (dmnI18n: { t(s: string): string }) => (text: string) => dmnI18n.t(text)],
+  // $inject 显式注解：didi 无注解工厂靠形参名注入，宿主 minify 改名后解析
+  // 成不存在的服务名直接炸（bpmn 线 2026-11-05 生产包事故同款，潜伏雷一并排掉）
+  'translate': ['factory', dmnTranslateFactory],
   'dmnViews': ['type', DmnViews],
   'drillBadge': ['type', DrillBadgeBehavior]
 };
