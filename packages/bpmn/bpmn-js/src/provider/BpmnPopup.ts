@@ -175,13 +175,21 @@ export class BpmnPopup {
     const h = popup?.offsetHeight || BpmnPopup.ESTIMATED_HEIGHT;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
+    // 钳制基准：弹框渲染在画布容器内，取画布容器与视口的交集——容器内嵌
+    // 宿主 chrome（底部状态栏/右侧属性面板）时按容器缘收，不再压宿主 UI
+    // （kunpeng-modeler 底部状态栏被压 13px 实案，2026-11-05）；容器满幅的
+    // 宿主（示例）交集即视口，行为不变
+    const cRect = this.canvas.getContainer().getBoundingClientRect();
+    const boundsLeft = Math.max(0, cRect.left);
+    const boundsRight = Math.min(vw, cRect.right);
+    const boundsBottom = Math.min(vh, cRect.bottom);
 
     if (anchor.kind === 'palette') {
       const rect = this.requirePalette().getBoundingClientRect();
       return {
-        x: this.clampX(rect.right + 4, w, vw),
-        // 纵向尽量靠下：底边距视口底 BOTTOM_GAP，向上仅让位 TOP_GAP
-        y: Math.max(BpmnPopup.TOP_GAP, vh - BpmnPopup.BOTTOM_GAP - h)
+        x: this.clampX(rect.right + 4, w, boundsLeft, boundsRight),
+        // 纵向尽量靠下：底边距钳制基准底 BOTTOM_GAP，向上仅让位 TOP_GAP
+        y: Math.max(BpmnPopup.TOP_GAP, boundsBottom - BpmnPopup.BOTTOM_GAP - h)
       };
     }
 
@@ -195,10 +203,10 @@ export class BpmnPopup {
         const tr = trigger.getBoundingClientRect();
         if (tr.width > 0 && tr.height > 0) {
           const below = tr.bottom + 6;
-          const y = below + h <= vh - BpmnPopup.BOTTOM_GAP
+          const y = below + h <= boundsBottom - BpmnPopup.BOTTOM_GAP
             ? below
             : Math.max(BpmnPopup.TOP_GAP, tr.top - 6 - h);
-          return { x: this.clampX(tr.left, w, vw), y };
+          return { x: this.clampX(tr.left, w, boundsLeft, boundsRight), y };
         }
       }
     }
@@ -216,8 +224,8 @@ export class BpmnPopup {
     if (!rects.length) {
       // gfx 瞬态不可量（未挂载/零尺寸）：退视口中部，绝不采纳垃圾坐标
       return {
-        x: this.clampX((vw - w) / 2, w, vw),
-        y: Math.max(BpmnPopup.TOP_GAP, Math.min(vh - BpmnPopup.BOTTOM_GAP - h, (vh - h) / 2))
+        x: this.clampX((boundsLeft + boundsRight) / 2 - w / 2, w, boundsLeft, boundsRight),
+        y: Math.max(BpmnPopup.TOP_GAP, Math.min(boundsBottom - BpmnPopup.BOTTOM_GAP - h, (vh - h) / 2))
       };
     }
     const rect = rects.reduce<{ left: number; top: number; right: number; bottom: number }>((acc, r) => ({
@@ -229,22 +237,22 @@ export class BpmnPopup {
     const multi = elements.length > 1;
     const below = rect.bottom + 6;
     let y: number;
-    if (below + h <= vh - BpmnPopup.BOTTOM_GAP) {
+    if (below + h <= boundsBottom - BpmnPopup.BOTTOM_GAP) {
       y = below;
     } else {
-      const shifted = Math.max(BpmnPopup.TOP_GAP, vh - BpmnPopup.BOTTOM_GAP - h);
+      const shifted = Math.max(BpmnPopup.TOP_GAP, boundsBottom - BpmnPopup.BOTTOM_GAP - h);
       // 上移会盖住元素：翻到元素上方（2026-10-29 用户定规：切换弹框与元素重叠）
       y = shifted < rect.top
         ? Math.max(BpmnPopup.TOP_GAP, rect.top - 6 - h)
         : shifted;
     }
     // 单元素左对齐其下；多选右对齐选区右缘（context pad 所在侧，紧贴触发钮）
-    return { x: this.clampX(multi ? rect.right - w : rect.left, w, vw), y };
+    return { x: this.clampX(multi ? rect.right - w : rect.left, w, boundsLeft, boundsRight), y };
   }
 
-  /** 横向夹紧：右溢出收回 SIDE_GAP，不向左越出 SIDE_GAP */
-  private clampX(x: number, w: number, vw: number): number {
-    return Math.max(BpmnPopup.SIDE_GAP, Math.min(x, vw - BpmnPopup.SIDE_GAP - w));
+  /** 横向夹紧（钳制基准=画布容器与视口交集）：右溢出收回 SIDE_GAP，不向左越出 SIDE_GAP */
+  private clampX(x: number, w: number, boundsLeft: number, boundsRight: number): number {
+    return Math.max(boundsLeft + BpmnPopup.SIDE_GAP, Math.min(x, boundsRight - BpmnPopup.SIDE_GAP - w));
   }
 
   private requirePalette(): HTMLElement {
