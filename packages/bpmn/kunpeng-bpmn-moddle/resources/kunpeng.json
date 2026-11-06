@@ -449,6 +449,11 @@
       },
       "properties": [
         {
+          "name": "cascade",
+          "type": "Boolean",
+          "isAttr": true
+        },
+        {
           "name": "maxDepth",
           "type": "Integer",
           "isAttr": true,

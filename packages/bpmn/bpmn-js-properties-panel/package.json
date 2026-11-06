@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/bpmn-js-properties-panel",
-  "version": "2026.11.4",
+  "version": "2026.11.5",
   "description": "A simple properties panel for @kunpeng-io/bpmn-js",
   "files": [
     "dist"
