@@ -447,7 +447,14 @@
           "bpmn:UserTask"
         ]
       },
-      "properties": []
+      "properties": [
+        {
+          "name": "maxDepth",
+          "type": "Integer",
+          "isAttr": true,
+          "default": 1
+        }
+      ]
     },
     {
       "name": "PriorityDefinition",

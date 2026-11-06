@@ -2,7 +2,9 @@ import { is, getBusinessObject } from '@kunpeng-io/bpmn-js';
 
 import {
   CheckboxEntry,
-  isCheckboxEntryEdited
+  isCheckboxEntryEdited,
+  NumberFieldEntry,
+  isNumberFieldEntryEdited
 } from '@kunpeng-io/properties-panel';
 
 import { getExtensionElementsList } from '../../../utils/ExtensionElementsUtil';
@@ -14,8 +16,8 @@ import { useService } from '../../../hooks';
  */
 
 /**
- * 加签配置（仅用户任务）：勾选即在 extensionElements 写入 kunpeng:AddSign
- * （声明即允许，首期无子属性；级联等配置属二期）。
+ * 加签配置（仅用户任务）：勾选即在 extensionElements 写入 kunpeng:AddSign（声明即允许）；
+ * 启用后可配 maxDepth（级联深度上限，1=禁止级联加签，缺省 1）。
  *
  * @returns {Array<Entry>} entries
  */
@@ -26,13 +28,20 @@ export function AddSignProps(props) {
     return [];
   }
 
-  return [
+  const entries = [
     {
       id: 'addSignEnabled',
       component: AddSignEnabled,
       isEdited: isCheckboxEntryEdited
+    },
+    {
+      id: 'addSignMaxDepth',
+      component: AddSignMaxDepth,
+      isEdited: isNumberFieldEntryEdited
     }
   ];
+
+  return entries;
 }
 
 function AddSignEnabled(props) {
@@ -112,6 +121,56 @@ function AddSignEnabled(props) {
     label: translate('Allow add sign'),
     getValue,
     setValue
+  });
+}
+
+function AddSignMaxDepth(props) {
+  const { element } = props;
+
+  const commandStack = useService('commandStack');
+  const translate = useService('translate');
+
+  // 无 kunpeng:AddSign 扩展时不渲染（条目常驻注册、组件内门控：
+  // 基座面板的分组条目按选中元素恒等记忆，勾选后同元素不重算条目列表，
+  // 仅组件级重渲染能即时揭示本输入项）
+  if (!getAddSign(element)) {
+    return null;
+  }
+
+  const getValue = () => {
+    const addSign = getAddSign(element);
+
+    return addSign ? addSign.get('maxDepth') ?? 1 : 1;
+  };
+
+  const setValue = (value) => {
+    const addSign = getAddSign(element);
+    if (!addSign) {
+      return;
+    }
+
+    commandStack.execute('element.updateModdleProperties', {
+      element,
+      moddleElement: addSign,
+      properties: { maxDepth: value }
+    });
+  };
+
+  const validate = (value) => {
+    if (value == null || value === '' || Number(value) < 1) {
+      return translate('Max depth must be >= 1 (1 = no cascade)');
+    }
+  };
+
+  return NumberFieldEntry({
+    element,
+    id: 'addSignMaxDepth',
+    label: translate('Add sign max depth'),
+    min: 1,
+    step: 1,
+    getValue,
+    setValue,
+    validate
   });
 }
 
