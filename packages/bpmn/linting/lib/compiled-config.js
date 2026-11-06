@@ -80,9 +80,7 @@ const rules = {
   "@kunpeng/kunpeng-compat/no-template": "error",
   "@kunpeng/kunpeng-compat/no-version-tag": "error",
   "@kunpeng/kunpeng-compat/no-zeebe-properties": "error",
-  "@kunpeng/kunpeng-compat/no-zeebe-user-task": "error",
   "@kunpeng/kunpeng-compat/priority-definition": "error",
-  "@kunpeng/kunpeng-compat/zeebe-user-task": "warn",
   "@kunpeng/kunpeng-compat/secrets": "warn",
   "@kunpeng/kunpeng-compat/sequence-flow-condition": "error",
   "@kunpeng/kunpeng-compat/signal-reference": "error",
@@ -312,17 +310,9 @@ import rule_46 from '@kunpeng-io/bpmnlint-plugin-kunpeng-compat/rules/kunpeng/no
 
 cache['@kunpeng-io/bpmnlint-plugin-kunpeng-compat/no-zeebe-properties'] = rule_46;
 
-import rule_47 from '@kunpeng-io/bpmnlint-plugin-kunpeng-compat/rules/kunpeng/no-zeebe-user-task';
-
-cache['@kunpeng-io/bpmnlint-plugin-kunpeng-compat/no-zeebe-user-task'] = rule_47;
-
 import rule_48 from '@kunpeng-io/bpmnlint-plugin-kunpeng-compat/rules/kunpeng/priority-definition';
 
 cache['@kunpeng-io/bpmnlint-plugin-kunpeng-compat/priority-definition'] = rule_48;
-
-import rule_49 from '@kunpeng-io/bpmnlint-plugin-kunpeng-compat/rules/kunpeng/zeebe-user-task';
-
-cache['@kunpeng-io/bpmnlint-plugin-kunpeng-compat/zeebe-user-task'] = rule_49;
 
 import rule_50 from '@kunpeng-io/bpmnlint-plugin-kunpeng-compat/rules/kunpeng/secrets';
 

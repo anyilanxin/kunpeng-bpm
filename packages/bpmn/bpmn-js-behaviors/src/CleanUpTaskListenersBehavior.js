@@ -70,21 +70,10 @@ function updateListeners(element, modeling) {
 }
 
 function withoutDisallowedListeners(element, listeners) {
-  return listeners.filter(listener => {
-    if (
-      !is(element, 'bpmn:UserTask') ||
-      !hasKunpengTaskExtensionElement(element)
-    ) {
-      return false;
-    }
-    return true;
-  });
+  // 引擎只有一种用户任务（kunpeng:userTask 标记已拔除），监听器合法性只看元素类型
+  return listeners.filter(() => is(element, 'bpmn:UserTask'));
 }
 
 function getTaskListenersContainer(element) {
   return getExtensionElementsList(element, 'kunpeng:TaskListeners')[0];
-}
-
-function hasKunpengTaskExtensionElement(element) {
-  return getExtensionElementsList(element, 'kunpeng:UserTask').length > 0;
 }

@@ -17,7 +17,8 @@ import { useService } from '../../../hooks';
 
 /**
  * 加签配置（仅用户任务）：勾选即在 extensionElements 写入 kunpeng:AddSign（声明即允许）；
- * 启用后可配 cascade（是否允许级联——加签任务能否再次加签）与 maxDepth（级联深度上限）。
+ * 启用后可配 cascade（是否允许级联——加签任务能否再次加签）与 maxDepth（级联层数上限，仅 cascade
+ * 开启时有意义且必须 >=1，未开启时有效为 1=只能一级加签）。
  *
  * @returns {Array<Entry>} entries
  */
@@ -153,31 +154,11 @@ function AddSignCascade(props) {
       return;
     }
 
-    const commands = [
-      {
-        cmd: 'element.updateModdleProperties',
-        context: {
-          element,
-          moddleElement: addSign,
-          properties: { cascade: value }
-        }
-      }
-    ];
-
-    // 勾选级联而深度上限仍为 1（缺省）时不允许级联——同命令抬到 2，
-    // 避免"勾了允许级联却一级都下不去"的矛盾建模（透明落 XML，可撤销）
-    if (value && Number(addSign.get('maxDepth') ?? 1) < 2) {
-      commands.push({
-        cmd: 'element.updateModdleProperties',
-        context: {
-          element,
-          moddleElement: addSign,
-          properties: { maxDepth: 2 }
-        }
-      });
-    }
-
-    commandStack.execute('properties-panel.multi-command-executor', commands);
+    commandStack.execute('element.updateModdleProperties', {
+      element,
+      moddleElement: addSign,
+      properties: { cascade: value }
+    });
   };
 
   return CheckboxEntry({
@@ -196,22 +177,17 @@ function AddSignMaxDepth(props) {
   const debounce = useService('debounceInput');
   const translate = useService('translate');
 
-  if (!getAddSign(element)) {
+  // maxDepth=级联层数上限，仅开启级联加签时有意义（未开启时有效为 1=只能一级加签，引擎解析期同样校验）
+  const addSign = getAddSign(element);
+  if (!addSign || !addSign.get('cascade')) {
     return null;
   }
 
   const getValue = () => {
-    const addSign = getAddSign(element);
-
-    return addSign ? addSign.get('maxDepth') ?? 1 : 1;
+    return addSign.get('maxDepth') ?? 1;
   };
 
   const setValue = (value) => {
-    const addSign = getAddSign(element);
-    if (!addSign) {
-      return;
-    }
-
     commandStack.execute('element.updateModdleProperties', {
       element,
       moddleElement: addSign,
@@ -221,7 +197,7 @@ function AddSignMaxDepth(props) {
 
   const validate = (value) => {
     if (value == null || value === '' || Number(value) < 1) {
-      return translate('Max depth must be >= 1 (1 = no cascade)');
+      return translate('Max depth must be >= 1');
     }
   };
 

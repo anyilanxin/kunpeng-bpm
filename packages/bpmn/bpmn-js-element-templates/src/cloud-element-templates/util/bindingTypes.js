@@ -13,7 +13,6 @@ export const SIGNAL_PROPERTY_TYPE = 'bpmn:Signal#property';
 export const TIMER_EVENT_DEFINITION_PROPERTY_TYPE = 'bpmn:TimerEventDefinition#property';
 export const KUNPENG_CALLED_ELEMENT = 'kunpeng:calledElement';
 export const KUNPENG_LINKED_RESOURCE_PROPERTY = 'kunpeng:linkedResource';
-export const KUNPENG_USER_TASK = 'kunpeng:userTask';
 export const KUNPENG_CALLED_DECISION = 'kunpeng:calledDecision';
 export const KUNPENG_FORM_DEFINITION = 'kunpeng:formDefinition';
 export const KUNPENG_SCRIPT_TASK = 'kunpeng:script';

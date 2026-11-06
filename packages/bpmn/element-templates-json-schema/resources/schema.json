@@ -791,37 +791,6 @@
                     "binding": {
                       "properties": {
                         "type": {
-                          "const": "kunpeng:userTask"
-                        }
-                      },
-                      "required": [
-                        "type"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "binding"
-                  ]
-                },
-                "then": {
-                  "required": [
-                    "type"
-                  ],
-                  "properties": {
-                    "type": {
-                      "enum": [
-                        "Hidden"
-                      ]
-                    }
-                  }
-                }
-              },
-              {
-                "if": {
-                  "properties": {
-                    "binding": {
-                      "properties": {
-                        "type": {
                           "const": "kunpeng:formDefinition"
                         },
                         "property": {
@@ -2085,7 +2054,6 @@
                       "kunpeng:taskDefinition",
                       "kunpeng:calledElement",
                       "kunpeng:linkedResource",
-                      "kunpeng:userTask",
                       "kunpeng:formDefinition",
                       "kunpeng:calledDecision",
                       "kunpeng:script",
@@ -2577,110 +2545,6 @@
                           },
                           "required": [
                             "property",
-                            "type"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "binding"
-                      ]
-                    }
-                  }
-                },
-                "required": [
-                  "properties"
-                ]
-              }
-            },
-            {
-              "if": {
-                "properties": {
-                  "properties": {
-                    "contains": {
-                      "properties": {
-                        "binding": {
-                          "properties": {
-                            "type": {
-                              "const": "kunpeng:userTask"
-                            }
-                          },
-                          "required": [
-                            "type"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "binding"
-                      ]
-                    }
-                  }
-                },
-                "required": [
-                  "properties"
-                ]
-              },
-              "then": {
-                "required": [
-                  "elementType"
-                ],
-                "properties": {
-                  "elementType": {
-                    "required": [
-                      "value"
-                    ],
-                    "properties": {
-                      "value": {
-                        "const": "bpmn:UserTask"
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            {
-              "if": {
-                "properties": {
-                  "properties": {
-                    "contains": {
-                      "properties": {
-                        "binding": {
-                          "properties": {
-                            "type": {
-                              "enum": [
-                                "kunpeng:formDefinition",
-                                "kunpeng:assignmentDefinition",
-                                "kunpeng:priorityDefinition",
-                                "kunpeng:taskSchedule"
-                              ]
-                            }
-                          },
-                          "required": [
-                            "type"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "binding"
-                      ]
-                    }
-                  }
-                },
-                "required": [
-                  "properties"
-                ]
-              },
-              "then": {
-                "properties": {
-                  "properties": {
-                    "contains": {
-                      "properties": {
-                        "binding": {
-                          "properties": {
-                            "type": {
-                              "const": "kunpeng:userTask"
-                            }
-                          },
-                          "required": [
                             "type"
                           ]
                         }
@@ -3810,17 +3674,17 @@
                         "oneOf": [
                           {
                             "contains": {
-                              "$ref": "#/definitions/template/allOf/1/allOf/11/$defs/timeDateProperty"
+                              "$ref": "#/definitions/template/allOf/1/allOf/9/$defs/timeDateProperty"
                             }
                           },
                           {
                             "contains": {
-                              "$ref": "#/definitions/template/allOf/1/allOf/11/$defs/timeCycleProperty"
+                              "$ref": "#/definitions/template/allOf/1/allOf/9/$defs/timeCycleProperty"
                             }
                           },
                           {
                             "contains": {
-                              "$ref": "#/definitions/template/allOf/1/allOf/11/$defs/timeDurationProperty"
+                              "$ref": "#/definitions/template/allOf/1/allOf/9/$defs/timeDurationProperty"
                             }
                           }
                         ]
@@ -3858,7 +3722,7 @@
                       "properties": {
                         "not": {
                           "contains": {
-                            "$ref": "#/definitions/template/allOf/1/allOf/11/$defs/timeCycleProperty"
+                            "$ref": "#/definitions/template/allOf/1/allOf/9/$defs/timeCycleProperty"
                           }
                         }
                       }

@@ -136,7 +136,6 @@ export function getPriorityDefinition(element) {
 }
 
 function isKunpengUserTask(element) {
-  const businessObject = getBusinessObject(element);
-
-  return is(element, 'bpmn:UserTask') && !!getExtensionElementsList(businessObject, 'kunpeng:UserTask')[0];
+  // 引擎只有一种用户任务（kunpeng:userTask 标记已拔除），用户任务即 kunpeng 用户任务
+  return is(element, 'bpmn:UserTask');
 }

@@ -375,18 +375,6 @@
       ]
     },
     {
-      "name": "UserTask",
-      "superClass": [
-        "Element"
-      ],
-      "meta": {
-        "allowedIn": [
-          "bpmn:UserTask"
-        ]
-      },
-      "properties": []
-    },
-    {
       "name": "CalledDecision",
       "superClass": [
         "Element"

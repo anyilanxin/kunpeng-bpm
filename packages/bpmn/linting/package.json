@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/linting",
-  "version": "2026.10.4",
+  "version": "2026.11.1",
   "description": "BPMN linting for @kunpeng-io/bpmn-js（XML 驱动 Linter 核心 + 画布 linting 集成模块，规则=@kunpeng-io/bpmnlint-plugin-kunpeng-compat）",
   "main": "./dist/index.js",
   "type": "module",

@@ -19,8 +19,6 @@ const FORM_ID_ALLOWED_VERSIONS = {
   web: '8.0'
 };
 
-const ZEEBE_USER_TASK_VERSION = '8.5';
-
 module.exports = skipInNonExecutableProcess(function({ modeler = 'desktop', version }) {
   function check(node, reporter) {
     if (!is(node, 'bpmn:UserTask')) {
@@ -30,26 +28,6 @@ module.exports = skipInNonExecutableProcess(function({ modeler = 'desktop', vers
     const formDefinition = findExtensionElement(node, 'kunpeng:FormDefinition');
 
     if (!formDefinition) {
-      return;
-    }
-
-    // handle Zebee User Task
-    if (isZeebeUserTask(node)) {
-
-      // handled by no-zeebe-user-task rule
-      if (!greaterOrEqual(version, ZEEBE_USER_TASK_VERSION)) {
-        return;
-      }
-
-      const errors = hasProperty(formDefinition, [
-        'externalReference',
-        'formId'
-      ], node) || [];
-
-      if (errors.length) {
-        reportErrors(node, reporter, errors);
-      }
-
       return;
     }
 
@@ -135,8 +113,4 @@ function findUserTaskForm(node, formKey) {
 
 function isFormIdAllowed(version, formIdAllowedVersion) {
   return greaterOrEqual(version, formIdAllowedVersion);
-}
-
-function isZeebeUserTask(node) {
-  return !!findExtensionElement(node, 'kunpeng:UserTask');
 }
