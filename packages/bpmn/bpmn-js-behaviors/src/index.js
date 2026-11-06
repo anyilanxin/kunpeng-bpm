@@ -35,7 +35,6 @@ export default {
     'cleanUpSubscriptionBehavior',
     'cleanUpTimerExpressionBehavior',
     'createKunpengCallActivityBehavior',
-    'createKunpengUserTaskBehavior',
     'formsBehavior',
     'removeAssignmentDefinitionBehavior',
     'removeTaskScheduleBehavior',

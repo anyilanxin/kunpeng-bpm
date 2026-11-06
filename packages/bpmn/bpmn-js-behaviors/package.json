@@ -1,6 +1,6 @@
 {
   "name": "@kunpeng-io/bpmn-js-behaviors",
-  "version": "2026.11.1",
+  "version": "2026.11.2",
   "description": "kunpeng 扩展缺省行为集（XML 卫生/建形补缺省）for @kunpeng-io/bpmn-js",
   "type": "module",
   "main": "src/index.js",
