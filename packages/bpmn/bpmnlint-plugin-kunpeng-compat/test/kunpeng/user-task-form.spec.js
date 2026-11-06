@@ -75,7 +75,7 @@ const valid = [
     `))
   },
   {
-    name: 'zeebe user task (form id)',
+    name: 'user task (form id, legacy user task marker) (Camunda 8.5)',
     config: { version: '8.5' },
     moddleElement: createModdle(createProcess(`
       <bpmn:userTask id="UserTask_1">
@@ -86,29 +86,6 @@ const valid = [
       </bpmn:userTask>
     `))
   },
-  {
-    name: 'zeebe user task (external reference)',
-    config: { version: '8.5' },
-    moddleElement: createModdle(createProcess(`
-      <bpmn:userTask id="UserTask_1">
-        <bpmn:extensionElements>
-          <kunpeng:userTask />
-          <kunpeng:formDefinition externalReference="customForm" />
-        </bpmn:extensionElements>
-      </bpmn:userTask>
-    `))
-  },
-  {
-    name: 'zeebe user task (prior to 8.5)',
-    config: { version: '8.4' },
-    moddleElement: createModdle(createProcess(`
-      <bpmn:userTask id="UserTask_1">
-        <bpmn:extensionElements>
-          <kunpeng:userTask />
-          <kunpeng:formDefinition />
-        </bpmn:extensionElements>
-      </bpmn:userTask>
-    `))
   }
 ];
 
@@ -344,7 +321,7 @@ const invalid = [
     }
   },
   {
-    name: 'zeebe user task (external reference and form ID) (Camunda 8.5)',
+    name: 'user task (no form key or form ID, legacy user task marker) (Camunda 8.5)',
     config: { version: '8.5' },
     moddleElement: createModdle(createProcess(`
       <bpmn:userTask id="UserTask_1">
@@ -356,7 +333,7 @@ const invalid = [
     `)),
     report: {
       id: 'UserTask_1',
-      message: 'Element of type <kunpeng:FormDefinition> must have property <externalReference> or <formId>',
+      message: 'Element of type <kunpeng:FormDefinition> must have property <formKey> or <formId>',
       path: [
         'extensionElements',
         'values',
@@ -367,14 +344,14 @@ const invalid = [
         node: 'kunpeng:FormDefinition',
         parentNode: 'UserTask_1',
         requiredProperty: [
-          'externalReference',
+          'formKey',
           'formId'
         ]
       }
     }
   },
   {
-    name: 'zeebe user task (empty external reference) (Camunda 8.5)',
+    name: 'user task (external reference only, legacy user task marker) (Camunda 8.5)',
     config: { version: '8.5' },
     moddleElement: createModdle(createProcess(`
       <bpmn:userTask id="UserTask_1">
@@ -386,7 +363,7 @@ const invalid = [
     `)),
     report: {
       id: 'UserTask_1',
-      message: 'Element of type <kunpeng:FormDefinition> must have property <externalReference> or <formId>',
+      message: 'Element of type <kunpeng:FormDefinition> must have property <formKey> or <formId>',
       path: [
         'extensionElements',
         'values',
@@ -397,14 +374,14 @@ const invalid = [
         node: 'kunpeng:FormDefinition',
         parentNode: 'UserTask_1',
         requiredProperty: [
-          'externalReference',
+          'formKey',
           'formId'
         ]
       }
     }
   },
   {
-    name: 'zeebe user task (empty form ID) (Camunda 8.5)',
+    name: 'user task (empty form ID, legacy user task marker) (Camunda 8.5)',
     config: { version: '8.5' },
     moddleElement: createModdle(createProcess(`
       <bpmn:userTask id="UserTask_1">
@@ -416,7 +393,7 @@ const invalid = [
     `)),
     report: {
       id: 'UserTask_1',
-      message: 'Element of type <kunpeng:FormDefinition> must have property <externalReference> or <formId>',
+      message: 'Element of type <kunpeng:FormDefinition> must have property <formKey> or <formId>',
       path: [
         'extensionElements',
         'values',
@@ -427,7 +404,7 @@ const invalid = [
         node: 'kunpeng:FormDefinition',
         parentNode: 'UserTask_1',
         requiredProperty: [
-          'externalReference',
+          'formKey',
           'formId'
         ]
       }

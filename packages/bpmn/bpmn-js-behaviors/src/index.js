@@ -7,7 +7,6 @@ import CleanUpTaskListenersBehavior from './CleanUpTaskListenersBehavior.js';
 import CleanUpSubscriptionBehavior from './CleanUpSubscriptionBehavior.js';
 import CleanUpTimerExpressionBehavior from './CleanUpTimerExpressionBehavior.js';
 import CreateKunpengCallActivityBehavior from './CreateKunpengCallActivityBehavior.js';
-import CreateKunpengUserTaskBehavior from './CreateKunpengUserTaskBehavior.js';
 import FormsBehavior from './FormsBehavior.js';
 import RemoveAssignmentDefinitionBehavior from './RemoveAssignmentDefinitionBehavior.js';
 import RemoveTaskScheduleBehavior from './RemoveTaskScheduleBehavior.js';
@@ -36,7 +35,6 @@ export default {
     'cleanUpSubscriptionBehavior',
     'cleanUpTimerExpressionBehavior',
     'createKunpengCallActivityBehavior',
-    'createKunpengUserTaskBehavior',
     'formsBehavior',
     'removeAssignmentDefinitionBehavior',
     'removeTaskScheduleBehavior',
@@ -52,7 +50,6 @@ export default {
   cleanUpSubscriptionBehavior: [ 'type', CleanUpSubscriptionBehavior ],
   cleanUpTimerExpressionBehavior: [ 'type', CleanUpTimerExpressionBehavior ],
   createKunpengCallActivityBehavior: [ 'type', CreateKunpengCallActivityBehavior ],
-  createKunpengUserTaskBehavior: [ 'type', CreateKunpengUserTaskBehavior ],
   formsBehavior: [ 'type', FormsBehavior ],
   removeAssignmentDefinitionBehavior: [ 'type', RemoveAssignmentDefinitionBehavior ],
   removeTaskScheduleBehavior: [ 'type', RemoveTaskScheduleBehavior ],

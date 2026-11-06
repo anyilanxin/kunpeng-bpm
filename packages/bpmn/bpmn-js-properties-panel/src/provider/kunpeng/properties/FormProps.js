@@ -34,7 +34,6 @@ import {
   getFormType,
   getRootElement,
   getUserTaskForm,
-  isKunpengUserTask,
   userTaskFormIdToFormKey
 } from '../utils/FormUtil';
 
@@ -124,7 +123,7 @@ function FormType(props) {
   };
 
   const getOptions = () => {
-    return getFormTypeOptions(translate, element);
+    return getFormTypeOptions(translate);
   };
 
   return SelectEntry({
@@ -151,20 +150,13 @@ function setFormType(injector, element, value) {
   }
 }
 
-function getFormTypeOptions(translate, element) {
-  if (isKunpengUserTask(element)) {
-    return [
-      { value: NONE_VALUE, label: translate('<none>') },
-      { value: FORM_TYPES.KUNPENG_FORM_LINKED, label: translate('Kunpeng Form') },
-      { value: FORM_TYPES.EXTERNAL_REFERENCE, label: translate('External form reference') }
-    ];
-  }
-
+function getFormTypeOptions(translate) {
+  // 引擎只有一种用户任务（kunpeng:userTask 标记已拔除）：表单类型统一为
+  // 无 / Kunpeng Form（formId）/ 外部表单引用（externalReference）
   return [
     { value: NONE_VALUE, label: translate('<none>') },
-    { value: FORM_TYPES.KUNPENG_FORM_LINKED, label: translate('Kunpeng Form (linked)') },
-    { value: FORM_TYPES.KUNPENG_FORM_EMBEDDED, label: translate('Kunpeng Form (embedded)') },
-    { value: FORM_TYPES.CUSTOM_FORM, label: translate('Custom form key') }
+    { value: FORM_TYPES.KUNPENG_FORM_LINKED, label: translate('Kunpeng Form') },
+    { value: FORM_TYPES.EXTERNAL_REFERENCE, label: translate('External form reference') }
   ];
 }
 

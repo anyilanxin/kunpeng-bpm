@@ -16,7 +16,6 @@ import { SignalPropertyBindingProvider } from './SignalPropertyBindingProvider';
 import { TimerPropertyBindingProvider } from './TimerPropertyBindingProvider';
 import { CalledElementBindingProvider } from './CalledElementBindingProvider';
 import LinkedResourcePropertyBindingProvider from './LinkedResourceProvider';
-import KunpengUserTaskBindingProvider from './KunpengUserTaskBindingProvider';
 import { CalledDecisionBindingProvider } from './CalledDecisionBindingProvider';
 import { ScriptTaskBindingProvider } from './ScriptTaskBindingProvider';
 import KunpengFormDefinitionBindingProvider from './FormDefinitionBindingProvider';
@@ -39,7 +38,6 @@ import {
   KUNNG_PROPERTY_TYPE,
   KUNPENG_CALLED_ELEMENT,
   KUNPENG_LINKED_RESOURCE_PROPERTY,
-  KUNPENG_USER_TASK,
   KUNPENG_CALLED_DECISION,
   KUNPENG_FORM_DEFINITION,
   KUNPENG_SCRIPT_TASK,
@@ -72,7 +70,6 @@ export default class TemplateElementFactory {
       [TIMER_EVENT_DEFINITION_PROPERTY_TYPE]: TimerPropertyBindingProvider,
       [KUNPENG_CALLED_ELEMENT]: CalledElementBindingProvider,
       [KUNPENG_LINKED_RESOURCE_PROPERTY]: LinkedResourcePropertyBindingProvider,
-      [KUNPENG_USER_TASK]: KunpengUserTaskBindingProvider,
       [KUNPENG_CALLED_DECISION]: CalledDecisionBindingProvider,
       [KUNPENG_FORM_DEFINITION]: KunpengFormDefinitionBindingProvider,
       [KUNPENG_SCRIPT_TASK]: ScriptTaskBindingProvider,

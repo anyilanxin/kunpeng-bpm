@@ -101,7 +101,6 @@ export function getFormType(element) {
 }
 
 export function isKunpengUserTask(element) {
-  const bo = getBusinessObject(element);
-
-  return getExtensionElementsList(bo, 'kunpeng:UserTask').length > 0;
+  // 引擎只有一种用户任务（kunpeng:userTask 标记已拔除），用户任务即 kunpeng 用户任务
+  return is(element, 'bpmn:UserTask');
 }

@@ -33,7 +33,6 @@ import {
   KUNPENG_CALLED_ELEMENT,
   KUNPENG_LINKED_RESOURCE_PROPERTY,
   KUNPENG_SCRIPT_TASK,
-  KUNPENG_USER_TASK,
   KUNPENG_FORM_DEFINITION,
   KUNPENG_ASSIGNMENT_DEFINITION,
   KUNPENG_PRIORITY_DEFINITION,
@@ -141,8 +140,6 @@ export default class ChangeElementTemplateHandler {
     this._updateCalledElement(element, oldTemplate, newTemplate);
 
     this._updateLinkedResources(element, oldTemplate, newTemplate);
-
-    this._updateKunpengUserTask(element, newTemplate);
 
     this._updateCalledDecision(element, oldTemplate, newTemplate);
 
@@ -1620,55 +1617,6 @@ export default class ChangeElementTemplateHandler {
       });
     });
   }
-
-  _updateKunpengUserTask = function (element, newTemplate) {
-    const commandStack = this._commandStack;
-    const bpmnFactory = this._bpmnFactory;
-
-    // check if template has kunpeng:userTask binding property
-    const hasBinding = newTemplate?.properties.some(
-      (property) => property.binding.type === KUNPENG_USER_TASK,
-    );
-
-    // check if element has kunpeng:UserTask extension element
-    const extensionElements =
-      getBusinessObject(element).get('extensionElements');
-    const userTaskExtension = findExtension(element, 'kunpeng:UserTask');
-
-    if (newTemplate && newTemplate.elementType?.value !== 'bpmn:UserTask') {
-      return;
-    }
-
-    // remove kunpeng:UserTask if no binding
-    if (userTaskExtension) {
-      !hasBinding &&
-        commandStack.execute('element.updateModdleProperties', {
-          element,
-          moddleElement: extensionElements,
-          properties: {
-            values: without(extensionElements.get('values'), userTaskExtension),
-          },
-        });
-
-      return;
-    }
-
-    if (!hasBinding) {
-      return;
-    }
-
-    // create new kunpeng:UserTask extension element
-    const zeebeUserTask = bpmnFactory.create('kunpeng:UserTask');
-    zeebeUserTask.$parent = extensionElements;
-
-    commandStack.execute('element.updateModdleProperties', {
-      element,
-      moddleElement: extensionElements,
-      properties: {
-        values: [...extensionElements.get('values'), zeebeUserTask],
-      },
-    });
-  };
 
   /**
    * @param {djs.model.Base} element

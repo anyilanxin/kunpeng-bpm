@@ -2,7 +2,9 @@ import { is, getBusinessObject } from '@kunpeng-io/bpmn-js';
 
 import {
   CheckboxEntry,
-  isCheckboxEntryEdited
+  isCheckboxEntryEdited,
+  NumberFieldEntry,
+  isNumberFieldEntryEdited
 } from '@kunpeng-io/properties-panel';
 
 import { getExtensionElementsList } from '../../../utils/ExtensionElementsUtil';
@@ -14,8 +16,9 @@ import { useService } from '../../../hooks';
  */
 
 /**
- * 加签配置（仅用户任务）：勾选即在 extensionElements 写入 kunpeng:AddSign
- * （声明即允许，首期无子属性；级联等配置属二期）。
+ * 加签配置（仅用户任务）：勾选即在 extensionElements 写入 kunpeng:AddSign（声明即允许）；
+ * 启用后可配 cascade（是否允许级联——加签任务能否再次加签）与 maxDepth（级联层数上限，仅 cascade
+ * 开启时有意义且必须 >=1，未开启时有效为 1=只能一级加签）。
  *
  * @returns {Array<Entry>} entries
  */
@@ -26,13 +29,27 @@ export function AddSignProps(props) {
     return [];
   }
 
-  return [
+  // 条目常驻注册、组件内按扩展存在性 null 门控：基座面板的分组条目按选中元素恒等
+  // 记忆，同元素 moddle 更新不重算条目列表，仅组件级重渲染能即时揭示后续条目
+  const entries = [
     {
       id: 'addSignEnabled',
       component: AddSignEnabled,
       isEdited: isCheckboxEntryEdited
+    },
+    {
+      id: 'addSignCascade',
+      component: AddSignCascade,
+      isEdited: isCheckboxEntryEdited
+    },
+    {
+      id: 'addSignMaxDepth',
+      component: AddSignMaxDepth,
+      isEdited: isNumberFieldEntryEdited
     }
   ];
+
+  return entries;
 }
 
 function AddSignEnabled(props) {
@@ -112,6 +129,88 @@ function AddSignEnabled(props) {
     label: translate('Allow add sign'),
     getValue,
     setValue
+  });
+}
+
+function AddSignCascade(props) {
+  const { element } = props;
+
+  const commandStack = useService('commandStack');
+  const translate = useService('translate');
+
+  if (!getAddSign(element)) {
+    return null;
+  }
+
+  const getValue = () => {
+    const addSign = getAddSign(element);
+
+    return addSign ? !!addSign.get('cascade') : false;
+  };
+
+  const setValue = (value) => {
+    const addSign = getAddSign(element);
+    if (!addSign) {
+      return;
+    }
+
+    commandStack.execute('element.updateModdleProperties', {
+      element,
+      moddleElement: addSign,
+      properties: { cascade: value }
+    });
+  };
+
+  return CheckboxEntry({
+    element,
+    id: 'addSignCascade',
+    label: translate('Allow cascade add sign'),
+    getValue,
+    setValue
+  });
+}
+
+function AddSignMaxDepth(props) {
+  const { element } = props;
+
+  const commandStack = useService('commandStack');
+  const debounce = useService('debounceInput');
+  const translate = useService('translate');
+
+  // maxDepth=级联层数上限，仅开启级联加签时有意义（未开启时有效为 1=只能一级加签，引擎解析期同样校验）
+  const addSign = getAddSign(element);
+  if (!addSign || !addSign.get('cascade')) {
+    return null;
+  }
+
+  const getValue = () => {
+    return addSign.get('maxDepth') ?? 1;
+  };
+
+  const setValue = (value) => {
+    commandStack.execute('element.updateModdleProperties', {
+      element,
+      moddleElement: addSign,
+      properties: { maxDepth: value }
+    });
+  };
+
+  const validate = (value) => {
+    if (value == null || value === '' || Number(value) < 1) {
+      return translate('Max depth must be >= 1');
+    }
+  };
+
+  return NumberFieldEntry({
+    element,
+    id: 'addSignMaxDepth',
+    label: translate('Add sign max depth'),
+    min: 1,
+    step: 1,
+    debounce,
+    getValue,
+    setValue,
+    validate
   });
 }
 

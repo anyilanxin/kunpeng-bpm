@@ -26,7 +26,6 @@ import {
   KUNPENG_TASK_HEADER_TYPE,
   KUNPENG_CALLED_ELEMENT,
   KUNPENG_LINKED_RESOURCE_PROPERTY,
-  KUNPENG_USER_TASK,
   KUNPENG_CALLED_DECISION,
   KUNPENG_FORM_DEFINITION,
   KUNPENG_SCRIPT_TASK,
@@ -267,12 +266,6 @@ function getRawPropertyValue(element, property) {
     return linkedResource ? linkedResource.get(bindingProperty) : defaultValue;
   }
 
-  // kunpeng:userTask
-  if (type === KUNPENG_USER_TASK) {
-    const userTask = findExtension(businessObject, 'kunpeng:userTask');
-
-    return userTask ? userTask.get(bindingProperty) : defaultValue;
-  }
 
   // kunpeng:calledDecision
   if (type === KUNPENG_CALLED_DECISION) {

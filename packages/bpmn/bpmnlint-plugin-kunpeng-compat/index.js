@@ -29,7 +29,6 @@ const camundaCloud10Rules = withConfig({
   'no-template': 'error',
   'no-version-tag': 'error',
   'no-zeebe-properties': 'error',
-  'no-zeebe-user-task': 'error',
   'sequence-flow-condition': 'error',
   'start-event-form': 'error',
   'subscription': 'error',
@@ -82,8 +81,7 @@ const camundaCloud84Rules = withConfig(
 
 const camundaCloud85Rules = withConfig({
   ...omit(camundaCloud83Rules, [
-    'collapsed-subprocess',
-    'no-zeebe-user-task'
+    'collapsed-subprocess'
   ]),
   'wait-for-completion': 'error'
 }, { version: '8.5' });
@@ -101,7 +99,6 @@ const camundaCloud86Rules = withConfig({
   'no-before-all-execution-listener': 'error',
   'priority-definition': 'error',
   'version-tag': 'error',
-  'zeebe-user-task': 'warn',
 }, { version: '8.6' });
 
 const camundaCloud87Rules = withConfig({
@@ -188,9 +185,7 @@ const rules = {
   'no-template': './rules/kunpeng/no-template',
   'no-version-tag': './rules/kunpeng/no-version-tag',
   'no-zeebe-properties': './rules/kunpeng/no-zeebe-properties',
-  'no-zeebe-user-task': './rules/kunpeng/no-zeebe-user-task',
   'priority-definition': './rules/kunpeng/priority-definition',
-  'zeebe-user-task': './rules/kunpeng/zeebe-user-task',
   'secrets': './rules/kunpeng/secrets',
   'sequence-flow-condition': './rules/kunpeng/sequence-flow-condition',
   'signal-reference': './rules/kunpeng/signal-reference',

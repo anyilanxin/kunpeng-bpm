@@ -3,7 +3,6 @@ import { isUndefined, without } from 'min-dash';
 import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor.js';
 
 import { createElement } from './util/ElementUtil.js';
-import { getExtensionElementsList } from './util/ExtensionElementsUtil.js';
 
 import { is } from '@kunpeng-io/bpmn-js';
 
@@ -230,13 +229,13 @@ export default class FormsBehavior extends CommandInterceptor {
   _registerKunpengUserTaskSupport() {
 
     /**
-     * Handle `formKey` for `kunpeng:UserTask`.
+     * Handle `formKey` for user tasks（引擎只有一种用户任务，kunpeng:userTask 标记已拔除）.
      * 1. Remove if embedded form is used.
      * 2. Convert to externalReference if custom form key.
      */
     this.postExecute('element.updateModdleProperties', ({ element }) => {
 
-      if (!is(element, 'bpmn:UserTask') || !hasKunpengUserTask(element)) {
+      if (!is(element, 'bpmn:UserTask')) {
         return;
       }
 
@@ -260,33 +259,6 @@ export default class FormsBehavior extends CommandInterceptor {
         });
       }
     }, true);
-
-    /**
-     * Replace `externalReference` with `formKey` for non-`kunpeng:UserTask`.
-     */
-    this.postExecute('element.updateModdleProperties', ({ element }) => {
-
-      if (!is(element, 'bpmn:UserTask') || hasKunpengUserTask(element)) {
-        return;
-      }
-
-      const formDefinition = getFormDefinition(element);
-
-      if (!formDefinition) {
-        return;
-      }
-
-      const externalReference = formDefinition.get('externalReference');
-
-      if (isUndefined(externalReference)) {
-        return;
-      }
-
-      this._modeling.updateModdleProperties(element, formDefinition, {
-        externalReference: undefined,
-        formKey: externalReference
-      });
-    }, true);
   }
 }
 
@@ -309,8 +281,4 @@ function isExtensionElementRemoved(context, type) {
     && 'values' in properties
     && oldProperties.values.find(value => is(value, type))
     && !properties.values.find(value => is(value, type));
-}
-
-function hasKunpengUserTask(userTask) {
-  return getExtensionElementsList(userTask, 'kunpeng:UserTask').length;
 }

@@ -375,18 +375,6 @@
       ]
     },
     {
-      "name": "UserTask",
-      "superClass": [
-        "Element"
-      ],
-      "meta": {
-        "allowedIn": [
-          "bpmn:UserTask"
-        ]
-      },
-      "properties": []
-    },
-    {
       "name": "CalledDecision",
       "superClass": [
         "Element"
@@ -447,7 +435,19 @@
           "bpmn:UserTask"
         ]
       },
-      "properties": []
+      "properties": [
+        {
+          "name": "cascade",
+          "type": "Boolean",
+          "isAttr": true
+        },
+        {
+          "name": "maxDepth",
+          "type": "Integer",
+          "isAttr": true,
+          "default": 1
+        }
+      ]
     },
     {
       "name": "PriorityDefinition",

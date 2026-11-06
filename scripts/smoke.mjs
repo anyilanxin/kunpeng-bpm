@@ -489,19 +489,28 @@ console.log('dmn-js smoke ok：ESM/CJS 导出、需求连线端点对级矩阵�
 const behaviorsModule = (await import('../packages/bpmn/bpmn-js-behaviors/src/index.js')).default;
 if (
   !Array.isArray(behaviorsModule.__init__) ||
-  behaviorsModule.__init__.length !== 15 ||
-  !behaviorsModule.__init__.includes('createKunpengUserTaskBehavior') ||
+  behaviorsModule.__init__.length !== 14 ||
+  !behaviorsModule.__init__.includes('createKunpengCallActivityBehavior') ||
   !behaviorsModule.__init__.includes('formsBehavior')
 ) {
-  console.error('bpmn-js-behaviors 模块形态异常（期望 15 个行为服务）');
+  console.error('bpmn-js-behaviors 模块形态异常（期望 14 个行为服务）');
   process.exit(1);
 }
-// 移植裁决落位：CopyPaste/DeleteParticipant 两个死行为不得回流注册
+// 防悬空（2026-11-06 事故回归锁）：__init__ 里的名字必须有对应注册，
+// 否则 didi 启动期 No provider 崩溃（删注册必须连 __init__ 一起删）
+const danglingInit = behaviorsModule.__init__.filter((name) => !(name in behaviorsModule));
+if (danglingInit.length) {
+  console.error(`bpmn-js-behaviors __init__ 悬空引用：${danglingInit.join(', ')}`);
+  process.exit(1);
+}
+// 移植裁决落位：CopyPaste/DeleteParticipant 两个死行为不得回流注册；
+// createKunpengUserTaskBehavior 已随 kunpeng:userTask 标记拔除（引擎只有一种用户任务）
 if (
   behaviorsModule.__init__.includes('copyPasteBehavior') ||
-  behaviorsModule.__init__.includes('deleteParticipantBehaviour')
+  behaviorsModule.__init__.includes('deleteParticipantBehaviour') ||
+  behaviorsModule.__init__.includes('createKunpengUserTaskBehavior')
 ) {
   console.error('bpmn-js-behaviors 含已裁决删除的行为注册');
   process.exit(1);
 }
-console.log('bpmn-js-behaviors smoke ok：源码直出 ESM 导入、15 行为装载（CopyPaste/DeleteParticipant 已按裁决移除）');
+console.log('bpmn-js-behaviors smoke ok：源码直出 ESM 导入、14 行为装载（CopyPaste/DeleteParticipant/CreateKunpengUserTask 已按裁决移除、__init__ 零悬空）');
