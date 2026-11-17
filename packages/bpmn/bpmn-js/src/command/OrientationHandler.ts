@@ -34,7 +34,13 @@
  *     元素在交叉轴上的另一维尺寸（任务宽 116），发生差量的矩形重叠
  *     ——对"转置前不相交、转置后相交"的同容器流节点沿交叉轴推开（详见
  *     spreadOverlaps），容器端随内容扩展；
+ *  3.6 流向轴间隙下限：转置保持位置间隔但不换尺寸——普通元素宽高不变，
+ *     旧流向轴的边到边间隙映射到新流向轴后要容纳的是另一维尺寸（任务高
+ *     78 → 转置后沿流向占宽 116），差量把间隙吃到个位数像素，布线只能出
+ *     7px 级残肢肘；沿流向推开到最小间隙（详见 spreadFlowGaps）；
  *  4. 全部连线强制重新布线（空 waypoints → 布线器 → 端点裁剪）；
+ *  4.5 外部标签重定位：布线后按 LabelGeometry 派生（连线=折线半程点、
+ *     形状=形心正下方）整体重摆——转置只搬旧位置，与新走线无关联可讲；
  *  5. 重锚定：整体平移到固定种子锚位 (159,159)（与空图种子一致）——
  *     锚位不依赖视口，连续切换不漂移；居中观感由视口适配承担；
  *  6. 适配视口（按元素新几何直算，不读图层 bbox 缓存——缓存失效要等
@@ -47,8 +53,10 @@
 import type CommandHandler from 'diagram-js/lib/command/CommandHandler';
 import type Canvas from 'diagram-js/lib/core/Canvas';
 import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
+import type TextUtil from 'diagram-js/lib/util/Text';
 import type { OrientationService, ModelOrientation } from '../meta/Orientation';
 import { SIZES, isSubProcessFamily } from '../meta/ElementTypes';
+import { absoluteLabelBox } from '../label/LabelGeometry';
 import { refitLaneBands } from '../util/PoolGeometry';
 import { applyRect, snapshotWaypoints } from '@kunpeng-io/kernel-shared';
 
@@ -61,14 +69,35 @@ function isTransposingContainer(element: any): boolean {
   return isSubProcessFamily(type) && element.isExpanded !== false;
 }
 
+/**
+ * 切换前航点形态 → 转置后应共中的轴：水平直线（全点同 y）转置为竖直走
+ * 线，恢复直线需对齐 x 中心；垂直直线（全点同 x）转置为水平走线，对齐
+ * y 中心；非轴向折线返回 null（弯折是用户既有布局，不动）。
+ */
+function straightAlignAxis(waypoints: { x: number; y: number }[] | undefined): 'x' | 'y' | null {
+  if (!waypoints || waypoints.length < 2) {
+    return null;
+  }
+  const sameY = waypoints.every((point) => Math.abs(point.y - waypoints[0].y) < 1);
+  const sameX = waypoints.every((point) => Math.abs(point.x - waypoints[0].x) < 1);
+  if (sameY && !sameX) {
+    return 'x';
+  }
+  if (sameX && !sameY) {
+    return 'y';
+  }
+  return null;
+}
+
 export class OrientationHandler implements CommandHandler {
-  static $inject = ['canvas', 'elementRegistry', 'layouter', 'connectionDocking', 'orientationService'];
+  static $inject = ['canvas', 'elementRegistry', 'layouter', 'connectionDocking', 'textRenderer', 'orientationService'];
 
   constructor(
     private readonly canvas: Canvas,
     private readonly elementRegistry: ElementRegistry,
     private readonly layouter: any,
     private readonly connectionDocking: any,
+    private readonly textUtil: TextUtil,
     private readonly orientationService: OrientationService
   ) {}
 
@@ -83,6 +112,12 @@ export class OrientationHandler implements CommandHandler {
 
   /** 容器随内容扩展的边距：与池收编（CollaborationBehavior）边距同值，两处观感一致 */
   private static readonly REFIT_PAD = 40;
+
+  /**
+   * 链式相连元素的流向轴最小边到边边距（自有取值：任务-事件链转置后的
+   * 观感呼吸量，大于布线器对齐容差 8 级别，残肢肘无生成空间）
+   */
+  private static readonly FLOW_GAP = 40;
 
   execute(context: any): any[] {
     const orientation = context.orientation as ModelOrientation;
@@ -117,11 +152,14 @@ export class OrientationHandler implements CommandHandler {
       }
     });
 
-    // 3. 共线拉直（基于转置前快照判定"原本共线"）
-    this.straightenColinearLinks(context);
+    // 3. 共线拉直（基于转置前航点判定"原本直线"——主流向链与交叉向支路两类）
+    this.straightenColinearLinks();
 
     // 3.5 交叉轴间距展开（转置引入的重叠消解 + 容器随内容扩展）
     this.spreadOverlaps(context);
+
+    // 3.6 流向轴间隙下限（转置尺寸差吃掉链间距的消解）
+    this.spreadFlowGaps(context);
 
     // 4. 全部连线强制重布线 + 端点裁剪
     const connections = this.elementRegistry.filter((e: any) => !!e.waypoints);
@@ -137,6 +175,9 @@ export class OrientationHandler implements CommandHandler {
       });
       connection.waypoints = this.connectionDocking.getCroppedWaypoints(connection, connection.source, connection.target);
     });
+
+    // 4.5 外部标签按新几何整体重摆（旧位置随转置平移，与新走线已无对应关系）
+    this.replaceLabelGeometry();
 
     // 5. 重锚定（平移到固定种子锚位，见 reAnchorContent 说明）
     this.reAnchorContent(context);
@@ -387,28 +428,17 @@ export class OrientationHandler implements CommandHandler {
   }
 
   /**
-   * 共线拉直："原共线" = 源与目标在旧主流向轴上中心一致（连线为直线）。
-   * 转置把该共享中心近似映射到新横轴——等宽元素保持对齐，异宽元素产生
-   * 半尺寸差偏移使新连线弯折。把目标横轴中心对齐源即恢复直线（目标的外
-   * 部标签随宿主同轴平移）；按链序处理使链收敛于头元素。定界扫描：注
-   * 册表序不必是链序，扫到不动点为止。
+   * 共线拉直："原直线" = 切换前航点共轴（水平直线全点同 y / 垂直直线全点
+   * 同 x）。转置是位置镜像而普通元素尺寸不换，共享中心按"坐标+半尺寸"
+   * 映射到新轴——等尺寸元素保持对齐，异尺寸元素（网关 52 对任务 116）
+   * 产生半尺寸差偏移使新连线弯折。恢复直线 = 把目标在"新走线的横轴"上
+   * 对齐源：旧水平直线转置为竖直走线对齐 x 中心，旧垂直直线转置为水平
+   * 走线对齐 y 中心——两类都要处理，只拉主流向链会留下交叉向支路的错
+   * 位弯（2026-11-17 用户报障形态之一）。目标的外部标签随宿主同轴平
+   * 移；按链序处理使链收敛于头元素。定界扫描：注册表序不必是链序，扫
+   * 到不动点为止。
    */
-  private straightenColinearLinks(context: any): void {
-    const wasHorizontal = context.oldOrientation !== 'vertical';
-    const stateOf = this.stateIndexOf(context.shapeStates);
-
-    const oldMainCenter = (element: any): number => {
-      const state = stateOf.get(element);
-      if (!state) {
-        return NaN;
-      }
-      return wasHorizontal ? state.y + state.height / 2 : state.x + state.width / 2;
-    };
-
-    // 新朝向下直线连线所共中的横轴
-    const crossKey: 'x' | 'y' = this.orientationService.isHorizontal() ? 'y' : 'x';
-    const sizeKey = crossKey === 'x' ? 'width' : 'height';
-
+  private straightenColinearLinks(): void {
     const flows = this.elementRegistry.filter(
       (e: any) => !!e.waypoints && e.businessObject?.$type === 'bpmn:SequenceFlow'
     );
@@ -423,21 +453,111 @@ export class OrientationHandler implements CommandHandler {
         if (!source || !target) {
           return;
         }
-        // 只处理切换前为直线的连线（扇形弯折保持原样）
-        if (Math.abs(oldMainCenter(source) - oldMainCenter(target)) >= 1) {
+        // 只处理切换前为轴向直线的连线（扇形弯折保持原样）；航点此刻仍是
+        // 导入原值（重布线在后），可作切换前形态的判据
+        const alignKey = straightAlignAxis(flow.waypoints);
+        if (!alignKey) {
           return;
         }
-        const delta = source[crossKey] + source[sizeKey] / 2 - (target[crossKey] + target[sizeKey] / 2);
+        const sizeKey = alignKey === 'x' ? 'width' : 'height';
+        const delta = source[alignKey] + source[sizeKey] / 2 - (target[alignKey] + target[sizeKey] / 2);
         if (Math.abs(delta) < 1) {
           return;
         }
-        target[crossKey] += delta;
+        target[alignKey] += delta;
         (target.labels ?? []).forEach((label: any) => {
-          label[crossKey] += delta;
+          label[alignKey] += delta;
         });
         moved = true;
       });
     }
+  }
+
+  /**
+   * 流向轴间隙下限：转置的位置间隔 = 旧轴坐标间隔，但普通元素尺寸不换
+   * ——任务 116×78 的旧竖直链按高 78 排出 ~50 边距，转置后沿新流向占的
+   * 却是宽 116，差量把边到边间隙吃到个位数像素，布线只能出 7px 级残肢
+   * 肘（2026-11-17 用户报障"布局乱"的退化四点形态）。仅整理"切换前为
+   * 轴向直线"的链：两端在新流向轴（转置后中心分离更大的轴）上顺序相
+   * 邻、横轴交叠（链堆叠而非并排扇形）且边距不足时，把目标沿流向推开
+   * 到最小边距（外部标签/挂靠形状随宿主同移；已达标或反向越过的推齐
+   * 不回收——用户既有布局不倒退）。定界扫描同共线拉直：推移中间节点
+   * 后与下游的间隙在后续轮次补齐。
+   */
+  private spreadFlowGaps(context: any): void {
+    const clear = OrientationHandler.FLOW_GAP;
+    const flows = this.elementRegistry.filter(
+      (e: any) => !!e.waypoints && e.businessObject?.$type === 'bpmn:SequenceFlow'
+    );
+
+    let moved = true;
+    let pass = 0;
+    while (moved && pass <= flows.length) {
+      moved = false;
+      pass++;
+      flows.forEach((flow: any) => {
+        const { source, target } = flow;
+        if (!source || !target) {
+          return;
+        }
+        if (!straightAlignAxis(flow.waypoints)) {
+          return;
+        }
+        // 新流向轴：转置后两端中心分离更大的轴；横轴 = 另一轴
+        const dx = target.x + target.width / 2 - (source.x + source.width / 2);
+        const dy = target.y + target.height / 2 - (source.y + source.height / 2);
+        const flowKey: 'x' | 'y' = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+        const sizeKey = flowKey === 'x' ? 'width' : 'height';
+        const crossKey = flowKey === 'x' ? 'y' : 'x';
+        const crossSizeKey = flowKey === 'x' ? 'height' : 'width';
+        // 横轴不交叠 = 并排扇形支路，不是链堆叠，不动
+        const crossOverlap =
+          Math.min(source[crossKey] + source[crossSizeKey], target[crossKey] + target[crossSizeKey]) -
+          Math.max(source[crossKey], target[crossKey]);
+        if (crossOverlap <= 1) {
+          return;
+        }
+        const forward = target[flowKey] + target[sizeKey] / 2 - (source[flowKey] + source[sizeKey] / 2);
+        const desired =
+          forward >= 0
+            ? source[flowKey] + source[sizeKey] + clear
+            : source[flowKey] - clear - target[sizeKey];
+        const delta = desired - target[flowKey];
+        if (delta === 0 || (forward >= 0) !== (delta > 0)) {
+          return;
+        }
+        target[flowKey] = desired;
+        (target.labels ?? []).forEach((label: any) => {
+          label[flowKey] += delta;
+        });
+        (target.attachers ?? []).forEach((attacher: any) => {
+          attacher[flowKey] += delta;
+        });
+        moved = true;
+      });
+    }
+
+    this.refitContainers(context);
+  }
+
+  /**
+   * 外部标签整体重摆：重布线后走线全变，标签旧位置（转置平移而来）与
+   * 新走线已无对应关系（2026-11-17 用户报障"连线 label 没有跟着走"）。
+   * 按 LabelGeometry 默认派生重摆——连线=折线半程点、形状=形心正下方，
+   * 与导入建图同一几何来源；隐藏标签（空文本）无几何可讲维持原样。
+   */
+  private replaceLabelGeometry(): void {
+    this.elementRegistry.forEach((label: any) => {
+      if (!label.labelTarget || label.hidden) {
+        return;
+      }
+      const host = label.labelTarget;
+      const box = absoluteLabelBox(this.textUtil, host, host.businessObject?.name);
+      label.x = box.x;
+      label.y = box.y;
+      label.width = box.width;
+      label.height = box.height;
+    });
   }
 
   /**

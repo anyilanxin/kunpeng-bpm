@@ -133,19 +133,28 @@ export class BpmnLayouter extends BaseLayouter {
     // 是分叉节点，追加链沿交叉轴单向堆叠（见 AutoPlacementBehavior），L 形
     // 让每条分支的主干清晰散开；水平肘 Z 形会在网关右侧把多分支挤成一束。
     // 末端锚固定取面向源的一侧中点（W/N）：L 末段是水平/垂直入线，锚与
-    // 入线轴必须一致
+    // 入线轴必须一致。
+    // 例外：共轴正对（对齐差 < 容差）时取 0 折直段——转角数最少是布线器
+    // 第一原则，对齐直连不应被扇形策略翻成 1 折入顶（2026-11-17 朝向切
+    // 换后原直链变 L 形错位弯的根因之一）
     const isGateway = isGatewayFamily(source.businessObject?.$type);
     if (isGateway) {
       if (horizontal) {
         const west = { x: t.x, y: t.y + t.height / 2 };
         if (west.y >= s.y + s.height) {
           const south = { x: s.x + s.width / 2, y: s.y + s.height };
+          if (Math.abs(t.x + t.width / 2 - (s.x + s.width / 2)) < ALIGN_TOLERANCE) {
+            return [south, { x: south.x, y: west.y }];
+          }
           return [south, { x: south.x, y: west.y }, west];
         }
       } else {
         const north = { x: t.x + t.width / 2, y: t.y };
         if (north.x >= s.x + s.width) {
           const east = { x: s.x + s.width, y: s.y + s.height / 2 };
+          if (Math.abs(t.y + t.height / 2 - (s.y + s.height / 2)) < ALIGN_TOLERANCE) {
+            return [east, { x: t.x, y: east.y }];
+          }
           return [east, { x: north.x, y: east.y }, north];
         }
       }
