@@ -136,8 +136,10 @@ export const PlatformModules: ModuleDeclaration[] = [
 /** DMN 核心：类型表/工厂/渲染/词典/模式/下钻（三形态恒装）+ 下钻视图三模块
  * （2026-10-27 用户裁定恒装：决策表/字面/boxed 各为内部插件模块，经
  * __depends__ 装配，DmnViews 注册表承接分派） */
-/** translate 工厂（$inject 显式注解版，防宿主 minify 改形参名） */
-const dmnTranslateFactory = (dmnI18n: { t(s: string): string }) => (text: string) => dmnI18n.t(text);
+/** translate 工厂（$inject 显式注解版，防宿主 minify 改形参名）。委托 dmnI18n.t
+ *  （词典查询 + {token} 占位替换一体，与 bpmn 线 translate 同语义） */
+const dmnTranslateFactory = (dmnI18n: { t(s: string, params?: Record<string, string>): string }) =>
+  (text: string, replace?: Record<string, string>) => dmnI18n.t(text, replace);
 dmnTranslateFactory.$inject = ['dmnI18n'];
 
 export const DmnCoreModule: ModuleDeclaration = {

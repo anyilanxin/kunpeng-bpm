@@ -145,7 +145,7 @@ export class BpmnPaletteProvider {
         html: bpmnEntryHtml(meta, 26, this.elementTypes.iconFillOf(meta)),
         title: isPlainIntermediate
           ? this.i18n.t('创建中间/边界事件（拖到活动上为边界事件）')
-          : this.i18n.t(`创建${meta.label}`),
+          : this.i18n.t('创建{label}', { label: this.i18n.t(meta.label) }),
         action: {
           click: (event: any) => this.startCreate(event, meta),
           dragstart: (event: any) => this.startCreate(event, meta)

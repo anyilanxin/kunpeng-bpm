@@ -36,9 +36,10 @@ export function createTitleBar(opts: {
   modeling: DmnModeling;
   rerender: () => void;
   cancelEdit: () => void;
+  t: (text: string, params?: Record<string, string>) => string;
 }) {
   const h = createElement;
-  const { table, decisionBo, edit, modeling, rerender, cancelEdit } = opts;
+  const { table, decisionBo, edit, modeling, rerender, cancelEdit, t } = opts;
 
   const PropertiesBar = () => {
     const name = decisionBo?.get('name') ?? '';
@@ -66,7 +67,7 @@ export function createTitleBar(opts: {
     return h('div', { class: 'decision-table-properties' }, [
       nameEl,
       h('div', { class: 'decision-table-header-separator' }),
-      h('div', { class: 'hit-policy header', title: entry.explanation }, [
+      h('div', { class: 'hit-policy header', title: t(entry.explanation) }, [
         h('label', { class: 'dms-label' }, 'Hit policy:'),
         h('div', { class: 'hit-policy-edit-policy-select dms-input-select' }, [
           h('div', {
@@ -93,7 +94,7 @@ export function createTitleBar(opts: {
       const option = document.createElement('div');
       option.className = 'option' + (p.value === current ? ' active' : '');
       option.textContent = p.label;
-      option.title = p.explanation;
+      option.title = t(p.explanation);
       option.addEventListener('click', (e) => {
         e.preventDefault();
         menu.remove();

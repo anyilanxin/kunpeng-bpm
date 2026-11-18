@@ -29,4 +29,6 @@ export interface EditorDeps {
   modeling: DmnModeling;
   /** 图侧事件总线（table-js 视图监听 commandStack.changed 重建） */
   eventBus: any;
+  /** 词典查询（dmnI18n 同源，支持 {token} 占位）——视图层 UI 文案统一走此通道 */
+  t: (text: string, params?: Record<string, string>) => string;
 }

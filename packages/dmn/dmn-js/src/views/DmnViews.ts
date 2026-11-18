@@ -44,7 +44,7 @@ export interface ViewProvider {
 }
 
 export class DmnViews {
-  static $inject = ['eventBus', 'canvas', 'dmnFactory', 'injector'];
+  static $inject = ['eventBus', 'canvas', 'dmnFactory', 'dmnI18n', 'injector'];
 
   private layer: HTMLElement | null = null;
   private currentElement: any = null;
@@ -56,6 +56,7 @@ export class DmnViews {
     private readonly eventBus: EventBus,
     private readonly canvas: Canvas,
     private readonly factory: DmnFactory,
+    private readonly dmnI18n: { t(text: string, params?: Record<string, string>): string },
     injector: any
   ) {
     // 非严格解析：Viewer/NavigatedViewer 只读底座无 modeling（编辑服务不进
@@ -86,7 +87,8 @@ export class DmnViews {
       views: this,
       factory: this.factory,
       modeling: this.modeling as DmnModeling,
-      eventBus: this.eventBus
+      eventBus: this.eventBus,
+      t: (text: string, params?: Record<string, string>) => this.dmnI18n.t(text, params)
     });
     return true;
   }

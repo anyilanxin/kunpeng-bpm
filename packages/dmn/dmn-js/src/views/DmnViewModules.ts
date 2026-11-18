@@ -51,7 +51,7 @@ class DecisionTableProvider {
         let tableView: { rebuild: () => void; destroy: () => void } | null = mountDecisionTable(
           host,
           bo.decisionLogic,
-          { factory: ctx.factory, modeling: ctx.modeling, eventBus: ctx.eventBus }
+          { factory: ctx.factory, modeling: ctx.modeling, eventBus: ctx.eventBus, t: ctx.t }
         );
         const onClosed = (): void => {
           tableView?.destroy();

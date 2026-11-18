@@ -35,9 +35,10 @@ export function createBodyCell(opts: {
   commands: TableCommands;
   getColSpecs: () => ColSpec[];
   cancelEdit: () => void;
+  t: (text: string, params?: Record<string, string>) => string;
 }) {
   const h = createElement;
-  const { instance, edit, commands, getColSpecs, cancelEdit } = opts;
+  const { instance, edit, commands, getColSpecs, cancelEdit, t } = opts;
 
   return function bodyCell(cell: any, colIndex: number): any {
     const spec = getColSpecs()[colIndex];
@@ -55,7 +56,7 @@ export function createBodyCell(opts: {
         h('button', {
           class: 'rule-index-remove',
           type: 'button',
-          title: '删除规则',
+          title: t('删除规则'),
           onClick: (e: MouseEvent) => {
             e.preventDefault();
             e.stopPropagation();

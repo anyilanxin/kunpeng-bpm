@@ -81,7 +81,9 @@ export class BpmnReplaceMenuProvider {
                 !(r.laneSets ?? []).some((ls: any) => (ls.lanes ?? []).length);
               const existing = (definitions.rootElements ?? []).find(isEmptyProcess);
               const process = existing
-                ?? this.bpmnFactory.createProcess({ name: `流程 ${this.documentState.processes().length + 1}` });
+                ?? this.bpmnFactory.createProcess({
+                  name: this.i18n.t('流程 {n}', { n: String(this.documentState.processes().length + 1) })
+                });
               if (!existing) {
                 definitions.rootElements.push(process);
               }

@@ -29,7 +29,8 @@ import { COL_WIDTHS, MIN_COL_WIDTH, INDEX_COL_WIDTH, DEFAULT_COL_WIDTH, type Col
 export function createColumnTools(
   container: HTMLElement,
   getColSpecs: () => ColSpec[],
-  rerender: () => void
+  rerender: () => void,
+  t: (text: string, params?: Record<string, string>) => string
 ) {
   const h = createElement;
 
@@ -38,7 +39,7 @@ export function createColumnTools(
 
   const resizeHandleVdom = (spec: ColSpec): any => h('div', {
     class: 'tjs-colresize',
-    title: '拖拽调整列宽',
+    title: t('拖拽调整列宽'),
     onPointerdown: (e: PointerEvent) => startColumnDrag(e, spec)
   }, null);
 

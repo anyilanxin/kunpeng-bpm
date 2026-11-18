@@ -103,7 +103,7 @@ export class BpmnContextPadProvider {
       entries['lane-add-before'] = {
         group: 'lane-insert-above',
         html: toolEntryHtml('lane-insert-above', 18, this.elementTypes.toolFillOf('lane-insert-above')),
-        title: this.i18n.t(`${beforeLabel}添加泳道`),
+        title: this.i18n.t('{direction}添加泳道', { direction: this.i18n.t(beforeLabel) }),
         action: { click: () => this.modeling.addLane(element, 'top') }
       };
       // 分割钮仅初始无道池（2026-11-18 用户终定规：只在初始添加泳道时出现，
@@ -127,7 +127,7 @@ export class BpmnContextPadProvider {
       entries['lane-add-after'] = {
         group: 'lane-insert-below',
         html: toolEntryHtml('lane-insert-below', 18, this.elementTypes.toolFillOf('lane-insert-below')),
-        title: this.i18n.t(`${afterLabel}添加泳道`),
+        title: this.i18n.t('{direction}添加泳道', { direction: this.i18n.t(afterLabel) }),
         action: { click: () => this.modeling.addLane(element, 'bottom') }
       };
     }

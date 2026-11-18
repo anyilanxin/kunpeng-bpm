@@ -51,13 +51,14 @@ function badgeSvg(type: string): string {
 }
 
 export class DrillBadgeBehavior {
-  static $inject = ['eventBus', 'overlays', 'elementRegistry', 'dmnViews'];
+  static $inject = ['eventBus', 'overlays', 'elementRegistry', 'dmnViews', 'dmnI18n'];
 
   constructor(
     eventBus: EventBus,
     private readonly overlays: Overlays,
     private readonly elementRegistry: ElementRegistry,
-    private readonly views: DmnViews
+    private readonly views: DmnViews,
+    private readonly dmnI18n: { t(text: string, params?: Record<string, string>): string }
   ) {
     eventBus.on('import.done', () => {
       for (const element of this.elementRegistry.getAll()) {
@@ -91,7 +92,7 @@ export class DrillBadgeBehavior {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'dmn-drill-badge';
-    button.title = `编辑${shapeMetaOf(type)?.label ?? '元素'}`;
+    button.title = this.dmnI18n.t('编辑{label}', { label: this.dmnI18n.t(shapeMetaOf(type)?.label ?? '元素') });
     button.innerHTML = badgeSvg(type);
     button.addEventListener('click', (event) => {
       event.stopPropagation();

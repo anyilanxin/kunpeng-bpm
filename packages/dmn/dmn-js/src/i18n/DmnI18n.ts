@@ -21,6 +21,7 @@
  */
 /**
  * 词典服务（默认 zh-CN 透传）。插件可整体替换（覆盖 `dmnI18n`）实现任意语言/文案。
+ * t 第二参支持 `{token}` 占位替换（查词典后按 params 替换，未命中 token 原样保留）。
  */
 export class DmnI18n {
   static $inject = ['config.dmnI18n'];
@@ -31,7 +32,11 @@ export class DmnI18n {
     this.dict = { ...overrides };
   }
 
-  t(text: string): string {
-    return this.dict[text] ?? text;
+  t(text: string, params?: Record<string, string>): string {
+    let translated = this.dict[text] ?? text;
+    if (params) {
+      translated = translated.replace(/\{(\w+)\}/g, (match, key) => params[key] ?? match);
+    }
+    return translated;
   }
 }

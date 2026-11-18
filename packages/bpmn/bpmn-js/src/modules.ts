@@ -187,14 +187,10 @@ export const PlatformModules: ModuleDeclaration[] = [
   ...EditorPlatformModules
 ];
 
-/** translate 工厂（$inject 显式注解版，防宿主 minify 改形参名——见 BpmnCoreModule 注释） */
-const translateFactory = (bpmnI18n: BpmnI18n) => (text: string, replace?: Record<string, string>) => {
-  let translated = bpmnI18n.t(text);
-  if (replace) {
-    translated = translated.replace(/\{(\w+)\}/g, (match, key) => replace[key] ?? match);
-  }
-  return translated;
-};
+/** translate 工厂（$inject 显式注解版，防宿主 minify 改形参名——见 BpmnCoreModule 注释）。
+ *  委托 bpmnI18n.t（词典查询 + {token} 占位替换一体，语义同源） */
+const translateFactory = (bpmnI18n: BpmnI18n) => (text: string, replace?: Record<string, string>) =>
+  bpmnI18n.t(text, replace);
 translateFactory.$inject = ['bpmnI18n'];
 
 /** BPMN 核心：类型表 / 工厂 / 渲染 / 词典（三形态恒装——BPMN 层插件的公共依赖基座） */

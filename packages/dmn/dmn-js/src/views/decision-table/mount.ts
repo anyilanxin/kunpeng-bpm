@@ -46,6 +46,8 @@ export interface TableEditorDeps {
   modeling: DmnModeling;
   /** 图（diagram-js）侧事件总线——命令栈变更监听源（Table 实例自带独立注入器） */
   eventBus: any;
+  /** 词典查询（dmnI18n 同源，支持 {token} 占位）——决策表 UI 文案统一走此通道 */
+  t: (text: string, params?: Record<string, string>) => string;
 }
 
 export function mountDecisionTable(
@@ -77,10 +79,10 @@ export function mountDecisionTable(
   };
 
   const commands = createTableCommands(deps, table, edit);
-  const columns = createColumnTools(container, () => colSpecs, rerenderTreeLocal);
-  const header = createHeaderTools({ table, commands, columns });
-  const bodyCell = createBodyCell({ instance, edit, commands, getColSpecs: () => colSpecs, cancelEdit });
-  const titleBar = createTitleBar({ table, decisionBo, edit, modeling: deps.modeling, rerender: rerenderTreeLocal, cancelEdit });
+  const columns = createColumnTools(container, () => colSpecs, rerenderTreeLocal, deps.t);
+  const header = createHeaderTools({ table, commands, columns, t: deps.t });
+  const bodyCell = createBodyCell({ instance, edit, commands, getColSpecs: () => colSpecs, cancelEdit, t: deps.t });
+  const titleBar = createTitleBar({ table, decisionBo, edit, modeling: deps.modeling, rerender: rerenderTreeLocal, cancelEdit, t: deps.t });
 
   // ---- 模型 → Sheet 换根重建 ----
   const rebuild = (): void => {
