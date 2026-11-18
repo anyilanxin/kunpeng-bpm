@@ -23,6 +23,8 @@
  * 拖放悬停目标归一行为：非容器命中沿父链改写到最近承载容器（可被插件覆盖的独立行为）。
  */
 import type EventBus from 'diagram-js/lib/core/EventBus';
+import type Canvas from 'diagram-js/lib/core/Canvas';
+import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
 import { isContainerType } from '../meta/ElementTypes';
 
 /**
@@ -35,9 +37,13 @@ import { isContainerType } from '../meta/ElementTypes';
  * 依赖 hover=宿主活动。
  */
 export class DropTargetBehavior {
-  static $inject = ['eventBus'];
+  static $inject = ['eventBus', 'canvas', 'elementRegistry'];
 
-  constructor(eventBus: EventBus) {
+  constructor(
+    eventBus: EventBus,
+    private readonly canvas: Canvas,
+    private readonly elementRegistry: ElementRegistry
+  ) {
     const normalize = (event: any): void => {
       const hover = event.hover;
       if (!hover || !hover.businessObject) {
@@ -103,6 +109,23 @@ export class DropTargetBehavior {
       1500,
       normalize
     );
+
+    // 拖拽收尾标记兜底清扫：drop-ok/not-ok/new-parent/attach-ok 是拖拽会话
+    // 级标记，基座按"最后一个 context.target"摘除——hover 归一（含越缘拖拽
+    // 根↔池逐事件翻转）会让标记落在与最终 target 不同的元素上，拖拽结束即
+    // 泄漏（drop-not-ok 残留池/根 = 整片区域 not-allowed 永久卡死）。会话级
+    // 标记在 cleanup 后不应存在于任何元素，全量清扫闭合一切泄漏路径
+    const DRAG_DROP_MARKERS = ['drop-ok', 'drop-not-ok', 'new-parent', 'attach-ok'];
+    eventBus.on(['shape.move.cleanup', 'create.cleanup'], () => {
+      // elementRegistry 元素形态宽于 hasMarker 形参（含根等），运行时同源
+      for (const el of [this.canvas.getRootElement(), ...this.elementRegistry.getAll()] as any[]) {
+        for (const marker of DRAG_DROP_MARKERS) {
+          if (this.canvas.hasMarker(el, marker)) {
+            this.canvas.removeMarker(el, marker);
+          }
+        }
+      }
+    });
   }
 }
 
