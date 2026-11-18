@@ -22,15 +22,19 @@
 /**
  * @kunpeng-io/bpmn-js-toolbar：悬浮工具栏插件（相对画布水平居中）。
  *
- * 接入（三种实例形态通用；撤销重做/转置组在只读底座缺编辑服务时整组不建，
- * 缩放组与宿主动作照常——宿主动作声明 showInPreview 才在只读态保留）：
+ * 接入（三种实例形态通用；撤销重做〔含重置画布〕/转置组在只读底座缺编辑服务时
+ * 整组不建，缩放组与宿主动作照常——宿主动作声明 showInPreview 才在只读态保留；
+ * 重置模板可经 `bpmnToolbar.resetXml` 覆盖缺省）：
  * ```ts
  * import { BpmnToolbarModule } from '@kunpeng-io/bpmn-js-toolbar';
  * import '@kunpeng-io/bpmn-js-toolbar/styles';
  *
  * new Modeler({
  *   additionalModules: [BpmnToolbarModule],
- *   bpmnToolbar: { actions: [{ id: 'export', title: '导出', svg, onClick, showInPreview: true }] }
+ *   bpmnToolbar: {
+ *     actions: [{ id: 'export', title: '导出', svg, onClick, showInPreview: true }],
+ *     resetXml: () => emptyXml, // 可选：覆盖内置重置模板
+ *   },
  * });
  * ```
  */

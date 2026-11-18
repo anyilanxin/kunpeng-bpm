@@ -19,15 +19,19 @@
  * @kunpeng-io/dmn-js-toolbar：悬浮工具栏插件（相对画布水平居中，对齐 bpmn 线
  * bpmn-js-toolbar；无布局/转置钮——dmn 无朝向模型）。
  *
- * 接入（三种实例形态通用；撤销重做组在只读底座缺编辑服务时整组不建，
- * 缩放组与宿主动作照常——宿主动作声明 showInPreview 才在只读态保留）：
+ * 接入（三种实例形态通用；撤销重做〔含重置画布〕组在只读底座缺编辑服务时
+ * 整组不建，缩放组与宿主动作照常——宿主动作声明 showInPreview 才在只读态保留；
+ * 重置模板可经 `dmnToolbar.resetXml` 覆盖缺省）：
  * ```ts
  * import { DmnToolbarModule } from '@kunpeng-io/dmn-js-toolbar';
  * import '@kunpeng-io/dmn-js-toolbar/styles';
  *
  * new Modeler({
  *   additionalModules: [DmnToolbarModule],
- *   dmnToolbar: { actions: [{ id: 'export', title: '导出', svg, onClick, showInPreview: true }] }
+ *   dmnToolbar: {
+ *     actions: [{ id: 'export', title: '导出', svg, onClick, showInPreview: true }],
+ *     resetXml: () => emptyXml, // 可选：覆盖内置重置模板
+ *   },
  * });
  * ```
  */

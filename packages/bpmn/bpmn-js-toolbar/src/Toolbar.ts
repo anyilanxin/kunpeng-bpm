@@ -22,7 +22,8 @@
 /**
  * 悬浮工具栏服务：渲染进画布容器、相对画布水平居中（容器随宿主布局伸缩，
  * 面板让位/窗口缩放下恒居中）。内置动作（校验钮〔宿主装配 linting 服务时〕/
- * 颜色组：设置/清除选中元素颜色 / 撤销重做组 / 缩放组，横纵布局钮嵌在缩放
+ * 颜色组：设置/清除选中元素颜色 / 撤销重做组（含重置画布钮，经 bpmnjs 门面
+ * 重导模板，`bpmnToolbar.resetXml` 可覆盖缺省模板）/ 缩放组，横纵布局钮嵌在缩放
  * 组内放大与适应画布之间）走内核
  * 服务；宿主经 `bpmnToolbar.actions`
  * 注册应用级动作（导入导出、模式切换等——render() 可放任意控件），
@@ -43,6 +44,7 @@ import type EventBus from 'diagram-js/lib/core/EventBus';
 import type Canvas from 'diagram-js/lib/core/Canvas';
 import type CommandStack from 'diagram-js/lib/command/CommandStack';
 import { ICONS } from './icons';
+import { DEFAULT_RESET_XML } from './templates';
 
 /** 内核服务的结构化类型（插件按结构消费，不耦合内核内部模块路径） */
 type ModelOrientation = 'horizontal' | 'vertical';
@@ -79,6 +81,12 @@ interface InjectorLike {
   get<T = unknown>(name: string, strict?: boolean): T;
 }
 
+/** 门面结构化类型（约定服务 bpmnjs——Modeler 构造期自注册，Viewer/NavigatedViewer
+ *  继承同款；只读形态也能解析到，重置钮的编辑门控挂 commandStack 组不挂门面） */
+interface FacadeLike {
+  importXML(xml: string): Promise<{ warnings: string[] }>;
+}
+
 /** 宿主动作规格：图标钮（svg+onClick）或自定义控件（render），二者给一 */
 export interface ToolbarActionSpec {
   id: string;
@@ -101,6 +109,9 @@ export interface ToolbarActionSpec {
 /** 插件配置（Modeler 构造项 `bpmnToolbar` 键，组件包插件 config 契约） */
 export interface ToolbarConfig {
   actions?: ToolbarActionSpec[];
+  /** 重置画布模板：串或工厂（动态 id/版本号）；缺省用插件内置最小标准模板
+   *  （带业务扩展命名空间的宿主应覆盖为自家模板） */
+  resetXml?: string | (() => string);
 }
 
 /** 内置缩放步进与示例 App 原工具栏一致（1.2 倍率） */
@@ -127,6 +138,9 @@ export class BpmnToolbar {
   private readonly commandStack: CommandStack | null;
   private readonly modeling: ModelingLike | null;
   private readonly linting: LintingLike | null;
+  /** 宿主门面（bpmnjs）：重置画布经门面 importXML（清命令栈+自动 fit-viewport） */
+  private readonly facade: FacadeLike | null;
+  private readonly resetXml: string | (() => string) | undefined;
   private readonly undoBtn?: HTMLButtonElement;
   private readonly redoBtn?: HTMLButtonElement;
   private readonly lintBtn?: HTMLButtonElement;
@@ -163,6 +177,8 @@ export class BpmnToolbar {
     this.commandStack = injector.get<CommandStack | null>('commandStack', false);
     this.modeling = injector.get<ModelingLike | null>('modeling', false);
     this.linting = injector.get<LintingLike | null>('linting', false);
+    this.facade = injector.get<FacadeLike | null>('bpmnjs', false);
+    this.resetXml = config.resetXml;
 
     const t = (text: string): string => this.bpmnI18n.t(text);
     this.root = document.createElement('div');
@@ -200,6 +216,13 @@ export class BpmnToolbar {
       this.undoBtn = iconButton('undo', t('撤销 (Ctrl+Z)'), ICONS.undo, () => this.commandStack!.undo());
       this.redoBtn = iconButton('redo', t('重做 (Ctrl+Shift+Z)'), ICONS.redo, () => this.commandStack!.redo());
       history.append(this.undoBtn, this.redoBtn);
+      // 重置画布（编辑动作，随组 data-edit-only 只读态隐藏）：经门面重导模板——
+      // importXML 清命令栈即不可撤销，2026-11-18 评审裁定直重置无确认；门面
+      // 缺失（宿主自拼 modules 无 bpmnjs）则不建钮。编辑门控挂 commandStack 组
+      // 而非门面：Viewer/NavigatedViewer 继承 Modeler 同样注册 bpmnjs
+      if (this.facade) {
+        history.append(iconButton('reset', t('重置画布'), ICONS.reset, () => void this.resetCanvas()));
+      }
       this.root.appendChild(history);
       // 撤销重做独立成组，与缩放组以分隔线划界
       this.root.appendChild(separator());
@@ -562,6 +585,22 @@ export class BpmnToolbar {
     }
     this.undoBtn.disabled = !this.commandStack.canUndo();
     this.redoBtn.disabled = !this.commandStack.canRedo();
+  }
+
+  /** 重置画布：重导模板（缺省内置最小模板，宿主可 resetXml 覆盖）。导入失败
+      记 console 不中断会话（与宿主旧自研工具栏 restart 的 catch-log 语义一致）；
+      import.done 后各监听（重排/朝向/缩放）自动收敛 */
+  private async resetCanvas(): Promise<void> {
+    if (!this.facade) {
+      return;
+    }
+    const template = this.resetXml ?? DEFAULT_RESET_XML;
+    const xml = typeof template === 'function' ? template() : template;
+    try {
+      await this.facade.importXML(xml);
+    } catch (error) {
+      console.error('[bpmn-js-toolbar] reset failed', error);
+    }
   }
 
   /** 布局钮图标/提示随当前朝向显示：图标标识当前态（横=横箭头款/纵=纵箭头款），
