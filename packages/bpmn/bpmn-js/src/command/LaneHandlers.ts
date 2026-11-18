@@ -93,8 +93,8 @@ export function assertAddLaneAllowed(
   if (normalizeLanePosition(position) === 'divide') {
     const isPoolWithoutLanes = container.businessObject?.$type === 'bpmn:Participant'
       && !(container.children ?? []).some((c: any) => c.businessObject?.$type === 'bpmn:Lane');
-    if (container.businessObject?.$type !== 'bpmn:Lane' && !isPoolWithoutLanes) {
-      throw new Error('分割只作用于泳道或无泳道的池');
+    if (!isPoolWithoutLanes) {
+      throw new Error('分割只作用于初始（无泳道）的池');
     }
     const parts = count ?? 2;
     if (parts !== 2 && parts !== 3) {

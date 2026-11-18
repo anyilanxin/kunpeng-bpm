@@ -106,11 +106,11 @@ export class BpmnContextPadProvider {
         title: this.i18n.t(`${beforeLabel}添加泳道`),
         action: { click: () => this.modeling.addLane(element, 'top') }
       };
-      // 分割钮：泳道本体 + 无道池（初始态直接分割为 2/3 条道，2026-11-18
-      // 用户定规；有道池不再出——分割对象歧义，走选中泳道）
+      // 分割钮仅初始无道池（2026-11-18 用户终定规：只在初始添加泳道时出现，
+      // 初始池直接分割组合出泳道；其余情况只有向上/向下添加）
       const poolWithoutLanes = type === 'bpmn:Participant'
         && !(element.children ?? []).some((c: any) => c.businessObject?.$type === 'bpmn:Lane');
-      if (type === 'bpmn:Lane' || poolWithoutLanes) {
+      if (poolWithoutLanes) {
         entries['lane-divide-two'] = {
           group: 'lane-divide',
           html: toolEntryHtml('lane-divide-two', 18, this.elementTypes.toolFillOf('lane-divide-two')),
