@@ -130,9 +130,13 @@ export class BpmnAutoResize extends AutoResize {
           lanes, oldPool, newBounds, SIZES.POOL_HEADER, this.orientationService.isHorizontal()
         )) {
           if (boundsChanged(lane, bounds)) {
-            // 重铺命令必须退出 auto-resize：否则 shape.resize 钩子把重铺的带
-            // 又当作越界内容再扩池，扩池又触发重铺——60px 步进的正反馈循环
-            this.modeling.resizeShape(lane, bounds, undefined, { autoResize: false });
+            // 重铺命令必须退出 auto-resize 且带 laneBandFollow 提示：漏提示位
+            // 会被 LaneBandBehavior 误判为用户手动调带，followBandEdges 把池
+            // 再扩一次（带界跟随），池比带多长一段=池尾无带覆盖的"幽灵空带"
+            this.modeling.resizeShape(lane, bounds, undefined, {
+              laneBandFollow: true,
+              autoResize: false
+            } as any);
           }
         }
         return;
