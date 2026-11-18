@@ -38,8 +38,8 @@ import type { OrientationService } from '../meta/Orientation';
 import { SIZES } from '../meta/ElementTypes';
 import {
   LANE_EPS,
-  MIN_LANE_BAND,
   growPoolAlong,
+  growPoolFront,
   laneStackAxis,
   laneBandRect,
   normalizeLanePosition,
@@ -91,17 +91,16 @@ export function assertAddLaneAllowed(
     throw new Error('只能在池内添加泳道');
   }
   if (normalizeLanePosition(position) === 'divide') {
-    if (container.businessObject?.$type !== 'bpmn:Lane') {
-      throw new Error('分割只作用于泳道');
+    const isPoolWithoutLanes = container.businessObject?.$type === 'bpmn:Participant'
+      && !(container.children ?? []).some((c: any) => c.businessObject?.$type === 'bpmn:Lane');
+    if (!isPoolWithoutLanes) {
+      throw new Error('分割只作用于初始（无泳道）的池');
     }
     const parts = count ?? 2;
     if (parts !== 2 && parts !== 3) {
       throw new Error(`分割只支持 2 或 3 段，收到：${parts}`);
     }
-    const each = spanLength(container, laneStackAxis(horizontal)) / parts;
-    if (each < MIN_LANE_BAND) {
-      throw new Error(`泳道跨度不足以分割为 ${parts} 段`);
-    }
+    // 跨度不校验：均分段厚不足最小带厚时 divide 侧生长目标带（见其注释）
   }
 }
 
@@ -151,17 +150,20 @@ export class AddLaneHandler implements CommandHandler {
     const inner = poolInnerRect(participant, SIZES.POOL_HEADER, horizontal);
     const siblings = sortedLanes(participant, axis);
 
-    context.oldPool = rectOf(participant);
-    context.shifted = [];
-    context.carved = null;
-    context.created = [];
+    // 幂等合并（分割=组合插入复用本方法）：oldPool 只在首次快照（多次
+    // 生长回退一步还原原池），shifted 保留首快照（重复让位还原到位）
+    context.oldPool ??= rectOf(participant);
+    context.shifted ??= [];
+    context.carved ??= null;
+    context.created ??= [];
 
-    // (1) 首道：铺满内容区（元素不动、池不增长——池从此进入泳道形态）
+    // (1) 无道池插道（2026-11-18 用户定规"首击即见带"）：先建铺满内容区的
+    // 首道（池进入泳道形态），随即落入下方"全池首道"让位分支完成插入——
+    // 一次点击即得两条可见泳道，不再是首击无视觉变化的纯形态切换
     if (siblings.length === 0) {
-      context.created.push(
-        this.createLane(context, participant, inner)
-      );
-      return [participant, ...context.created];
+      const first = this.createLane(context, participant, inner);
+      context.created.push(first);
+      siblings.push(first);
     }
 
     // 插入坐标：目标为泳道→紧贴其前/后缘；目标为池→内容区首端 / 最远带尾
@@ -183,23 +185,36 @@ export class AddLaneHandler implements CommandHandler {
     // 最小厚度；"收缩+增长"则会留出带覆盖不到的尾部缺口）
     if (siblings.length === 1 && spanLength(siblings[0], axis) >= spanLength(inner, axis) - LANE_EPS) {
       const full = siblings[0];
-      context.carved = { lane: full, rect: rectOf(full) };
       const fullStart = spanStart(full, axis);
       const fullLen = spanLength(full, axis);
       if (direction === 'before') {
-        applyRect(full, shiftAlongAxis(full, axis, thickness));
-        context.created.push(this.createLane(context, participant, laneBandRect(inner, fullStart, thickness, horizontal)));
+        // 前缘生长（2026-11-18 修"上插视觉恒向下追加"）：既有带与内容绝对位
+        // 全不动，池沿前缘长出，新带占长出的空间——新带恒在内容上方
+        context.carved = null;
+        growPoolFront(participant, axis, thickness);
+        context.created.push(this.createLane(context, participant, laneBandRect(inner, fullStart - thickness, thickness, horizontal)));
       } else {
+        context.carved = { lane: full, rect: rectOf(full) };
         context.created.push(this.createLane(context, participant, laneBandRect(inner, fullStart + fullLen, thickness, horizontal)));
+        growPoolAlong(participant, axis, thickness);
       }
-      growPoolAlong(participant, axis, thickness);
       return [participant, full, ...context.created];
+    }
+
+    // (3) 前端前插（目标=池的 before，或首道前缘 before）：池前缘生长、
+    // 既有带与内容全不动，新带占长出的空间（同全池首道前插语义）
+    if (direction === 'before' && insertAt <= spanStart(inner, axis) + LANE_EPS) {
+      growPoolFront(participant, axis, thickness);
+      context.created.push(this.createLane(context, participant, laneBandRect(inner, spanStart(inner, axis) - thickness, thickness, horizontal)));
+      return [participant, ...context.created];
     }
 
     // (3) 常规插入：插入点及之后的既有带平移让位，池沿堆叠轴增长
     for (const lane of siblings) {
       if (spanStart(lane, axis) >= insertAt - LANE_EPS) {
-        context.shifted.push({ lane, rect: rectOf(lane) });
+        if (!context.shifted.some((e: any) => e.lane === lane)) {
+          context.shifted.push({ lane, rect: rectOf(lane) });
+        }
         applyRect(lane, shiftAlongAxis(lane, axis, thickness));
       }
     }
@@ -208,22 +223,42 @@ export class AddLaneHandler implements CommandHandler {
     return [participant, ...context.created, ...context.shifted.map((s: any) => s.lane)];
   }
 
-  /** 分割：目标带沿堆叠轴均分为 parts 段（首段留原带，其余新建），总跨度与池形不变 */
+  /**
+   * 分割=组合插入（2026-11-18 用户定规新语义，取代均分）：分割 2 段=当前
+   * 泳道上方插一条；分割 3 段=上插一条+下插一条（当前泳道居中）；无道池=
+   * 先建铺满首道作"当前泳道"再同法组合。纵向布局（垂直池）由 axis 语义
+   * 天然覆盖（上/下=列带左/右）。单命令单步撤销：复用 insert 的幂等合并
+   * context（oldPool 首照、shifted 首快照去重、created 累积）。
+   */
   private divide(context: any, target: any, participant: any, axis: 'x' | 'y', horizontal: boolean): any[] {
-    // parts 与最小带宽由 assertAddLaneAllowed 保证
+    // parts 合法性由 assertAddLaneAllowed 保证（2|3；对象=泳道或无道池）
     const parts = context.count ?? 2;
-    const start = spanStart(target, axis);
-    const each = spanLength(target, axis) / parts;
+    context.oldPool ??= rectOf(participant);
+    context.created ??= [];
+    context.shifted ??= [];
+    context.carved ??= null;
+    context.target = null;
+    context.oldTarget = null;
 
-    context.target = target;
-    context.oldTarget = rectOf(target);
-    context.created = [];
-    applyRect(target, withSpan(target, axis, start, each));
-    const inner = poolInnerRect(participant, SIZES.POOL_HEADER, horizontal);
-    for (let i = 1; i < parts; i++) {
-      context.created.push(this.createLane(context, participant, laneBandRect(inner, start + i * each, each, horizontal)));
+    let anchor = target;
+    if (target === participant) {
+      const inner = poolInnerRect(participant, SIZES.POOL_HEADER, horizontal);
+      anchor = this.createLane(context, participant, inner);
+      context.created.push(anchor);
     }
-    return [target, ...context.created];
+    const changed: any[] = [participant];
+    const merge = (els: any[]): void => {
+      for (const el of els) {
+        if (!changed.includes(el)) {
+          changed.push(el);
+        }
+      }
+    };
+    merge(this.insert(context, anchor, participant, axis, horizontal, 'before'));
+    if (parts === 3) {
+      merge(this.insert(context, anchor, participant, axis, horizontal, 'after'));
+    }
+    return changed;
   }
 
   private createLane(context: any, participant: any, rect: RectLike): any {

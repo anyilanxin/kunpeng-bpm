@@ -185,6 +185,23 @@ export class BpmnModeling extends Modeling {
     this.stack.execute('lane.remove', { lane });
   }
 
+  /**
+   * 删除分流：泳道无专属删除钮（2026-11-18 用户定规），统一走通用删除
+   * （pad 删除钮 / Delete 键 → removeElements）——泳道改道 lane.remove
+   * （兄弟回收/池沿收缩语义），其余走基座 elements.delete；先删普通元素
+   * 再删泳道，选中集含带内节点时不与带回收相互干扰。
+   */
+  override removeElements(elements: any[]): void {
+    const lanes = elements.filter((e: any) => e?.businessObject?.$type === 'bpmn:Lane');
+    const rest = elements.filter((e: any) => e?.businessObject?.$type !== 'bpmn:Lane');
+    if (rest.length > 0) {
+      super.removeElements(rest);
+    }
+    for (const lane of lanes) {
+      this.removeLane(lane);
+    }
+  }
+
   /** 全模型布局朝向切换（水平 ⇄ 垂直池）：转置几何 + 重布线 + 重锚定，可撤销 */
   setOrientation(orientation: ModelOrientation): void {
     this.stack.execute('orientation.set', { orientation });

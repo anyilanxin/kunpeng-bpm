@@ -26,6 +26,7 @@ import type EventBus from 'diagram-js/lib/core/EventBus';
 import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
 import { SIZES } from '../meta/ElementTypes';
 import type { OrientationService } from '../meta/Orientation';
+import { is } from '../util/ModelUtil';
 
 /**
  * 追加自动摆放（主流向轴朝向感知）：水平模型源右侧开新列、垂直模型源
@@ -51,9 +52,14 @@ export class AutoPlacementBehavior {
     for (let cur = source.parent; cur; cur = cur.parent) {
       ancestors.add(cur);
     }
+    // 泳道带不是障碍物（与 BpmnAutoResize 的带重定向同理）：带是池内容区的
+    // 行政划分而非独立图形，追加落点本就应落在带内；若入列避让，池内候选位
+    // 恒被自家带"占住"，会逐级下探冲出池底（向右下追加）。带恒在池 rect 内，
+    // 他池区域仍由他池 Participant 本体阻断，剔除带不会放行越池落点
     const occupied = this.elementRegistry
       .getAll()
-      .filter((e: any) => !e.waypoints && !e.labelTarget && e !== source && e.parent && !ancestors.has(e));
+      .filter((e: any) => !e.waypoints && !e.labelTarget && e !== source && e.parent
+        && !ancestors.has(e) && !is(e, 'bpmn:Lane'));
 
     const free = (x: number, y: number): boolean => {
       const box = {

@@ -587,6 +587,13 @@ export class BpmnRules extends RuleProvider {
         if (type === 'bpmn:Group' || type === 'bpmn:BoundaryEvent') {
           continue;
         }
+        // 泳道带不是障碍物：带横铺池内容区，池内任何落点都与带相交；带是
+        // 行政划分而非实体（同 AutoPlacement 避让集/扩框重定向同理）。带内
+        // 节点照常下钻参与判定
+        if (type === 'bpmn:Lane') {
+          walk(child);
+          continue;
+        }
         if (!exempt.has(child) && this.rectsIntersect(rect, child)) {
           hit = true;
           return;
@@ -618,7 +625,11 @@ export class BpmnRules extends RuleProvider {
         const ownExpandedSub = effectiveTarget === shape.parent
           && isSubProcessFamily(effectiveTarget.businessObject?.$type)
           && effectiveTarget.isExpanded !== false;
-        if (!ownExpandedSub) {
+        // 自家池/道内拖动跨界：碰到池缘/带界放行（2026-11-18 用户定规——
+        // 元素碰到池与泳道边缘自动扩池，骑跨带界同属带内移动不禁）——
+        // AutoResize 扩池罩住越缘元素；仍与所属参与者相交才留，完全脱出
+        // （无交集）不属"碰到边缘"照旧拒绝
+        if (!ownExpandedSub && !this.ownPoolCrossing(shape, rect, effectiveTarget)) {
           return true;
         }
       }
@@ -627,6 +638,27 @@ export class BpmnRules extends RuleProvider {
       }
     }
     return false;
+  }
+
+  /**
+   * 自家池/道内拖动跨界判定：目标容器（池或其泳道）与被拖元素同属一个
+   * 参与者（元素画布父级池/道混存，逐级链比对会漏"父=池、落点=泳道"的
+   * 领养态组合），且预估矩形仍与该参与者相交（"碰到边缘"而非"完全脱出"）。
+   */
+  private ownPoolCrossing(shape: any, rect: Rect, target: any): boolean {
+    const targetType = target.businessObject?.$type;
+    if (targetType !== 'bpmn:Participant' && targetType !== 'bpmn:Lane') {
+      return false;
+    }
+    const poolOf = (el: any): any => {
+      let cur = el;
+      while (cur && cur.businessObject?.$type !== 'bpmn:Participant') {
+        cur = cur.parent;
+      }
+      return cur;
+    };
+    const pool = poolOf(target);
+    return !!pool && pool === poolOf(shape) && this.rectsIntersect(rect, pool);
   }
 
   private canDelete(context: any): boolean {

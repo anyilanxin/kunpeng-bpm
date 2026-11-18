@@ -27,16 +27,17 @@
  *   标准循环 ↻，再点当前态即清除；动作走 modeling.updateProperties（可撤销）。
  */
 import type { BpmnElementTypes } from '../meta/ElementTypes';
-import { isSubProcessFamily, metaId, subProcessExpandedOf } from '../meta/ElementTypes';
+import { SIZES, isSubProcessFamily, metaId, subProcessExpandedOf } from '../meta/ElementTypes';
 import type { BpmnFactory } from '../factory/BpmnFactory';
 import { bpmnIconHtml, loopMarkerIconHtml } from '../icons/BpmnIcons';
 import { loopKindOf, type LoopKind } from '../meta/LoopCharacteristics';
 import { replaceTarget } from '../command/ReplaceElementHandler';
 import { planeHasContent } from '../plane/PlaneService';
+import { iconSetAsset } from '../icons/IconSet';
 import { PopupMenuEntriesCache } from './BpmnElementMenuProvider';
 
 export class BpmnReplaceMenuProvider {
-  static $inject = ['popupMenu', 'eventBus', 'bpmnElementTypes', 'modeling', 'bpmnFactory', 'bpmnI18n'];
+  static $inject = ['popupMenu', 'eventBus', 'bpmnElementTypes', 'modeling', 'bpmnFactory', 'bpmnI18n', 'bpmnDocumentState', 'orientationService'];
 
   static readonly MENU_ID = 'bpmn-replace';
 
@@ -46,7 +47,9 @@ export class BpmnReplaceMenuProvider {
     private readonly elementTypes: BpmnElementTypes,
     private readonly modeling: any,
     private readonly bpmnFactory: BpmnFactory,
-    private readonly i18n: any
+    private readonly i18n: any,
+    private readonly documentState: any,
+    private readonly orientationService: any
   ) {
     this.cache = new PopupMenuEntriesCache(eventBus);
     popupMenu.registerProvider(BpmnReplaceMenuProvider.MENU_ID, this);
@@ -56,6 +59,59 @@ export class BpmnReplaceMenuProvider {
 
   getPopupMenuEntries(target: any): Record<string, any> {
     const bo = target.businessObject;
+    // 池/泳道：无 morph 族——空/非空泳道状态机（2026-11-18 用户参照定规）：
+    // 非空（有 processRef）→ 唯一条目"清空池/泳道（删除内容）"：内部元素真实
+    // 删除 + 全部泳道移除 + 收缩为空泳道形态（600×60 纯框，无头带无标签，
+    // context pad 不再出加道/分割钮）；空（无 processRef）→ 唯一条目
+    // "切换为非空泳道"：复用既有空流程（或新建）挂 processRef + 恢复默认池形
+    if (bo?.$type === 'bpmn:Participant' || bo?.$type === 'bpmn:Lane') {
+      const participant = bo.$type === 'bpmn:Participant' ? target : target.parent;
+      const pBo = participant?.businessObject;
+      if (!pBo?.processRef) {
+        return {
+          'to-filled-pool': {
+            label: this.i18n.t('切换为非空泳道'),
+            imageHtml: participantMenuIconHtml(),
+            title: this.i18n.t('切换为非空泳道'),
+            action: () => {
+              const definitions = this.documentState.definitions;
+              const isEmptyProcess = (r: any): boolean =>
+                r.$type === 'bpmn:Process' &&
+                !(r.flowElements ?? []).length &&
+                !(r.laneSets ?? []).some((ls: any) => (ls.lanes ?? []).length);
+              const existing = (definitions.rootElements ?? []).find(isEmptyProcess);
+              const process = existing
+                ?? this.bpmnFactory.createProcess({ name: `流程 ${this.documentState.processes().length + 1}` });
+              if (!existing) {
+                definitions.rootElements.push(process);
+              }
+              this.modeling.updateProperties(participant, { processRef: process });
+              this.modeling.resizeShape(participant, defaultPoolRect(participant, this.orientationService.isHorizontal()));
+            }
+          }
+        };
+      }
+      const isPool = bo.$type === 'bpmn:Participant';
+      return {
+        'clear-container': {
+          label: this.i18n.t(isPool ? '清空池（删除内容）' : '清空泳道（删除内容）'),
+          imageHtml: laneMenuIconHtml(),
+          title: this.i18n.t(isPool ? '清空池（删除内容）' : '清空泳道（删除内容）'),
+          action: () => {
+            const contents = collectContents(participant);
+            if (contents.length) {
+              this.modeling.removeElements(contents);
+            }
+            const lanes = (participant.children ?? []).filter((c: any) => c.businessObject?.$type === 'bpmn:Lane');
+            for (const lane of lanes) {
+              this.modeling.removeLane(lane);
+            }
+            this.modeling.resizeShape(participant, emptyPoolRect(participant, this.orientationService.isHorizontal()));
+            this.modeling.updateProperties(participant, { processRef: null });
+          }
+        }
+      };
+    }
     const meta = this.elementTypes.shapeMeta(bo?.$type);
     if (!meta?.replaceFamily) {
       return {};
@@ -125,4 +181,54 @@ export class BpmnReplaceMenuProvider {
       'toggle-loop': entry('loop', '标准循环')
     };
   }
+}
+
+/** 切换为非空泳道条目图标：icons/bpmn-icon-pool.svg（IconSet 'participant'） */
+function participantMenuIconHtml(): string {
+  const a = iconSetAsset('participant');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${a.w} ${a.h}" width="20" height="20" fill="currentColor" aria-hidden="true">${a.body}</svg>`;
+}
+
+/** 清空条目图标：icons/bpmn-icon-lane.svg（IconSet 'lane'，用户指认） */
+function laneMenuIconHtml(): string {
+  const a = iconSetAsset('lane');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${a.w} ${a.h}" width="20" height="20" fill="currentColor" aria-hidden="true">${a.body}</svg>`;
+}
+
+/**
+ * 容器内容收集（清空池/泳道用）：整个参与者的流节点/数据/注记（含各泳道
+ * 内与嵌套容器内，入列节点整棵收、标签/连线随宿主级联）；泳道结构不取
+ * （清空动作另行逐条 lane.remove 后坍缩为空泳道）。节点画布父级池/道混存
+ * （领养先于建道者恒为池子），故从池后代全量扫描。
+ */
+function collectContents(pool: any): any[] {
+  const out: any[] = [];
+  const walk = (parent: any): void => {
+    for (const child of parent.children ?? []) {
+      if (child.labelTarget || child.waypoints) {
+        continue;
+      }
+      if (child.businessObject?.$type === 'bpmn:Lane') {
+        walk(child);
+        continue;
+      }
+      out.push(child);
+    }
+  };
+  walk(pool);
+  return out;
+}
+
+/** 空泳道形态：流向长 POOL_EMPTY_SPAN、堆叠轴厚 POOL_EMPTY_BAND（锚=池现位前缘） */
+function emptyPoolRect(pool: any, horizontal: boolean): { x: number; y: number; width: number; height: number } {
+  return horizontal
+    ? { x: pool.x, y: pool.y, width: SIZES.POOL_EMPTY_SPAN, height: SIZES.POOL_EMPTY_BAND }
+    : { x: pool.x, y: pool.y, width: SIZES.POOL_EMPTY_BAND, height: SIZES.POOL_EMPTY_SPAN };
+}
+
+/** 默认池形（切回非空泳道）：POOL_W×POOL_H，垂直朝向转置 */
+function defaultPoolRect(pool: any, horizontal: boolean): { x: number; y: number; width: number; height: number } {
+  return horizontal
+    ? { x: pool.x, y: pool.y, width: SIZES.POOL_W, height: SIZES.POOL_H }
+    : { x: pool.x, y: pool.y, width: SIZES.POOL_H, height: SIZES.POOL_W };
 }

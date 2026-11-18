@@ -104,6 +104,7 @@ import { TextAnnotationBehavior } from './behavior/TextAnnotationBehavior';
 import { DropTargetBehavior } from './behavior/DropTargetBehavior';
 import { BlankLassoBehavior } from './behavior/BlankLassoBehavior';
 import { ExternalLabelBehavior } from './behavior/ExternalLabelBehavior';
+import { LaneSelectionOutlineBehavior } from './behavior/LaneSelectionOutlineBehavior';
 import LabelSupport from 'diagram-js/lib/features/label-support/LabelSupport';
 import { BpmnLabelEditingProvider } from './label/LabelEditingProvider';
 import { BpmnPaletteProvider } from './provider/BpmnPaletteProvider';
@@ -269,7 +270,7 @@ export const BpmnModelingModule: ModuleDeclaration = {
 /** 交互行为：直编 / 自动摆放 / 注记自适应 / 外部标签元素生命周期（自包含：直编/编辑动作/选择基座） */
 export const BpmnBehaviorModule: ModuleDeclaration = {
   __depends__: [DirectEditingModule, EditorActionsModule, SelectionModule],
-  __init__: ['bpmnLabelEditingProvider', 'labelBehavior', 'externalLabelBehavior', 'labelSupport', 'autoPlacementBehavior', 'textAnnotationBehavior', 'dropTargetBehavior', 'linkCatchBehavior', 'blankLassoBehavior', 'bpmnEditorActions'],
+  __init__: ['bpmnLabelEditingProvider', 'labelBehavior', 'externalLabelBehavior', 'labelSupport', 'autoPlacementBehavior', 'textAnnotationBehavior', 'dropTargetBehavior', 'linkCatchBehavior', 'blankLassoBehavior', 'bpmnEditorActions', 'laneSelectionOutlineBehavior'],
   'bpmnLabelEditingProvider': ['type', BpmnLabelEditingProvider],
   'labelBehavior': ['type', LabelBehavior],
   'externalLabelBehavior': ['type', ExternalLabelBehavior],
@@ -280,6 +281,8 @@ export const BpmnBehaviorModule: ModuleDeclaration = {
   // 空白拖拽即框选（编辑态无激活工具时；lassoTool 缺席自放弃）
   'blankLassoBehavior': ['type', BlankLassoBehavior],
   'bpmnEditorActions': ['type', BpmnEditorActions],
+  // 池/泳道单选描边顶层化（实底兄弟相接，gfx 内描边被后画泳道遮挡）
+  'laneSelectionOutlineBehavior': ['type', LaneSelectionOutlineBehavior],
   // 基座标签随动语义：宿主拖动闭包含标签、删除级联删标签、撤销对称恢复
   'labelSupport': ['type', LabelSupport]
 };

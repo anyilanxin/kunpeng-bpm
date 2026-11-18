@@ -3,41 +3,58 @@
  * SPDX-License-Identifier: GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  The copyright holder designates
- * this particular file as subject to the "Classpath" exception as provided
- * in the LICENSE file and licenses/ directory that accompany this code.
+ * This code is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License version 2 only, as published
+ * by the Free Software Foundation. The copyright holder designates this
+ * particular file as subject to the "Classpath" exception as provided in
+ * the LICENSE file that accompany this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * version 2 for more details (a copy is included in the licenses/ directory that
- * accompanied this code).
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+ * version 2 for more details (a copy is included with the licenses/ directory
+ * that accompanied this code).
  *
  * You should have received a copy of the GNU General Public License version
- * 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ * 2 with this work; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
  * 命令：orientation.set —— 全模型水平/垂直布局切换。
  *
+ * 设计基线（2026-11-18 用户定案）：**点旋转，形不转**。横竖切换 = 纯坐标
+ * 变换——所有"点"（形状位置、连线航点、标签锚点）按 newX=oldY / newY=oldX
+ * 转置；形状尺寸作为图形符号保持朝向无关（任务恒 116×78、事件/网关轴对
+ * 称），池/泳道/分组/展开子流程族是结构区域，随轴换向（宽高互换）。
+ *
+ * 转置是等距映射：共轴直线映到共轴直线（旧竖直直线共 x → 新水平直线共
+ * y，与元素尺寸无关）、曼哈顿折线恒曼哈顿、已裁剪端点落在转置后的对应
+ * 棱上——**无需重布线、无需重裁剪、无需共线拉直、无需标签重摆**。
+ *
+ * 尺寸不随点转置是唯一失配源（非方形元素新轴占地换维），引出三处失
+ * 配，各一道有界修正：
+ *  - 直线链横轴错位：原图两端横轴中心一致（中点对中点直线），转置后
+ *    各端中心按"坐标+半尺寸"映射、异尺寸对（网关 52 对任务 116）差
+ *    半尺寸差——straightenColinearLinks 把直线对目标横轴中心对齐源，
+ *    恢复"中点对中点"的直线（弯折扇形不动）；
+ *  - 流向轴边距收缩 |宽−高|：spreadFlowGaps 沿流向推开（横轴不动保
+ *    直线不破）；挂靠形状 snapAttachers 投影回宿主棱；
+ *  - 端点横向偏心：转置把旧棱中点映到新棱的偏心位置（差 (宽−高)/2），
+ *    reclampTerminal 沿终端段方向钉回背向棱，centerTerminalDockings
+ *    再把端点横向坐标钉到宿主棱中点（肘点随动保持正交）。
+ *
  * 步骤：
- *  1. 先翻转朝向标记与服务状态（后续重布线即按新轴路由）；
- *  2. 注册表内全部形状沿主对角线转置（newX=oldY, newY=oldX）——注册表覆盖
- *     所有平面（含折叠子流程下钻平面），非当前平面的元素同步转置；容器
- *     （池/泳道/分组/展开子流程族）另交换宽高，普通元素保持尺寸；
- *  3. 共线拉直：转置使原本同轴对齐的链产生半尺寸差的横向偏移，把原共线
- *     顺序流的目标重新对中到源，链式收敛于头元素（扇形弯折保持原样）；
- *  3.5 交叉轴间距展开：追加扇形的堆叠间距按旧轴元素跨距取值（水平模型按
- *     任务高 78 排出 92 中心距），转置后落到新交叉轴上、要容纳的却是
- *     元素在交叉轴上的另一维尺寸（任务宽 116），发生差量的矩形重叠
- *     ——对"转置前不相交、转置后相交"的同容器流节点沿交叉轴推开（详见
- *     spreadOverlaps），容器端随内容扩展；
- *  4. 全部连线强制重新布线（空 waypoints → 布线器 → 端点裁剪）；
- *  5. 重锚定：整体平移到固定种子锚位 (159,159)（与空图种子一致）——
+ *  1. 翻转朝向标记与服务状态；
+ *  2. 全量点转置：形状位置（结构容器宽高互换）、标签中心（盒尺寸服务
+ *     文字度量不变）、连线航点逐点；注册表覆盖所有平面（含折叠子流程
+ *     下钻平面），非当前平面的元素同步转置；
+ *  3. 直线对横轴中心对齐（中点对中点恢复）；
+ *  4. 流向轴边距下限 + 容器随内容扩展；
+ *  5. 挂靠形状贴边；
+ *  6. 连线端点重钉（钉回背向棱）+ 端点横向居中（钉到棱中点）；
+ *  7. 重锚定：整体平移到固定种子锚位 (159,159)（与空图种子一致）——
  *     锚位不依赖视口，连续切换不漂移；居中观感由视口适配承担；
- *  6. 适配视口（按元素新几何直算，不读图层 bbox 缓存——缓存失效要等
+ *  8. 适配视口（按元素新几何直算，不读图层 bbox 缓存——缓存失效要等
  *     命令外的 elements.changed，读到的会是转置前的旧 bbox）。
  *
  * 撤销恢复执行时快照（几何/航点/朝向），非重演式。
@@ -52,7 +69,7 @@ import { SIZES, isSubProcessFamily } from '../meta/ElementTypes';
 import { refitLaneBands } from '../util/PoolGeometry';
 import { applyRect, snapshotWaypoints } from '@kunpeng-io/kernel-shared';
 
-/** 容器族：转置时随长轴换向（池/泳道/分组 + 展开子流程族） */
+/** 结构容器族：区域随轴换向（宽高互换）；普通图形符号尺寸朝向无关 */
 function isTransposingContainer(element: any): boolean {
   const type: string = element?.businessObject?.$type ?? element?.type ?? '';
   if (type === 'bpmn:Participant' || type === 'bpmn:Lane' || type === 'bpmn:Group') {
@@ -61,28 +78,65 @@ function isTransposingContainer(element: any): boolean {
   return isSubProcessFamily(type) && element.isExpanded !== false;
 }
 
+/**
+ * 轴向直线判定：全点共 x（竖直直线）返回 'x'、全点共 y（水平直线）返回
+ * 'y'——返回值即直线共中的轴；非轴向折线返回 null（弯折是用户既有布局，
+ * 不参与边距整理）。转置把共 x 映为共 y，判定对转置前后形态各自成立。
+ */
+function straightAlignAxis(waypoints: { x: number; y: number }[] | undefined): 'x' | 'y' | null {
+  if (!waypoints || waypoints.length < 2) {
+    return null;
+  }
+  const sameY = waypoints.every((point) => Math.abs(point.y - waypoints[0].y) < 1);
+  const sameX = waypoints.every((point) => Math.abs(point.x - waypoints[0].x) < 1);
+  if (sameY && !sameX) {
+    return 'y';
+  }
+  if (sameX && !sameY) {
+    return 'x';
+  }
+  return null;
+}
+
+/** 形状点转置：位置轴互换；结构容器宽高随轴换向；标签按中心转置（盒尺寸服务文字度量不变） */
+function transposeShape(shape: any): void {
+  if (shape.labelTarget) {
+    const centerX = shape.x + shape.width / 2;
+    const centerY = shape.y + shape.height / 2;
+    shape.x = centerY - shape.width / 2;
+    shape.y = centerX - shape.height / 2;
+    return;
+  }
+  const x = shape.x;
+  shape.x = shape.y;
+  shape.y = x;
+  if (isTransposingContainer(shape)) {
+    const width = shape.width;
+    shape.width = shape.height;
+    shape.height = width;
+  }
+}
+
 export class OrientationHandler implements CommandHandler {
-  static $inject = ['canvas', 'elementRegistry', 'layouter', 'connectionDocking', 'orientationService'];
+  static $inject = ['canvas', 'elementRegistry', 'orientationService'];
 
   constructor(
     private readonly canvas: Canvas,
     private readonly elementRegistry: ElementRegistry,
-    private readonly layouter: any,
-    private readonly connectionDocking: any,
     private readonly orientationService: OrientationService
   ) {}
 
   /** 常规锚位边距（沿袭用户既有实现的取值，与空图种子偏移一致） */
   private static readonly ANCHOR_MARGIN = 159;
 
-  /**
-   * 展开最小净空：两端描边（各 2）加悬停/选中轮廓（各 3）视觉叠加后
-   * 仍可分辨的间隙量（自有取值，取双倍余量保边框不粘连）
-   */
-  private static readonly SPREAD_CLEAR = 20;
-
   /** 容器随内容扩展的边距：与池收编（CollaborationBehavior）边距同值，两处观感一致 */
   private static readonly REFIT_PAD = 40;
+
+  /**
+   * 链式相连元素的流向轴最小边到边边距（自有取值：任务-事件链转置后的
+   * 观感呼吸量，覆盖 |宽−高| 收缩差后仍留出走线空间）
+   */
+  private static readonly FLOW_GAP = 40;
 
   execute(context: any): any[] {
     const orientation = context.orientation as ModelOrientation;
@@ -98,50 +152,62 @@ export class OrientationHandler implements CommandHandler {
     context.connectionStates = [];
     context.oldOrientation = this.orientationService.getOrientation();
 
-    // 1. 先翻状态：后续布线按新轴路由
+    // 1. 翻状态
     this.orientationService.setOrientation(orientation);
 
-    // 2. 转置全部形状（注册表覆盖所有平面；根元素无几何不参与）
+    // 2. 全量点转置（注册表覆盖所有平面；根元素无几何不参与）
     const shapes = this.elementRegistry.filter(
       (e: any) => !e.waypoints && e.x !== undefined && e.y !== undefined && !e.isImplicit
     );
     shapes.forEach((shape: any) => {
       context.shapeStates.push({ element: shape, x: shape.x, y: shape.y, width: shape.width, height: shape.height });
-      const x = shape.x;
-      shape.x = shape.y;
-      shape.y = x;
-      if (isTransposingContainer(shape)) {
-        const width = shape.width;
-        shape.width = shape.height;
-        shape.height = width;
-      }
+      transposeShape(shape);
     });
-
-    // 3. 共线拉直（基于转置前快照判定"原本共线"）
-    this.straightenColinearLinks(context);
-
-    // 3.5 交叉轴间距展开（转置引入的重叠消解 + 容器随内容扩展）
-    this.spreadOverlaps(context);
-
-    // 4. 全部连线强制重布线 + 端点裁剪
     const connections = this.elementRegistry.filter((e: any) => !!e.waypoints);
     connections.forEach((connection: any) => {
       context.connectionStates.push({
         element: connection,
         waypoints: snapshotWaypoints(connection)
       });
-      connection.waypoints = this.layouter.layoutConnection(connection, {
-        source: connection.source,
-        target: connection.target,
-        waypoints: []
+      connection.waypoints.forEach((point: any) => {
+        const x = point.x;
+        point.x = point.y;
+        point.y = x;
       });
-      connection.waypoints = this.connectionDocking.getCroppedWaypoints(connection, connection.source, connection.target);
     });
 
-    // 5. 重锚定（平移到固定种子锚位，见 reAnchorContent 说明）
+    // 3. 直线对横轴中心对齐（原图中点对中点直线的恢复）
+    this.straightenColinearLinks();
+
+    // 4. 流向轴边距下限（尺寸失配的消解 + 容器随内容扩展）
+    this.spreadFlowGaps(context, connections);
+
+    // 5. 挂靠形状贴边（点转置后投影回宿主棱）
+    this.snapAttachers();
+
+    // 6. 连线端点重钉（终端段方向钉回背向棱）+ 横向居中（钉到棱中点）
+    connections.forEach((connection: any) => {
+      const waypoints = connection.waypoints;
+      if (waypoints.length >= 2) {
+        OrientationHandler.reclampTerminal(waypoints[0], waypoints[1], connection.source);
+        OrientationHandler.reclampTerminal(
+          waypoints[waypoints.length - 1],
+          waypoints[waypoints.length - 2],
+          connection.target
+        );
+        OrientationHandler.centerTerminalDocking(waypoints[0], waypoints[1], connection.source);
+        OrientationHandler.centerTerminalDocking(
+          waypoints[waypoints.length - 1],
+          waypoints[waypoints.length - 2],
+          connection.target
+        );
+      }
+    });
+
+    // 7. 重锚定（平移到固定种子锚位，见 reAnchorContent 说明）
     this.reAnchorContent(context);
 
-    // 6. 适配视口（按元素新几何直接计算，见 fitToContent 说明）
+    // 8. 适配视口（按元素新几何直接计算，见 fitToContent 说明）
     this.fitToContent();
 
     return [...shapes, ...connections];
@@ -230,102 +296,169 @@ export class OrientationHandler implements CommandHandler {
   }
 
   /**
-   * 交叉轴间距展开：转置保持各轴区间的相邻关系但不同步换尺寸——旧堆叠
-   * 轴的间距按旧轴上的元素跨距取值（水平扇形按任务高 78 排出 92 中心
-   * 距），映射到新交叉轴后要容纳的却是元素在交叉轴上的另一维尺寸（任
-   * 务宽 116），差量即重叠量。只消解"转置前矩形不相交、转置后相交"的
-   * 元素对：转置是等距映射，前后皆相交的对是用户既有布局，不做整理；
-   * 沿交叉轴推开保持行/列结构（主流向次序不动），外部标签与挂靠边界事
-   * 件随宿主同移。
+   * 直线对横轴中心对齐：原图直线 = 两端横轴中心一致（中点对中点），转
+   * 置把中心按"坐标+半尺寸"映射、异尺寸对（网关 52 对任务 116）差半尺
+   * 寸差，直线变台阶弯。把目标的"直线横轴"（垂直于走向）中心对齐源即
+   * 恢复中点对中点直线；按航点共轴判定（水平/垂直直线两类都处理，弯折
+   * 扇形不动）；目标外部标签随宿主同轴平移；定界扫描：注册表序不必是
+   * 链序，扫到不动点为止。它是其后续正（端点横向居中）的前置——对齐
+   * 后两端棱中点重合，居中随动才不破直线。
    */
-  private spreadOverlaps(context: any): void {
-    const vertical = !this.orientationService.isHorizontal();
-    const crossKey: 'x' | 'y' = vertical ? 'x' : 'y';
-    const crossSizeKey = crossKey === 'x' ? 'width' : 'height';
-    const clear = OrientationHandler.SPREAD_CLEAR;
+  private straightenColinearLinks(): void {
+    const flows = this.elementRegistry.filter(
+      (e: any) => !!e.waypoints && e.businessObject?.$type === 'bpmn:SequenceFlow'
+    );
 
-    const stateOf = this.stateIndexOf(context.shapeStates);
-
-    // 参与消解的元素：有界流节点。标签（宿主渲染派生）、挂靠形状（随宿
-    // 主）、注记（侧栏制品不挤占流向空间）、分组（框架性制品）与容器
-    //（池/道/子流程自身）不参与；同容器分组——跨泳道的元素分属平行带，
-    // 互不构成挤占
-    const byParent = new Map<any, any[]>();
-    (context.shapeStates ?? []).forEach((state: any) => {
-      const el = state.element;
-      if (!el.parent || el.waypoints || el.labelTarget || el.host) {
-        return;
-      }
-      const type: string = el.businessObject?.$type ?? el.type ?? '';
-      if (
-        type === 'bpmn:Participant' || type === 'bpmn:Lane' || type === 'bpmn:Group' ||
-        type === 'bpmn:TextAnnotation' || isSubProcessFamily(type)
-      ) {
-        return;
-      }
-      const group = byParent.get(el.parent);
-      if (group) {
-        group.push(el);
-      } else {
-        byParent.set(el.parent, [el]);
-      }
-    });
-
-    const overlapOn = (a: any, b: any): { ox: number; oy: number } => ({
-      ox: Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x),
-      oy: Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y)
-    });
-    const wasDisjoint = (a: any, b: any): boolean => {
-      const sa = stateOf.get(a);
-      const sb = stateOf.get(b);
-      if (!sa || !sb) {
-        return false;
-      }
-      const { ox, oy } = overlapOn(sa, sb);
-      return ox <= 1 || oy <= 1;
-    };
-
-    byParent.forEach((group: any[]) => {
-      const sorted = group.slice().sort((a: any, b: any) => a[crossKey] - b[crossKey]);
-      let moved = true;
-      let pass = 0;
-      // 定界扫描：单次推开会与更远元素产生新的"前净后叠"对，扫到不动点
-      while (moved && pass <= sorted.length) {
-        moved = false;
-        pass++;
-        for (let i = 0; i < sorted.length - 1; i++) {
-          for (let j = i + 1; j < sorted.length; j++) {
-            const a = sorted[i];
-            const b = sorted[j];
-            const { ox, oy } = overlapOn(a, b);
-            if (ox <= 1 || oy <= 1 || !wasDisjoint(a, b)) {
-              continue;
-            }
-            const push = a[crossKey] + a[crossSizeKey] + clear - b[crossKey];
-            if (push <= 0) {
-              continue;
-            }
-            b[crossKey] += push;
-            (b.labels ?? []).forEach((label: any) => {
-              label[crossKey] += push;
-            });
-            (b.attachers ?? []).forEach((attacher: any) => {
-              attacher[crossKey] += push;
-            });
-            moved = true;
-          }
+    let moved = true;
+    let pass = 0;
+    while (moved && pass <= flows.length) {
+      moved = false;
+      pass++;
+      flows.forEach((flow: any) => {
+        const { source, target } = flow;
+        if (!source || !target) {
+          return;
         }
+        const sharedAxis = straightAlignAxis(flow.waypoints);
+        if (!sharedAxis) {
+          return;
+        }
+        // 直线横轴 = 共享轴本身（竖直直线共 x → 中点对中点即两端 x 中心一致）
+        const alignKey = sharedAxis;
+        const sizeKey = alignKey === 'x' ? 'width' : 'height';
+        const delta = source[alignKey] + source[sizeKey] / 2 - (target[alignKey] + target[sizeKey] / 2);
+        if (Math.abs(delta) < 1) {
+          return;
+        }
+        target[alignKey] += delta;
+        (target.labels ?? []).forEach((label: any) => {
+          label[alignKey] += delta;
+        });
+        moved = true;
+      });
+    }
+  }
+
+  /**
+   * 端点横向居中：终端段（首段/末段）的横向坐标钉到宿主棱中点，相邻点
+   * （肘点或对端点）同轴随动保持正交。两点直线两端经 straighten 对齐后
+   * 棱中点重合，两次随动叠加恒等（直线保持）；三段折线肘点被两向各调
+   * 一次（两终端段轴向互垂），折线恒正交。幂等：已居中的端点不再动。
+   */
+  private static centerTerminalDocking(terminal: any, adjacent: any, shape: any): void {
+    if (!shape) {
+      return;
+    }
+    if (Math.abs(terminal.x - adjacent.x) <= 0.5) {
+      // 竖直终端段：横向坐标 = x（左右棱上的位置），钉到宿主竖直中轴
+      const delta = shape.x + shape.width / 2 - terminal.x;
+      if (Math.abs(delta) >= 0.5) {
+        terminal.x += delta;
+        adjacent.x += delta;
       }
-    });
+    } else if (Math.abs(terminal.y - adjacent.y) <= 0.5) {
+      // 水平终端段：横向坐标 = y，钉到宿主水平中轴
+      const delta = shape.y + shape.height / 2 - terminal.y;
+      if (Math.abs(delta) >= 0.5) {
+        terminal.y += delta;
+        adjacent.y += delta;
+      }
+    }
+  }
+
+  /**
+   * 流向轴边距下限：点转置保位置间隔，但普通元素尺寸不换——任务 116×78
+   * 的旧竖直链按高 78 排出 ~50 边距，转置后沿新流向占的是宽 116，差量
+   * |宽−高| 把边到边边距吃到个位数甚至负值。仅整理"轴向直线"的相连对
+   * （弯折扇形保持原样）：两端横轴（直线共中轴）交叠（链堆叠而非并排）
+   * 且流向边距不足时，把目标沿流向（直线走向轴）推开到最小边距。直线
+   * 共中轴不动 → 直线恒直；推移产生的端点滞后由其后的端点重裁统一收
+   * 口。定界扫描：推移中间节点后与下游的边距在后续轮次补齐。
+   */
+  private spreadFlowGaps(context: any, connections: any[]): void {
+    const clear = OrientationHandler.FLOW_GAP;
+    const flows = connections.filter(
+      (e: any) => e.businessObject?.$type === 'bpmn:SequenceFlow'
+    );
+
+    let moved = true;
+    let pass = 0;
+    while (moved && pass <= flows.length) {
+      moved = false;
+      pass++;
+      flows.forEach((flow: any) => {
+        const { source, target } = flow;
+        if (!source || !target) {
+          return;
+        }
+        const sharedAxis = straightAlignAxis(flow.waypoints);
+        if (!sharedAxis) {
+          return;
+        }
+        // 流向轴 = 直线走向轴（共 x 的竖直直线沿 y 流动，反之亦然）
+        const flowKey: 'x' | 'y' = sharedAxis === 'x' ? 'y' : 'x';
+        const sizeKey = flowKey === 'x' ? 'width' : 'height';
+        const crossKey = flowKey === 'x' ? 'y' : 'x';
+        const crossSizeKey = flowKey === 'x' ? 'height' : 'width';
+        // 横轴不交叠 = 并排扇形支路，不是链堆叠，不动
+        const crossOverlap =
+          Math.min(source[crossKey] + source[crossSizeKey], target[crossKey] + target[crossSizeKey]) -
+          Math.max(source[crossKey], target[crossKey]);
+        if (crossOverlap <= 1) {
+          return;
+        }
+        const forward = target[flowKey] + target[sizeKey] / 2 - (source[flowKey] + source[sizeKey] / 2);
+        const desired =
+          forward >= 0
+            ? source[flowKey] + source[sizeKey] + clear
+            : source[flowKey] - clear - target[sizeKey];
+        const delta = desired - target[flowKey];
+        if (delta === 0 || (forward >= 0) !== (delta > 0)) {
+          return;
+        }
+        target[flowKey] = desired;
+        (target.labels ?? []).forEach((label: any) => {
+          label[flowKey] += delta;
+        });
+        (target.attachers ?? []).forEach((attacher: any) => {
+          attacher[flowKey] += delta;
+        });
+        moved = true;
+      });
+    }
 
     this.refitContainers(context);
   }
 
   /**
-   * 容器端随内容扩展：展开沿交叉轴向后推，交叉轴末端（无头带一侧）可能
-   * 溢出；主流向端转置自身保持围合，拉直偏移由边距吸收。池扩展后泳道
-   * 带经 refitLaneBands 随新内容区重铺——主流向增量只改带的跨度，堆叠
-   * 轴增量由边缘带吸收，带界无缝。
+   * 挂靠形状贴边：边界事件等挂靠元素点转置后相对宿主的落点会沉入宿主
+   * 形内（宿主尺寸未换向）。按"宿主中心 → 挂靠中心"方向把挂靠中心投
+   * 影回宿主棱（bbox 等比交点），恢复边界事件骑棱的常规形态。
+   */
+  private snapAttachers(): void {
+    this.elementRegistry.forEach((element: any) => {
+      const host = element.host;
+      if (!host || element.x === undefined || element.width === undefined) {
+        return;
+      }
+      const dx = element.x + element.width / 2 - (host.x + host.width / 2);
+      const dy = element.y + element.height / 2 - (host.y + host.height / 2);
+      if (!dx && !dy) {
+        return;
+      }
+      const t = Math.min(
+        dx ? host.width / 2 / Math.abs(dx) : Infinity,
+        dy ? host.height / 2 / Math.abs(dy) : Infinity
+      );
+      element.x = host.x + host.width / 2 + dx * t - element.width / 2;
+      element.y = host.y + host.height / 2 + dy * t - element.height / 2;
+    });
+  }
+
+  /**
+   * 容器端随内容扩展：边距整理沿流向向后推，容器末端可能溢出；池扩展
+   * 后泳道带经 refitLaneBands 随新内容区重铺——主流向增量只改带的跨
+   * 度，堆叠轴增量由边缘带吸收，带界无缝。
    */
   private refitContainers(context: any): void {
     const horizontal = this.orientationService.isHorizontal();
@@ -358,20 +491,13 @@ export class OrientationHandler implements CommandHandler {
       if (!lanes.length) {
         return;
       }
-      // 池界变化后重铺带：堆叠轴（交叉轴）增量由边缘带吸收，主流向跨度
-      // 随新内容区铺满——对照扩展前池界才能算出增量
+      // 池界变化后重铺带：堆叠轴增量由边缘带吸收，主流向跨度随新内容
+      // 区铺满——对照扩展前池界才能算出增量
       const newBounds = { x: el.x, y: el.y, width: el.width, height: el.height };
       refitLaneBands(lanes, oldBounds, newBounds, SIZES.POOL_HEADER, horizontal).forEach(
         ({ lane, bounds: band }: { lane: any; bounds: any }) => applyRect(lane, band)
       );
     });
-  }
-
-  /** 形状状态索引：element → 转置前快照（间距展开与共线拉直两处扫描共用同一建法） */
-  private stateIndexOf(shapeStates: any[] | undefined): Map<any, any> {
-    const stateOf = new Map<any, any>();
-    (shapeStates ?? []).forEach((state: any) => stateOf.set(state.element, state));
-    return stateOf;
   }
 
   /** 容器后代（含泳道内）在指定轴上的最远端；标签无独立几何语义不参与 */
@@ -387,56 +513,28 @@ export class OrientationHandler implements CommandHandler {
   }
 
   /**
-   * 共线拉直："原共线" = 源与目标在旧主流向轴上中心一致（连线为直线）。
-   * 转置把该共享中心近似映射到新横轴——等宽元素保持对齐，异宽元素产生
-   * 半尺寸差偏移使新连线弯折。把目标横轴中心对齐源即恢复直线（目标的外
-   * 部标签随宿主同轴平移）；按链序处理使链收敛于头元素。定界扫描：注
-   * 册表序不必是链序，扫到不动点为止。
+   * 连线端点重钉：终端段（首段/末段）是轴向段，端点钉回宿主"背向连线
+   * 一侧"的棱（段从宿主出发的出棱/入宿主的入棱），另一维坐标钳进宿主
+   * 跨度（钉在棱段内而非延长线上）。幂等：已贴棱的点重钉不变；非轴向
+   * 终端段（转置产物不会出现，用户手拖斜段防御）保持原样。
    */
-  private straightenColinearLinks(context: any): void {
-    const wasHorizontal = context.oldOrientation !== 'vertical';
-    const stateOf = this.stateIndexOf(context.shapeStates);
-
-    const oldMainCenter = (element: any): number => {
-      const state = stateOf.get(element);
-      if (!state) {
-        return NaN;
-      }
-      return wasHorizontal ? state.y + state.height / 2 : state.x + state.width / 2;
-    };
-
-    // 新朝向下直线连线所共中的横轴
-    const crossKey: 'x' | 'y' = this.orientationService.isHorizontal() ? 'y' : 'x';
-    const sizeKey = crossKey === 'x' ? 'width' : 'height';
-
-    const flows = this.elementRegistry.filter(
-      (e: any) => !!e.waypoints && e.businessObject?.$type === 'bpmn:SequenceFlow'
-    );
-
-    let moved = true;
-    let pass = 0;
-    while (moved && pass <= flows.length) {
-      moved = false;
-      pass++;
-      flows.forEach((flow: any) => {
-        const { source, target } = flow;
-        if (!source || !target) {
-          return;
-        }
-        // 只处理切换前为直线的连线（扇形弯折保持原样）
-        if (Math.abs(oldMainCenter(source) - oldMainCenter(target)) >= 1) {
-          return;
-        }
-        const delta = source[crossKey] + source[sizeKey] / 2 - (target[crossKey] + target[sizeKey] / 2);
-        if (Math.abs(delta) < 1) {
-          return;
-        }
-        target[crossKey] += delta;
-        (target.labels ?? []).forEach((label: any) => {
-          label[crossKey] += delta;
-        });
-        moved = true;
-      });
+  private static reclampTerminal(point: any, toward: any, shape: any): void {
+    if (!shape) {
+      return;
+    }
+    const dx = Math.abs(point.x - toward.x);
+    const dy = Math.abs(point.y - toward.y);
+    if (dx > 0.5 && dy > 0.5) {
+      return;
+    }
+    if (dx <= 0.5) {
+      // 竖直终端段：出/入棱 = 上下棱
+      point.y = toward.y > point.y ? shape.y + shape.height : shape.y;
+      point.x = Math.min(Math.max(point.x, shape.x), shape.x + shape.width);
+    } else {
+      // 水平终端段：出/入棱 = 左右棱
+      point.x = toward.x > point.x ? shape.x + shape.width : shape.x;
+      point.y = Math.min(Math.max(point.y, shape.y), shape.y + shape.height);
     }
   }
 

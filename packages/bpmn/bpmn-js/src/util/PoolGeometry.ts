@@ -39,6 +39,10 @@ export interface RectLike {
  * 泳道带尺寸下限（产品规定，非无限制小）：水平形态宽 600 / 高 250，垂直
  * 形态按朝向转置——跨轴（流向长度）≥600，堆叠轴（带厚）≥250。
  * 分割校验、resize 边界钳制、池内容区下限共享此组常量。
+ *
+ * 带厚下限恒 250（2026-11-18 用户定规：最低 600×250 不动摇；曾短暂降到
+ * 80 修分割失效，后改为分割侧生长方案归还此下限——见 LaneHandlers.divide：
+ * 均分段厚=max(原均分, MIN_LANE_BAND)，不足则带生长+下带让位+池沿增长）。
  */
 export const MIN_LANE_SPAN = 600;
 export const MIN_LANE_BAND = 250;
@@ -92,6 +96,19 @@ export function growPoolAlong(participant: RectLike, axis: 'x' | 'y', delta: num
   if (axis === 'y') {
     participant.height += delta;
   } else {
+    participant.width += delta;
+  }
+}
+
+/** 沿堆叠轴前缘生长（起点外扩、终点不动）：前插让位用——既有带与内容绝对
+ * 位全不动，新带占池前方长出的空间（2026-11-18 用户报"上插下插都向下追加"
+ * 的对症修法） */
+export function growPoolFront(participant: RectLike, axis: 'x' | 'y', delta: number): void {
+  if (axis === 'y') {
+    participant.y -= delta;
+    participant.height += delta;
+  } else {
+    participant.x -= delta;
     participant.width += delta;
   }
 }
