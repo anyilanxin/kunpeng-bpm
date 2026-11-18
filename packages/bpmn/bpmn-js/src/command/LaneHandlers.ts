@@ -91,8 +91,10 @@ export function assertAddLaneAllowed(
     throw new Error('只能在池内添加泳道');
   }
   if (normalizeLanePosition(position) === 'divide') {
-    if (container.businessObject?.$type !== 'bpmn:Lane') {
-      throw new Error('分割只作用于泳道');
+    const isPoolWithoutLanes = container.businessObject?.$type === 'bpmn:Participant'
+      && !(container.children ?? []).some((c: any) => c.businessObject?.$type === 'bpmn:Lane');
+    if (container.businessObject?.$type !== 'bpmn:Lane' && !isPoolWithoutLanes) {
+      throw new Error('分割只作用于泳道或无泳道的池');
     }
     const parts = count ?? 2;
     if (parts !== 2 && parts !== 3) {
@@ -153,12 +155,13 @@ export class AddLaneHandler implements CommandHandler {
     context.carved = null;
     context.created = [];
 
-    // (1) 首道：铺满内容区（元素不动、池不增长——池从此进入泳道形态）
+    // (1) 无道池插道（2026-11-18 用户定规"首击即见带"）：先建铺满内容区的
+    // 首道（池进入泳道形态），随即落入下方"全池首道"让位分支完成插入——
+    // 一次点击即得两条可见泳道，不再是首击无视觉变化的纯形态切换
     if (siblings.length === 0) {
-      context.created.push(
-        this.createLane(context, participant, inner)
-      );
-      return [participant, ...context.created];
+      const first = this.createLane(context, participant, inner);
+      context.created.push(first);
+      siblings.push(first);
     }
 
     // 插入坐标：目标为泳道→紧贴其前/后缘；目标为池→内容区首端 / 最远带尾
@@ -214,6 +217,31 @@ export class AddLaneHandler implements CommandHandler {
   private divide(context: any, target: any, participant: any, axis: 'x' | 'y', horizontal: boolean): any[] {
     // parts 合法性由 assertAddLaneAllowed 保证；段厚生长后必 ≥ 下限，无再校验
     const parts = context.count ?? 2;
+
+    // 无道池分割（2026-11-18 用户定规：初始池也有分割 2/3 段钮）：内容区直接
+    // 铺 N 条道，每条=max(内容区均分, 最小带厚)，不足池沿堆叠轴生长
+    // （target 即池本体；assert 已保证其无道——分割对象为池本身而非某条道）
+    if (target === participant) {
+      const inner = poolInnerRect(participant, SIZES.POOL_HEADER, horizontal);
+      const innerStart = spanStart(inner, axis);
+      const innerLen = spanLength(inner, axis);
+      const each = Math.max(innerLen / parts, MIN_LANE_BAND);
+      const growth = each * parts - innerLen;
+      context.target = null;
+      context.oldTarget = null;
+      context.created = [];
+      context.shifted = [];
+      context.carved = null;
+      context.oldPool = growth > LANE_EPS ? rectOf(participant) : null;
+      if (growth > LANE_EPS) {
+        growPoolAlong(participant, axis, growth);
+      }
+      for (let i = 0; i < parts; i++) {
+        context.created.push(this.createLane(context, participant, laneBandRect(inner, innerStart + i * each, each, horizontal)));
+      }
+      return [participant, ...context.created];
+    }
+
     const start = spanStart(target, axis);
     const originLen = spanLength(target, axis);
     const each = Math.max(originLen / parts, MIN_LANE_BAND);
