@@ -40,6 +40,7 @@
  */
 import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
 import type EventBus from 'diagram-js/lib/core/EventBus';
+import type Canvas from 'diagram-js/lib/core/Canvas';
 import type Modeling from 'diagram-js/lib/features/modeling/Modeling';
 import { SIZES } from '../meta/ElementTypes';
 import type { OrientationService } from '../meta/Orientation';
@@ -60,12 +61,13 @@ import {
 import { trimResizeHandles } from '@kunpeng-io/kernel-shared';
 
 export class LaneBandBehavior extends CommandInterceptor {
-  static $inject = ['eventBus', 'modeling', 'orientationService'];
+  static $inject = ['eventBus', 'modeling', 'orientationService', 'canvas'];
 
   constructor(
     eventBus: EventBus,
     private readonly modeling: Modeling,
-    private readonly orientationService: OrientationService
+    private readonly orientationService: OrientationService,
+    private readonly canvas: Canvas
   ) {
     super(eventBus);
 
@@ -74,6 +76,12 @@ export class LaneBandBehavior extends CommandInterceptor {
 
     this.on('shape.resize', 'preExecute', (event: any) => this.clampLaneResize(event.context));
     this.on('shape.resize', 'postExecute', (event: any) => this.onShapeResized(event.context));
+
+    // 泳道垫底不变量：泳道实底（遮网格设计）画在节点之上会把节点整个盖住——
+    // 领养路径节点先入池、加道/分割/删道回放/导入的泳道后入池（gfx 追加在尾），
+    // 统一在 shape.added 把泳道 gfx 挪到父组内首个非泳道子节点之前（带恒在
+    // 节点之下；命中测试随 DOM 序，节点在上可点）
+    eventBus.on('shape.added', (event: any) => this.sinkLaneGfx(event.element, event.gfx));
 
     this.on('spaceTool', 'preExecute', (event: any) => {
       const moving = event.context.movingShapes;
@@ -331,5 +339,36 @@ export class LaneBandBehavior extends CommandInterceptor {
       return;
     }
     trimResizeHandles(this.orientationService.isHorizontal() ? 'ns' : 'we');
+  }
+
+  /**
+   * 泳道沉底：模型 children 与 gfx 双一致地插到首个非泳道节点之前（泳道间
+   * 保持入序）。双写缺一不可——只挪 gfx 会被 updateContainments 按模型序
+   * 洗回；只改模型序 gfx 不动则当下仍盖。
+   */
+  private sinkLaneGfx(lane: any, gfx: any): void {
+    if (!gfx || lane?.businessObject?.$type !== 'bpmn:Lane') {
+      return;
+    }
+    const siblings: any[] = lane.parent?.children ?? [];
+    const firstNodeIndex = siblings.findIndex(
+      (c: any) => c !== lane && !is(c, 'bpmn:Lane') && !c.labelTarget && !c.waypoints
+    );
+    if (firstNodeIndex < 0) {
+      return;
+    }
+    // 模型序：泳道搬到节点块之前（updateContainments 按此序维持 gfx）
+    const from = siblings.indexOf(lane);
+    if (from < 0) {
+      return;
+    }
+    siblings.splice(from, 1);
+    siblings.splice(firstNodeIndex, 0, lane);
+    // gfx 序：同步插到首个节点 gfx 之前
+    const parentGfx: Node = gfx.parentNode;
+    const ref = this.canvas.getGraphics(siblings[firstNodeIndex + 1]) as Node | null;
+    if (parentGfx && ref && ref.parentNode === parentGfx && ref !== gfx.nextSibling) {
+      parentGfx.insertBefore(gfx, ref);
+    }
   }
 }
