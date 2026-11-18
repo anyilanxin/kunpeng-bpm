@@ -203,7 +203,7 @@ export class BpmnContextPadProvider {
         html: toolEntryHtml('more', 18, this.elementTypes.toolFillOf('more', true)),
         title: this.i18n.t('追加更多元素'),
         action: {
-          click: () => this.openElementMenu(element, BpmnAppendMenuProvider.MENU_ID, '追加元素')
+          click: (event: MouseEvent) => this.openElementMenu(element, BpmnAppendMenuProvider.MENU_ID, '追加元素', event)
         }
       };
     }
@@ -216,7 +216,7 @@ export class BpmnContextPadProvider {
         html: toolEntryHtml('plus', 18, this.elementTypes.toolFillOf('plus')),
         title: this.i18n.t('创建元素'),
         action: {
-          click: () => this.openElementMenu(element, BpmnCreateMenuProvider.MENU_ID, '创建元素')
+          click: (event: MouseEvent) => this.openElementMenu(element, BpmnCreateMenuProvider.MENU_ID, '创建元素', event)
         }
       };
     }
@@ -233,7 +233,7 @@ export class BpmnContextPadProvider {
         html: toolEntryHtml('wrench', 18, this.elementTypes.toolFillOf('wrench')),
         title: this.i18n.t(laneLike ? '更改元素' : '替换类型'),
         action: {
-          click: () => this.openElementMenu(element, 'bpmn-replace', '更改元素类型')
+          click: (event: MouseEvent) => this.openElementMenu(element, 'bpmn-replace', '更改元素类型', event)
         }
       };
     }
@@ -246,7 +246,7 @@ export class BpmnContextPadProvider {
         html: toolEntryHtml('wrench', 18, this.elementTypes.toolFillOf('wrench')),
         title: this.i18n.t('切换连线类型'),
         action: {
-          click: () => this.openElementMenu(element, BpmnFlowTypeMenuProvider.MENU_ID, '切换连线类型')
+          click: (event: MouseEvent) => this.openElementMenu(element, BpmnFlowTypeMenuProvider.MENU_ID, '切换连线类型', event)
         }
       };
     }
@@ -324,9 +324,17 @@ export class BpmnContextPadProvider {
     });
   }
 
-  /** 元素弹框（替换/追加/创建）：同款 pad 锚定与家族样式 */
-  private openElementMenu(element: any, menuId: string, title: string): void {
-    this.bpmnPopup.open(element, menuId, { kind: 'pad', target: element }, this.i18n.t(title));
+  /**
+   * 元素弹框（替换/追加/创建）：贴触发钮（padEntry——钮下边左对齐，2026-11-18
+   * 用户定规；大池/泳道按元素 gfx 锚定会甩到池体远端）；无触发事件
+   * （键盘/重开路径）回落元素锚定。对齐菜单同款取钮方式。
+   */
+  private openElementMenu(element: any, menuId: string, title: string, event?: MouseEvent): void {
+    const trigger = (event?.target as HTMLElement | undefined)?.closest?.('.entry') as HTMLElement | null ?? null;
+    const anchor: BpmnPopupAnchor = trigger
+      ? { kind: 'padEntry', trigger, target: element }
+      : { kind: 'pad', target: element };
+    this.bpmnPopup.open(element, menuId, anchor, this.i18n.t(title));
   }
 
   private isFlowNode(element: any): boolean {
