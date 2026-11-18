@@ -23,6 +23,7 @@
  * 模型元素工具函数（插件公共 API）：面板/校验/导出等插件以统一的语义
  * 判型与取业务对象，不各自触碰内部结构。
  */
+import type { StartEventHostContext } from '../meta/ElementTypes';
 
 /**
  * 画布元素 → 业务对象；裸 moddle 元素（面板等插件会直接传业务对象进来）
@@ -65,6 +66,22 @@ export function getDi(element: any): any {
 /** 事件子流程（bpmn:SubProcess 的 triggeredByEvent 变体） */
 export function isEventSubProcess(element: any): boolean {
   return getBusinessObject(element)?.triggeredByEvent === true;
+}
+
+/**
+ * 开始事件宿主语境：沿画布父链（含元素自身——创建菜单以容器宿主起步）
+ * 找第一个子流程族 bo（is 走 $instanceOf 继承链，覆盖 Transaction/AdHoc
+ * 子型），按 triggeredByEvent 二分；无子流程语境（主平面，含池/泳道内）
+ * = 流程级。折叠子流程下钻平面的画布根 bo 即该子流程，天然命中。
+ * 合法形态集见 meta/ElementTypes 的 START_EVENT_ALLOWED。
+ */
+export function startEventHostContext(element: any): StartEventHostContext {
+  for (let p = element; p; p = p.parent) {
+    if (is(p, 'bpmn:SubProcess')) {
+      return getBusinessObject(p).triggeredByEvent === true ? 'eventSubProcess' : 'subProcess';
+    }
+  }
+  return 'process';
 }
 
 /**

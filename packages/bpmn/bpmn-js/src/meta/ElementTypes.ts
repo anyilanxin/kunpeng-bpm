@@ -577,6 +577,32 @@ export function isContainerType(type?: string | null, isExpanded?: boolean): boo
   return isPoolFamily(type) || (isSubProcessFamily(type) && isExpanded !== false);
 }
 
+/** 开始事件宿主语境（语境解析见 ModelUtil.startEventHostContext，合法集见 START_EVENT_ALLOWED） */
+export type StartEventHostContext = 'process' | 'subProcess' | 'eventSubProcess';
+
+/** 开始事件触发形态键：eventSymbol（无符号型='none'）+ 非中断标记 */
+function startEventFormKey(eventSymbol: string | undefined, nonInterrupting?: boolean): string {
+  return `${eventSymbol ?? 'none'}${nonInterrupting ? '#ni' : ''}`;
+}
+
+/**
+ * 开始事件触发形态的语境合法集（规范 Table 10.84/10.85/10.86 + Table 10.87）：
+ * - 流程级：None + 六触发型，仅中断——isInterrupting 对非事件子流程开始事件
+ *   被规范忽略（Table 10.87），非中断虚线环记法只在事件子流程语境有定义；
+ * - 普通子流程：仅 None（Table 10.85"Sub-Process 由父流程令牌触发，不用事件触发"）；
+ * - 事件子流程：九触发型（Table 10.86），Error 恒中断（Table 10.87）、
+ *   Compensation 无中断语义，其余七种带非中断变体。
+ * 替换菜单与创建菜单共用（BpmnReplaceMenuProvider / BpmnCreateMenuProvider）。
+ */
+const START_EVENT_ALLOWED: Record<StartEventHostContext, ReadonlySet<string>> = {
+  process: new Set(['none', 'message', 'timer', 'conditional', 'signal', 'multiple', 'parallelMultiple']),
+  subProcess: new Set(['none']),
+  eventSubProcess: new Set([
+    'message', 'timer', 'error', 'escalation', 'compensation', 'conditional', 'signal', 'multiple', 'parallelMultiple',
+    'message#ni', 'timer#ni', 'escalation#ni', 'conditional#ni', 'signal#ni', 'multiple#ni', 'parallelMultiple#ni'
+  ])
+};
+
 /**
  * palette 快捷集：默认直接展示的条目（metaId 稳定 id，顺序即面板序）。
  * 取值=产品规定的直列清单（创建顺序：事件族 → 网关 → 任务 → 子流程 →
@@ -797,6 +823,18 @@ export class BpmnElementTypes {
     // 折叠轴（SubProcess/AdHocSubProcess 同判）：meta 折叠变体 ⇄ element.isExpanded=false
     const collapsedVariant = meta.symbol === 'subProcessCollapsed' || meta.symbol === 'adHocSubProcessCollapsed';
     return collapsedVariant === (element.isExpanded === false);
+  }
+
+  /**
+   * 开始事件触发形态在指定宿主语境是否合法（三语境合法集 START_EVENT_ALLOWED，
+   * 宿主语境解析见 ModelUtil.startEventHostContext）。非开始事件形态恒合法
+   * ——过滤只作用于替换/创建候选里的 bpmn:StartEvent。
+   */
+  isStartEventFormAllowed(meta: ShapeTypeMeta, context: StartEventHostContext): boolean {
+    if (meta.type !== 'bpmn:StartEvent') {
+      return true;
+    }
+    return START_EVENT_ALLOWED[context].has(startEventFormKey(meta.eventSymbol, meta.nonInterrupting));
   }
 
   /** 面板分组定义（顺序即展示顺序） */
