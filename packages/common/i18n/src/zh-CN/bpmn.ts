@@ -20,11 +20,9 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * bpmn 线内核 UI 中文词典（2026-11-19 契约翻转：key=英文源码原文，value=中文；
- * 未装配词典=英文透传即缺省观感）。内容为原 en 词典整体反转。
- * key 与源码 t() 调用一一对应，新增 UI 文案 key=英文必须过 t()。
+ * bpmn 线简体中文词典（key=英文源码原文）。语言目录约定：src/<locale>/{bpmn,dmn,panel}.ts，
+ * 新语言=复制语言目录并翻译 value（en 为源码 key 透传，无目录）。
  */
-
 export const bpmnZhCN: Record<string, string> = {
   'Start event': '开始事件',
   'Intermediate throw': '中间抛出',

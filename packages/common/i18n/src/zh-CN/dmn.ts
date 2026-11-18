@@ -20,11 +20,9 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * dmn 线内核 UI 中文词典（2026-11-19 契约翻转：key=英文源码原文，value=中文）。
- * 内容为原 en 词典整体反转。表达式菜单英文记法 key 与决策表头 When/Then/And/
+ * dmn 线简体中文词典（key=英文源码原文）。表达式英文记法 key 与决策表头 When/Then/And/
  * Annotations 记法词透传不译（沿 2026-11-18 定规）。
  */
-
 export const dmnZhCN: Record<string, string> = {
   'Decision': '决策',
   'Input data': '输入数据',
