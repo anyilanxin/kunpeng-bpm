@@ -20,7 +20,7 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * @kunpeng-io/i18n：鲲鹏建模器语言包（key=英文，2026-11-19 契约翻转；同日目录规范化）。
+ * @kunpeng-io/bpm-i18n：鲲鹏建模器语言包（key=英文，2026-11-19 契约翻转；同日目录规范化）。
  *
  * 契约：内核源码 UI 文案 key=英文原文，未装配词典=英文透传（即缺省观感）；
  * 各语言以 en→xx 词典装配。
@@ -35,7 +35,7 @@
  * 接入（config 词典通道——Modeler 构造项 `bpmnI18n`/`dmnI18n`，随插件 config
  * 透传进内核词典服务构造期，对全部消费者生效；语言为构造期装配，切换=重建实例）：
  * ```ts
- * import { bpmnI18nConfig, dmnI18nConfig } from '@kunpeng-io/i18n';
+ * import { bpmnI18nConfig, dmnI18nConfig } from '@kunpeng-io/bpm-i18n';
  *
  * new BpmnModeler({ ..., bpmnI18n: bpmnI18nConfig('zh-TW') });
  * new DmnModeler({ ..., dmnI18n: dmnI18nConfig('zh-TW') });

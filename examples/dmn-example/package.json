@@ -16,7 +16,7 @@
     "@kunpeng-io/dmn-js": "workspace:*",
     "@kunpeng-io/dmn-js-properties-panel": "workspace:*",
     "@kunpeng-io/dmn-js-toolbar": "workspace:*",
-    "@kunpeng-io/i18n": "workspace:*",
+    "@kunpeng-io/bpm-i18n": "workspace:*",
     "@kunpeng-io/kunpeng-dmn-moddle": "workspace:*",
     "diagram-js": "catalog:",
     "diagram-js-grid": "catalog:",

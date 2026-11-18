@@ -32,7 +32,7 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
       formats: ['es'],
-      fileName: () => 'i18n.es.js'
+      fileName: () => 'bpm-i18n.es.js'
     }
   }
 });

@@ -29,7 +29,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Modeler, Viewer, NavigatedViewer, iconOfElement } from '@kunpeng-io/bpmn-js';
 import { BpmnToolbarModule } from '@kunpeng-io/bpmn-js-toolbar';
-import { bpmnI18nConfig, type KunpengLocale } from '@kunpeng-io/i18n';
+import { bpmnI18nConfig, type KunpengLocale } from '@kunpeng-io/bpm-i18n';
 import type { ToolbarActionSpec } from '@kunpeng-io/bpmn-js-toolbar';
 import MinimapModule from 'diagram-js-minimap';
 import {
@@ -109,7 +109,7 @@ function toggleDark(): void {
 
 /** 按形态建实例：工具栏插件三形态通用装配（只读底座缺的编辑组由插件自行不建），
  * 编辑态另挂属性面板（parent 容器 + 面板模块）+ 调色板配置；i18n 词典模块
- * 随 locale 装配（@kunpeng-io/i18n：zh=面板汉化、en=内核 UI 英文） */
+ * 随 locale 装配（@kunpeng-io/bpm-i18n：zh=面板汉化、en=内核 UI 英文） */
 function createInstance(formKind: 'edit' | 'navigated' | 'view'): Modeler {
   const base = {
     container: canvasHost.value!,
@@ -117,7 +117,7 @@ function createInstance(formKind: 'edit' | 'navigated' | 'view'): Modeler {
     additionalModules: [BpmnToolbarModule],
     bpmnToolbar: { actions: buildToolbarActions() },
     // 词典走 config 通道（palette 等默认模块 __init__ 急切构造，DI 服务替换
-    // 对早捕获消费者不生效——见 @kunpeng-io/i18n 头注释）
+    // 对早捕获消费者不生效——见 @kunpeng-io/bpm-i18n 头注释）
     bpmnI18n: bpmnI18nConfig(locale.value),
     // 按当前主题给渲染缺省（实例重建后无需再 setTheme）
     bpmnRenderer: { ...RENDERER_THEMES[dark.value ? 'dark' : 'light'] }
@@ -173,7 +173,7 @@ async function switchForm(next: 'edit' | 'navigated' | 'view'): Promise<void> {
   await modeler.importXML(xml);
 }
 
-// ---------- 语言（@kunpeng-io/i18n 演示：词典为构造期装配，切换=保内容重建） ----------
+// ---------- 语言（@kunpeng-io/bpm-i18n 演示：词典为构造期装配，切换=保内容重建） ----------
 
 const locale = ref<KunpengLocale>('zh-CN');
 

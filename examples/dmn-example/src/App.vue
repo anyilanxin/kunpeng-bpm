@@ -25,7 +25,7 @@ import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vu
 import { Modeler, Viewer, NavigatedViewer } from '@kunpeng-io/dmn-js';
 import { DmnToolbarModule } from '@kunpeng-io/dmn-js-toolbar';
 import type { ToolbarActionSpec } from '@kunpeng-io/dmn-js-toolbar';
-import { dmnI18nConfig, type KunpengLocale } from '@kunpeng-io/i18n';
+import { dmnI18nConfig, type KunpengLocale } from '@kunpeng-io/bpm-i18n';
 import {
   DmnPropertiesPanelModule,
   DmnPropertiesProviderModule,
@@ -85,14 +85,14 @@ function instanceBase() {
     container: canvasHost.value!,
     additionalModules: [DmnToolbarModule],
     // 词典走 config 通道（默认模块 __init__ 急切构造，DI 服务替换对早捕获
-    // 消费者不生效——见 @kunpeng-io/i18n 头注释）
+    // 消费者不生效——见 @kunpeng-io/bpm-i18n 头注释）
     dmnI18n: dmnI18nConfig(locale.value),
     dmnToolbar: { actions: buildToolbarActions() },
     dmnRenderer: { ...RENDERER_THEMES[dark.value ? 'dark' : 'light'] }
   };
 }
 
-// ---------- 语言（@kunpeng-io/i18n 演示：词典为构造期装配，切换=保内容重建） ----------
+// ---------- 语言（@kunpeng-io/bpm-i18n 演示：词典为构造期装配，切换=保内容重建） ----------
 
 const locale = ref<KunpengLocale>('zh-CN');
 

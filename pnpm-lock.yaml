@@ -215,6 +215,9 @@ importers:
       '@codemirror/view':
         specifier: 'catalog:'
         version: 6.43.15
+      '@kunpeng-io/bpm-i18n':
+        specifier: workspace:*
+        version: link:../../packages/common/bpm-i18n
       '@kunpeng-io/bpmn-js':
         specifier: workspace:*
         version: link:../../packages/bpmn/bpmn-js
@@ -227,9 +230,6 @@ importers:
       '@kunpeng-io/bpmn-js-toolbar':
         specifier: workspace:*
         version: link:../../packages/bpmn/bpmn-js-toolbar
-      '@kunpeng-io/i18n':
-        specifier: workspace:*
-        version: link:../../packages/common/i18n
       '@kunpeng-io/kunpeng-bpmn-moddle':
         specifier: workspace:*
         version: link:../../packages/bpmn/kunpeng-bpmn-moddle
@@ -285,6 +285,9 @@ importers:
       '@codemirror/view':
         specifier: 'catalog:'
         version: 6.43.15
+      '@kunpeng-io/bpm-i18n':
+        specifier: workspace:*
+        version: link:../../packages/common/bpm-i18n
       '@kunpeng-io/dmn-js':
         specifier: workspace:*
         version: link:../../packages/dmn/dmn-js
@@ -294,9 +297,6 @@ importers:
       '@kunpeng-io/dmn-js-toolbar':
         specifier: workspace:*
         version: link:../../packages/dmn/dmn-js-toolbar
-      '@kunpeng-io/i18n':
-        specifier: workspace:*
-        version: link:../../packages/common/i18n
       '@kunpeng-io/kunpeng-dmn-moddle':
         specifier: workspace:*
         version: link:../../packages/dmn/kunpeng-dmn-moddle
@@ -685,6 +685,18 @@ importers:
         specifier: 'catalog:'
         version: 8.3.6(esbuild@0.28.2)
 
+  packages/common/bpm-i18n:
+    devDependencies:
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.4
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.6(esbuild@0.28.2)
+
   packages/common/expression-analyzer:
     dependencies:
       '@kunpeng-io/lezer-expression':
@@ -774,18 +786,6 @@ importers:
       rimraf:
         specifier: 'catalog:'
         version: 6.1.4
-      vite:
-        specifier: 'catalog:'
-        version: 8.3.6(esbuild@0.28.2)
-
-  packages/common/i18n:
-    devDependencies:
-      rimraf:
-        specifier: 'catalog:'
-        version: 6.1.4
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
       vite:
         specifier: 'catalog:'
         version: 8.3.6(esbuild@0.28.2)

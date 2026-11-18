@@ -17,7 +17,7 @@
     "@kunpeng-io/bpmn-js-behaviors": "workspace:*",
     "@kunpeng-io/bpmn-js-properties-panel": "workspace:*",
     "@kunpeng-io/bpmn-js-toolbar": "workspace:*",
-    "@kunpeng-io/i18n": "workspace:*",
+    "@kunpeng-io/bpm-i18n": "workspace:*",
     "@kunpeng-io/kunpeng-bpmn-moddle": "workspace:*",
     "@kunpeng-io/linting": "workspace:*",
     "@kunpeng-io/properties-panel": "workspace:*",
