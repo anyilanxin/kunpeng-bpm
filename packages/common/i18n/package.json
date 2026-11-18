@@ -1,0 +1,36 @@
+{
+  "name": "@kunpeng-io/i18n",
+  "version": "2026.11.13",
+  "description": "鲲鹏建模器 i18n 插件：中英双词典 + 整体替换 bpmnI18n/dmnI18n 服务的 DI 工厂模块（zh-CN=内核中文透传+属性面板英文 key 汉化；en-US=内核 UI 英文词典，面板英文 key 透传）",
+  "license": "GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0",
+  "type": "module",
+  "main": "./dist/i18n.es.js",
+  "module": "./dist/i18n.es.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/i18n.es.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "licenses"
+  ],
+  "scripts": {
+    "build": "vite build --config vite.lib.config.ts && tsc -p tsconfig.lib.json",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

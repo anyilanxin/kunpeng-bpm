@@ -34,7 +34,7 @@ import { BpmnElementTypes, SIZES, isContainerType, metaId } from '../meta/Elemen
 import type { ShapeTypeMeta } from '../meta/ElementTypes';
 import { bpmnIconHtml } from '../icons/BpmnIcons';
 import { iconSetAsset } from '../icons/IconSet';
-import { isAny } from '../util/ModelUtil';
+import { isAny, isEventSubProcess, startEventHostContext } from '../util/ModelUtil';
 import { poolInnerRect } from '../util/PoolGeometry';
 
 /**
@@ -91,7 +91,8 @@ export class PopupMenuEntriesCache {
   }
 }
 
-/** 按 palette 分组过滤注册表并构建弹框条目；place 收创建后的落形动作 */
+/** 按 palette 分组过滤注册表并构建弹框条目；place 收创建后的落形动作；
+ * allowed 为语境过滤谓词（创建菜单按宿主语境收开始事件触发形态） */
 function buildEntries(
   elementTypes: BpmnElementTypes,
   i18n: { t(text: string): string },
@@ -99,7 +100,8 @@ function buildEntries(
   keyPrefix: string,
   place: (meta: ShapeTypeMeta, shape: any) => void,
   close: () => void,
-  elementFactory: any
+  elementFactory: any,
+  allowed?: (meta: ShapeTypeMeta) => boolean
 ): Record<string, any> {
   const groupLabels = new Map(
     BpmnElementTypes.PALETTE_GROUPS.map((g) => [g.id, g.label] as const)
@@ -109,9 +111,17 @@ function buildEntries(
     if (!groupIds.includes(meta.paletteGroup ?? '')) {
       continue;
     }
+    if (allowed && !allowed(meta)) {
+      continue;
+    }
     // 追加必建入线（源→新元素顺序流），链接捕获不作入线目标（规则层拒绝）
     // ——追加菜单不收录，放置走创建菜单
     if (keyPrefix === 'append' && meta.type === 'bpmn:IntermediateCatchEvent' && meta.eventSymbol === 'link') {
+      continue;
+    }
+    // 事件子流程不可有入边（规范 §13.5.4 独立）：不作为追加目标收录，
+    // 放置走创建菜单（同链接捕获处置）
+    if (keyPrefix === 'append' && meta.symbol === 'subProcessEvent') {
       continue;
     }
     entries[`${keyPrefix}-${metaId(meta)}`] = {
@@ -151,9 +161,10 @@ export class BpmnAppendMenuProvider {
   private readonly cache: PopupMenuEntriesCache;
 
   getPopupMenuEntries(target: any): Record<string, any> {
-    // 仅流节点可作为追加源（与 context pad 快捷追加同一判定）
+    // 仅流节点可作为追加源（与 context pad 快捷追加同一判定）；事件子流程
+    // 独立（规范 §13.5.4）不作追加源——空条目集令 pad 的 append-more 同步隐藏
     const family = this.elementTypes.family(target.businessObject?.$type);
-    if (family !== 'event' && family !== 'activity' && family !== 'gateway') {
+    if ((family !== 'event' && family !== 'activity' && family !== 'gateway') || isEventSubProcess(target)) {
       return {};
     }
     return this.cache.get(target, () => buildEntries(
@@ -239,6 +250,10 @@ export class BpmnCreateMenuProvider {
       const placement = this.resolvePlacement(host, position);
       const hostTarget = placement.host;
       const placePosition = placement.position;
+      // 开始事件触发形态按宿主语境过滤（与替换菜单同矩阵，规范 Table
+      // 10.84/85/86）：宿主=池/泳道（→流程级）/展开（事件）子流程/画布根
+      // （主平面=流程级；折叠子流程下钻平面根 bo=子流程天然命中）
+      const startContext = startEventHostContext(target);
       return buildEntries(
         this.elementTypes,
         this.i18n,
@@ -251,7 +266,8 @@ export class BpmnCreateMenuProvider {
           this.directEditing.activate(created);
         },
         () => this.popupMenu.close(),
-        this.elementFactory
+        this.elementFactory,
+        (meta) => this.elementTypes.isStartEventFormAllowed(meta, startContext)
       );
     });
   }

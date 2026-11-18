@@ -30,6 +30,7 @@ import { adoptionBounds } from '../util/PoolGeometry';
 import type { OrientationService } from '../meta/Orientation';
 import type { BpmnDocumentState } from '../xml/DocumentState';
 import type { BpmnFactory } from '../factory/BpmnFactory';
+import type { BpmnI18n } from '../i18n/BpmnI18n';
 
 /**
  * 首池语义包装：无协作图上创建第一个参与者 → 生成 <collaboration>、
@@ -37,7 +38,7 @@ import type { BpmnFactory } from '../factory/BpmnFactory';
  * 连线就地断开（连线语义限同池，跨池属消息流范畴不在本内核）。
  */
 export class CollaborationBehavior extends CommandInterceptor {
-  static $inject = ['eventBus', 'bpmnDocumentState', 'bpmnFactory', 'canvas', 'orientationService', 'modeling'];
+  static $inject = ['eventBus', 'bpmnDocumentState', 'bpmnFactory', 'canvas', 'orientationService', 'modeling', 'bpmnI18n'];
 
   constructor(
     eventBus: EventBus,
@@ -45,7 +46,8 @@ export class CollaborationBehavior extends CommandInterceptor {
     private readonly bpmnFactory: BpmnFactory,
     private readonly canvas: Canvas,
     private readonly orientationService: OrientationService,
-    private readonly modeling: any
+    private readonly modeling: any,
+    private readonly i18n: BpmnI18n
   ) {
     super(eventBus);
 
@@ -61,7 +63,9 @@ export class CollaborationBehavior extends CommandInterceptor {
 
       const process = adoptExisting
         ? existingProcesses[0]
-        : this.bpmnFactory.createProcess({ name: `流程 ${existingProcesses.length + 1}` });
+        : this.bpmnFactory.createProcess({
+          name: this.i18n.t('流程 {n}', { n: String(existingProcesses.length + 1) })
+        });
       if (!adoptExisting) {
         this.state.definitions.rootElements.push(process);
       }

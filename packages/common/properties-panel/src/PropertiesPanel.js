@@ -19,6 +19,8 @@ import Group from './components/Group';
 
 import Placeholder from './components/Placeholder';
 
+import translateFallback from './components/util/translateFallback';
+
 import {
   DescriptionContext,
   ErrorsContext,
@@ -157,6 +159,7 @@ export default function PropertiesPanel(props) {
     layoutChanged,
     descriptionConfig,
     descriptionLoaded,
+    translate = translateFallback,
     tooltipConfig,
     tooltipLoaded,
     eventBus
@@ -283,7 +286,8 @@ export default function PropertiesPanel(props) {
                           <Component
                             { ...group }
                             key={ id }
-                            element={ element } />
+                            element={ element }
+                            translate={ translate } />
                         );
                       })
                     }

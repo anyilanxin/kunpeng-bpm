@@ -24,7 +24,7 @@
  *
  * 尺寸体系为自有设计（规范未规定像素尺寸，仅规定形状与比例语义），取值理由随常量注明：
  * - 事件直径 38：内部符号 20px 上下仍留 9px 视觉余量；
- * - 任务盒 116×78：可容纳两行 12px 标签（含 8px 上下内边距），宽约为事件直径 3 倍，横排连线视觉均衡；
+ * - 任务盒 100×80（2026-11-18 用户定规，对齐主流建模器缺省；此前 116×78）；
  * - 网关 52：对角线约 73，X/O/+ 标记占 45% 仍不触边；
  * - 池 420×220 / 头带 34：头带 34 = 两行竖排标签（12px×1.4 行高）+ 8 余量；
  * - 展开子流程 240×160：容纳一个完整"开始→任务→结束"种子布局；
@@ -135,8 +135,8 @@ export function subProcessExpandedOf(meta: ShapeTypeMeta): boolean | undefined {
 export const SIZES = {
   EVENT: 38,
   GATEWAY: 52,
-  TASK_W: 116,
-  TASK_H: 78,
+  TASK_W: 100,
+  TASK_H: 80,
   // 展开态子流程族缺省（2026-11-04 用户定规"默认尺寸 350×200"，对齐老线 palette 拖拽行为契约
   // ——上游 bpmn-js 18 展开子流程同值；此前 240×160 被评"展开子流程太小"）
   SUBPROCESS_W: 350,
@@ -496,7 +496,7 @@ export const SHAPE_TYPES: ShapeTypeMeta[] = [
   // "临时/事务与用户任务一样"——恒展开但缺省小盒，容器内容靠用户展开拖放归位后 resize）
   { type: 'bpmn:Transaction', label: '事务子流程', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'transaction', paletteGroup: 'subProcesses', order: 40, replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
   // Ad-hoc 子流程（规范 §10.5.5：底部波浪号标记）。无 paletteGroup=不进创建菜单（「更多元素」
-  // 弹框创建走下方折叠条目 116×78，2026-11-04 用户定规）；展开形态仍为替换目标（折叠⇄展开，
+  // 弹框创建走下方折叠条目 100×80（尺寸随 SIZES；2026-11-04 用户定规，原 116×78）；展开形态仍为替换目标（折叠⇄展开，
   // 替换菜单按 replaceFamily/五轴匹配不经 paletteGroup）
   { type: 'bpmn:AdHocSubProcess', label: 'Ad-hoc 子流程', width: SIZES.SUBPROCESS_W, height: SIZES.SUBPROCESS_H, symbol: 'adHocSubProcess', replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
   // 折叠形态排在展开之后：shapeByType 取数组首条，展开态（容器/大尺寸）须胜出
@@ -576,6 +576,32 @@ export function isPoolFamily(type?: string | null): boolean {
 export function isContainerType(type?: string | null, isExpanded?: boolean): boolean {
   return isPoolFamily(type) || (isSubProcessFamily(type) && isExpanded !== false);
 }
+
+/** 开始事件宿主语境（语境解析见 ModelUtil.startEventHostContext，合法集见 START_EVENT_ALLOWED） */
+export type StartEventHostContext = 'process' | 'subProcess' | 'eventSubProcess';
+
+/** 开始事件触发形态键：eventSymbol（无符号型='none'）+ 非中断标记 */
+function startEventFormKey(eventSymbol: string | undefined, nonInterrupting?: boolean): string {
+  return `${eventSymbol ?? 'none'}${nonInterrupting ? '#ni' : ''}`;
+}
+
+/**
+ * 开始事件触发形态的语境合法集（规范 Table 10.84/10.85/10.86 + Table 10.87）：
+ * - 流程级：None + 六触发型，仅中断——isInterrupting 对非事件子流程开始事件
+ *   被规范忽略（Table 10.87），非中断虚线环记法只在事件子流程语境有定义；
+ * - 普通子流程：仅 None（Table 10.85"Sub-Process 由父流程令牌触发，不用事件触发"）；
+ * - 事件子流程：九触发型（Table 10.86），Error 恒中断（Table 10.87）、
+ *   Compensation 无中断语义，其余七种带非中断变体。
+ * 替换菜单与创建菜单共用（BpmnReplaceMenuProvider / BpmnCreateMenuProvider）。
+ */
+const START_EVENT_ALLOWED: Record<StartEventHostContext, ReadonlySet<string>> = {
+  process: new Set(['none', 'message', 'timer', 'conditional', 'signal', 'multiple', 'parallelMultiple']),
+  subProcess: new Set(['none']),
+  eventSubProcess: new Set([
+    'message', 'timer', 'error', 'escalation', 'compensation', 'conditional', 'signal', 'multiple', 'parallelMultiple',
+    'message#ni', 'timer#ni', 'escalation#ni', 'conditional#ni', 'signal#ni', 'multiple#ni', 'parallelMultiple#ni'
+  ])
+};
 
 /**
  * palette 快捷集：默认直接展示的条目（metaId 稳定 id，顺序即面板序）。
@@ -797,6 +823,18 @@ export class BpmnElementTypes {
     // 折叠轴（SubProcess/AdHocSubProcess 同判）：meta 折叠变体 ⇄ element.isExpanded=false
     const collapsedVariant = meta.symbol === 'subProcessCollapsed' || meta.symbol === 'adHocSubProcessCollapsed';
     return collapsedVariant === (element.isExpanded === false);
+  }
+
+  /**
+   * 开始事件触发形态在指定宿主语境是否合法（三语境合法集 START_EVENT_ALLOWED，
+   * 宿主语境解析见 ModelUtil.startEventHostContext）。非开始事件形态恒合法
+   * ——过滤只作用于替换/创建候选里的 bpmn:StartEvent。
+   */
+  isStartEventFormAllowed(meta: ShapeTypeMeta, context: StartEventHostContext): boolean {
+    if (meta.type !== 'bpmn:StartEvent') {
+      return true;
+    }
+    return START_EVENT_ALLOWED[context].has(startEventFormKey(meta.eventSymbol, meta.nonInterrupting));
   }
 
   /** 面板分组定义（顺序即展示顺序） */

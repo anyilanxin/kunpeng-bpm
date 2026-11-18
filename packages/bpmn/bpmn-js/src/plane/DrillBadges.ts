@@ -30,6 +30,7 @@ import type EventBus from 'diagram-js/lib/core/EventBus';
 import type Canvas from 'diagram-js/lib/core/Canvas';
 import type { Injector } from 'didi';
 import { isSubProcessFamily } from '../meta/ElementTypes';
+import type { BpmnI18n } from '../i18n/BpmnI18n';
 import type { PlaneService } from './PlaneService';
 
 /** 徽标图标（用户提供资产，20×20 渲染 16×16 视框 evenodd：右下角括弧+指入箭头） */
@@ -42,6 +43,8 @@ export class DrillBadges {
   static $inject = ['eventBus', 'canvas', 'overlays', 'injector', 'planeService'];
 
   private readonly badged = new Set<any>();
+  /** 词典（bpmnI18n 属 BpmnCoreModule 三形态恒装，严格解析） */
+  private readonly i18n: BpmnI18n;
 
   constructor(
     eventBus: EventBus,
@@ -50,6 +53,7 @@ export class DrillBadges {
     private readonly injector: Injector,
     private readonly planeService: PlaneService
   ) {
+    this.i18n = injector.get<BpmnI18n>('bpmnI18n');
     // 可见性输入面：选中态、内容增删（命令收尾 elements.changed）、平面切换、
     // 文档更替；差集更新幂等，多源触发收敛到同一结果
     for (const event of ['selection.changed', 'elements.changed', 'shape.added', 'shape.removed', 'plane.changed', 'root.set', 'import.done']) {
@@ -100,7 +104,7 @@ export class DrillBadges {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'bpmn-drill-badge';
-    button.title = '下钻进入子流程';
+    button.title = this.i18n.t('下钻进入子流程');
     button.innerHTML = DRILL_ICON;
     button.addEventListener('click', (event) => {
       event.stopPropagation();

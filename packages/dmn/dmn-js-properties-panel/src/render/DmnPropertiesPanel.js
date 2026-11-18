@@ -44,6 +44,10 @@ export default function DmnPropertiesPanel(props) {
   const elementRegistry = injector.get('elementRegistry');
   const eventBus = injector.get('eventBus');
 
+  // translate 桥（对齐 bpmn 线面板）：dmn-js modules 的 dmnTranslateFactory 已
+  // 桥 dmnI18n——接词典宿主的占位文案随语言走；未接词典时工厂恒等回落
+  const translate = injector.get('translate');
+
   const [ state, setState ] = useState({
     selectedElement: element
   });
@@ -200,8 +204,9 @@ export default function DmnPropertiesPanel(props) {
   return <DmnPropertiesPanelContext.Provider value={ dmnPropertiesPanelContext }>
     <PropertiesPanel
       element={ selectedElement }
+      translate={ translate }
       headerProvider={ PanelHeaderProvider }
-      placeholderProvider={ PanelPlaceholderProvider }
+      placeholderProvider={ PanelPlaceholderProvider(translate) }
       groups={ groups }
       layoutConfig={ layoutConfig }
       layoutChanged={ onLayoutChanged }

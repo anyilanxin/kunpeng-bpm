@@ -33,6 +33,7 @@ import { bpmnIconHtml, loopMarkerIconHtml } from '../icons/BpmnIcons';
 import { loopKindOf, type LoopKind } from '../meta/LoopCharacteristics';
 import { replaceTarget } from '../command/ReplaceElementHandler';
 import { planeHasContent } from '../plane/PlaneService';
+import { startEventHostContext } from '../util/ModelUtil';
 import { iconSetAsset } from '../icons/IconSet';
 import { PopupMenuEntriesCache } from './BpmnElementMenuProvider';
 
@@ -81,7 +82,9 @@ export class BpmnReplaceMenuProvider {
                 !(r.laneSets ?? []).some((ls: any) => (ls.lanes ?? []).length);
               const existing = (definitions.rootElements ?? []).find(isEmptyProcess);
               const process = existing
-                ?? this.bpmnFactory.createProcess({ name: `流程 ${this.documentState.processes().length + 1}` });
+                ?? this.bpmnFactory.createProcess({
+                  name: this.i18n.t('流程 {n}', { n: String(this.documentState.processes().length + 1) })
+                });
               if (!existing) {
                 definitions.rootElements.push(process);
               }
@@ -123,11 +126,20 @@ export class BpmnReplaceMenuProvider {
     // 跨族=替换处理器不迁移容器子元素、平面内容会被孤儿化
     const contentLocked = isSubProcessFamily(bo.$type) && planeHasContent(bo);
 
+    // 开始事件候选的宿主语境（三语境合法集见 START_EVENT_ALLOWED，规范
+    // Table 10.84/85/86 矩阵）：startEvent 族全量候选 + 中间事件族 morph
+    // 目标里的 StartEvent 一并受辖
+    const startContext = familyId === 'startEvent' || familyId === 'intermediateCatch' || familyId === 'intermediateThrow'
+      ? startEventHostContext(target)
+      : undefined;
     // 自身排除走注册表统一身份比较（matchesElement 四轴：类型/事件符号/非中断/折叠态）
     return this.cache.get(target, () => {
       const entries: Record<string, any> = {};
       for (const candidate of this.elementTypes.replaceTargets(familyId)) {
         if (this.elementTypes.matchesElement(candidate, target)) {
+          continue;
+        }
+        if (startContext !== undefined && !this.elementTypes.isStartEventFormAllowed(candidate, startContext)) {
           continue;
         }
         if (contentLocked && !(isSubProcessFamily(candidate.type) && subProcessExpandedOf(candidate) === false)) {

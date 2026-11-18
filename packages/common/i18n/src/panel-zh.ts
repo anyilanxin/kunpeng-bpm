@@ -1,0 +1,275 @@
+/*
+ * Copyright (c) 2026 anyilanxin zxh (anyilanxin@aliyun.com). All rights reserved.
+ * SPDX-License-Identifier: GPL-2.0-only WITH CLASSPATH-EXCEPTION-2.0
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  The copyright holder designates
+ * this particular file as subject to the "Classpath" exception as provided
+ * in the LICENSE file and directories/ that accompany this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the licenses/ directory
+ * that accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+/**
+ * 属性面板中文词典（key=面板英文原文，bpmn/dmn/common 三处面板共用——
+ * zh-CN 装配后面板文案汉化，2026-11-18 评审裁定纳入 v1；en-US 下这些 key
+ * 透传即正确英文，不装配本词典）。
+ *
+ * 取舍说明：面板源码里少量句子被拆成多段 translate 片段（如
+ * 'Define the ID of the process to call (e.g. ' + <code> + ')'），开头段按
+ * 整段语义汉化并保留尾随空格/括号习惯；纯闭合片段（')'、') and the ' 等）
+ * 与 ' to subscribe to. ' 这类中间连接词不入词典（透传，句内英文标点属可
+ * 接受的 v1 折衷）。
+ */
+export const panelZhCN: Record<string, string> = {
+  // ---- 通用（common/properties-panel） ----
+  'Create': '创建',
+  'Create new list item': '新建列表项',
+  'List contains {numOfItems} items': '列表含 {numOfItems} 项',
+  'Toggle list item': '切换列表项',
+  'Toggle section': '切换分组',
+
+  // ---- 占位与空态 ----
+  'Select an element to edit its properties.': '请选择一个元素以编辑其属性。',
+  'Multiple elements are selected. Select a single element to edit its properties.': '已选择多个元素。请选择单个元素以编辑其属性。',
+  '<empty>': '（空）',
+  '<none>': '（无）',
+  'Section contains edits': '分组含未保存修改',
+  'Section contains an error': '分组含错误项',
+
+  // ---- 通用字段 ----
+  'General': '常规',
+  'Name': '名称',
+  'ID': 'ID',
+  'Documentation': '文档',
+  'Description': '描述',
+  'Value': '值',
+  'Type': '类型',
+  'Key': '键',
+  'Code': '代码',
+  'Question': '问题',
+  'Priority': '优先级',
+  'Error': '错误',
+  'Signal': '信号',
+  'Message': '消息',
+  'Escalation': '升级',
+  'Link': '链接',
+  'Timer': '定时器',
+  'Date': '日期',
+  'Cycle': '循环',
+  'Duration': '持续时长',
+  'Binding': '绑定',
+  'latest': '最新',
+  'On': '开',
+  'Off': '关',
+  'Update': '更新',
+  'Delete item': '删除项',
+  'Learn more': '了解更多',
+  'Learn more.': '了解更多。',
+  'Learn how to define conditions.': '了解如何定义条件。',
+
+  // ---- ID 校验 ----
+  'ID must be a valid QName.': 'ID 必须是合法的 QName。',
+  'ID must be unique.': 'ID 必须唯一。',
+  'ID must not be empty.': 'ID 不能为空。',
+  'ID must not contain prefix.': 'ID 不能包含前缀。',
+  'ID must not contain spaces.': 'ID 不能包含空格。',
+
+  // ---- 流程/参与者 ----
+  'Process ID': '流程 ID',
+  'Process name': '流程名称',
+  'Process documentation': '流程文档',
+  'Participant Name': '参与者名称',
+  'Executable': '可执行',
+  'Version tag': '版本标签',
+  'version tag': '版本标签',
+  'Version tag binding': '版本标签绑定',
+  'Version tag by which this process can be referenced.': '引用此流程的版本标签。',
+  'Version tag by which the called process will be referenced.': '引用被调用流程的版本标签。',
+  'Version tag by which the called decision will be referenced.': '引用被调用决策的版本标签。',
+  'Version tag by which the linked form will be referenced.': '引用关联表单的版本标签。',
+  'Version tag by which this decision can be referenced.': '引用此决策的版本标签。',
+  'deployment': '部署',
+  'Deployment binding': '部署绑定',
+  'Latest binding': '最新绑定',
+  'Uses the most recent deployed resource.': '使用最近部署的资源。',
+  'Uses the most recent deployed resource with the given version tag.': '使用带指定版本标签的最近部署资源。',
+  'Uses the resource found in the same deployment.': '使用同一次部署中的资源。',
+
+  // ---- 任务族 ----
+  'Implementation': '实现',
+  'Implementation type': '实现类型',
+  'Assignee': '办理人',
+  'Candidate users': '候选人',
+  'Candidate groups': '候选组',
+  'Assignment': '分配',
+  'Form': '表单',
+  'Form ID': '表单 ID',
+  'Form JSON configuration': '表单 JSON 配置',
+  'Custom form key': '自定义表单键',
+  'External form reference': '外部表单引用',
+  'Kunpeng Form': '鲲鹏表单',
+  'Job type': '任务类型',
+  'Job worker': 'Job worker',
+  'Retries': '重试次数',
+  'The number of times the engine tries executing this activity if a worker signals a failure. The default is three.': '工作进程报告失败时引擎尝试执行此活动的次数。默认为 3。',
+  'Task definition': '任务定义',
+  'Result variable': '结果变量',
+  'Due date': '到期日期',
+  'Follow up date': '跟踪日期',
+  'User task documentation': '用户任务文档',
+  'User task form documentation': '用户任务表单文档',
+  'Service task documentation': '服务任务文档',
+  'Send task documentation': '发送任务文档',
+  'Receive task documentation': '接收任务文档',
+  'Script task documentation': '脚本任务文档',
+  'Business rule task documentation': '业务规则任务文档',
+  'Script': '脚本',
+  'FEEL expression': 'FEEL 表达式',
+  'Implement a script task using an inline FEEL expression. To add a custom implementation, use a job worker.': '使用内联 FEEL 表达式实现脚本任务。如需自定义实现，请使用 job worker。',
+  'Evaluate a business rule, for example a DMN decision. To add a custom implementation, use a job worker.': '求值业务规则（例如 DMN 决策）。如需自定义实现，请使用 job worker。',
+  'Implement a user task managed by Camunda. To add a custom implementation, use a job worker.': '实现由 Camunda 托管的用户任务。如需自定义实现，请使用 job worker。',
+  'Specify which job workers handle the task work to evaluate business rules.': '指定处理业务规则求值任务的 job worker。',
+  'Specify which job workers handle the task work to execute a script.': '指定处理脚本执行任务的 job worker。',
+
+  // ---- 多实例 ----
+  'Multi-instance': '多实例',
+  'Collection': '集合',
+  'Element variable': '元素变量',
+  'Loop cardinality': '循环基数',
+  'Completion condition': '完成条件',
+  'Condition': '条件',
+  'Condition expression': '条件表达式',
+  'Output collection': '输出集合',
+  'Output element': '输出元素',
+  'Multi instance documentation': '多实例文档',
+  'Execute this task for each element of a given collection.': '对给定集合中的每个元素执行此任务。',
+  'To collect the output define the output collection and the output element expressions.': '要收集输出，请定义输出集合与输出元素表达式。',
+
+  // ---- 调用活动 / DMN ----
+  'Call activity documentation': '调用活动文档',
+  'Called element': '被调用元素',
+  'Called decision': '被调用决策',
+  'DMN decision': 'DMN 决策',
+  'Decision ID': '决策 ID',
+  'Define the decision to evaluate and how to map back the evaluation result.': '定义要求值的决策及求值结果的映射方式。',
+
+  // ---- 映射与传播 ----
+  'Input mapping': '输入映射',
+  'Output mapping': '输出映射',
+  'Input mappings documentation': '输入映射文档',
+  'Output mappings documentation': '输出映射文档',
+  'Input propagation': '输入传播',
+  'Output propagation': '输出传播',
+  'Propagate all parent process variables': '传播全部父流程变量',
+  'Propagate all child process variables': '传播全部子流程变量',
+  'Add input mappings to control what is passed to the activity as local variables.': '添加输入映射以控制哪些变量作为局部变量传入活动。',
+  'Add output mappings to control which variables are merged back into the process scope.': '添加输出映射以控制哪些变量合并回流程作用域。',
+  'If turned on, all variables from the parent process instance will be propagated to the child process instance.': '开启后，父流程实例的全部变量将传播到子流程实例。',
+  'If turned on, all variables from the child process instance will be propagated to the parent process instance.': '开启后，子流程实例的全部变量将传播到父流程实例。',
+  'Otherwise, only variables defined via input mappings will be propagated.': '否则，仅传播通过输入映射定义的变量。',
+  'Otherwise, only variables defined via output mappings will be propagated.': '否则，仅传播通过输出映射定义的变量。',
+
+  // ---- 监听器 / 扩展 ----
+  'Execution listeners': '执行监听器',
+  'Task listeners': '任务监听器',
+  'Listener type': '监听器类型',
+  'Extension properties': '扩展属性',
+  'Additions': '附加',
+
+  // ---- 事件 / 定时器 ----
+  'Event type': '事件类型',
+  'Error event documentation': '错误事件文档',
+  'Message event documentation': '消息事件文档',
+  'Message throw event documentation': '消息抛出事件文档',
+  'Timer documentation': '定时器文档',
+  'Documentation: Timer events': '文档：定时器事件',
+  'How to configure a timer': '如何配置定时器',
+  'A specific point in time defined as ISO 8601 combined date and time representation.': '以 ISO 8601 日期时间组合表示法定义的时间点。',
+  'A time duration defined as ISO 8601 durations format.': '以 ISO 8601 时长格式定义的持续时间。',
+  'A cycle defined as ISO 8601 repeating intervals format.': '以 ISO 8601 重复区间格式定义的循环。',
+  'A cycle defined as ISO 8601 repeating intervals format, or a cron expression.': '以 ISO 8601 重复区间格式或 cron 表达式定义的循环。',
+  '1 hour and 30 minutes': '1 小时 30 分钟',
+  '14 days': '14 天',
+  '15 seconds': '15 秒',
+  'UTC time': 'UTC 时间',
+  'UTC plus 2 hours zone offset': 'UTC+2 时区偏移',
+  'every 10 seconds, up to 5 times': '每 10 秒，最多 5 次',
+  'every day, infinitely': '每天，无限循环',
+  'every hour on the hour from 9-5 p.m. UTC Monday-Friday': 'UTC 周一至周五 9-17 点每整点',
+
+  // ---- 全局引用 / 关联 ----
+  'Global error reference': '全局错误引用',
+  'Global escalation reference': '全局升级引用',
+  'Global message reference': '全局消息引用',
+  'Global signal reference': '全局信号引用',
+  'Subscription correlation key': '订阅关联键',
+  'Subscription correlation key documentation': '订阅关联键文档',
+  'Correlation Key': '关联键',
+  'Variable events': '变量事件',
+  'Variable assignment value': '变量赋值值',
+  'Wait for completion': '等待完成',
+  'Cancel remaining instances': '取消剩余实例',
+  'Activity reference': '活动引用',
+
+  // ---- Ad-hoc / 补偿 / 条件 ----
+  'Active elements': '活动元素',
+  'Active elements collection': '活动元素集合',
+  'Ad-hoc subprocess documentation': 'Ad-hoc 子流程文档',
+  'Conditions documentation': '条件文档',
+  'Compensation': '补偿',
+  'Completion': '完成',
+  'Define a boolean condition expression that defines when this flow is taken.': '定义布尔条件表达式，决定该连线何时被选择。',
+  'Define a collection of elements which will be activated when the ad-hoc subprocess is reached.': '定义到达 Ad-hoc 子流程时将被激活的元素集合。',
+  'Define the completion behavior of an ad-hoc subprocess. If no completion condition is set, it will be completed after all active elements have been completed.': '定义 Ad-hoc 子流程的完成行为。未设置完成条件时，将在全部活动元素完成后完成。',
+
+  // ---- 加签（kunpeng 扩展） ----
+  'Add sign': '加签',
+  'Add sign max depth': '加签最大深度',
+  'Allow add sign': '允许加签',
+  'Allow cascade add sign': '允许级联加签',
+  'Allowed answers': '允许的答案',
+  'Max depth must be >= 1': '最大深度必须 ≥ 1',
+
+  // ---- 历史清理 / 消息发布 ----
+  'History cleanup': '历史清理',
+  'Number of days before this resource is being cleaned up. If specified, takes precedence over the engine configuration.': '此资源被清理前的天数。若指定，优先于引擎配置。',
+  'Number of days before this resource is being cleaned up. If specified, takes precedence over the engine configuration.The value can only be greater than or equal to -1. default -1,Do not perform cleaning.': '此资源被清理前的天数。若指定，优先于引擎配置。取值只能 ≥ -1，默认 -1 表示不执行清理。',
+  'If unset, the default value is 50.': '未设置时默认值为 50。',
+  'MessagePublish': '消息发布',
+  'Inner Message Publish': '内部消息发布',
+  'Throw Message Implementation': '抛出消息实现',
+
+  // ---- JSON / 表单校验 ----
+  'JSON contains errors': 'JSON 含错误',
+
+  // ---- 带尾接 code 片段的开头段（保留尾随 '（例如 ' 语义，闭合 ')' 片段透传） ----
+  'Define an error code (e.g. ': '定义错误代码（例如 ',
+  'Define an input collection expression that defines the collection to iterate over (e.g. ': '定义输入集合表达式，指定要迭代的集合（例如 ',
+  'Define the ID of the process to call (e.g. ': '定义要调用的流程 ID（例如 ',
+  'Define the name of the message (e.g. ': '定义消息名称（例如 ',
+  'Identifier computed from the process context that is used to correlate an incoming message (e.g. ': '由流程上下文计算、用于关联传入消息的标识（例如 ',
+  'Specify which job workers handle the task work to execute a service (e.g. ': '指定处理服务执行任务的 job worker（例如 ',
+  'Specify which job workers handle the task work to send a message (e.g. ': '指定处理消息发送任务的 job worker（例如 ',
+  'Specify which job workers handle the event work.': '指定处理该事件工作的 job worker。',
+  'Define who the task is assigned to. One or all of the following attributes can be specified simultaneously.': '定义任务的办理人。以下属性可同时指定一项或多项。',
+  'Link a form created with the Camunda Forms editor. To associate a custom form, application, or URL to the user task, specify an external reference.': '关联用 Camunda Forms 编辑器创建的表单。要为用户任务关联自定义表单、应用或 URL，请指定外部引用。',
+  'Link or embed a form created with the Camunda Forms editor. To associate a custom form, application, or URL to the user task, specify a form key.': '关联或嵌入用 Camunda Forms 编辑器创建的表单。要为用户任务关联自定义表单、应用或 URL，请指定表单键。',
+
+  // ---- 其余散项 ----
+  'BPMN': 'BPMN',
+  'Element documentation': '元素文档',
+  'Create new ...': '新建 ...',
+  'Time to live': '存活时间',
+  'Time to Live': '存活时间',
+  'An integer value that can range from 0 to 100, where a higher value indicates a higher priority.': '0 到 100 的整数值，数值越大优先级越高。'
+};

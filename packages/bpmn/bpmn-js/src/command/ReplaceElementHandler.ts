@@ -36,15 +36,39 @@ import type { BpmnDocumentState } from '../xml/DocumentState';
 import { snapshotWaypoints } from '@kunpeng-io/kernel-shared';
 
 export class ReplaceElementHandler implements CommandHandler {
-  static $inject = ['bpmnElementTypes', 'bpmnFactory', 'eventBus', 'bpmnDocumentState', 'layouter'];
+  static $inject = ['bpmnElementTypes', 'bpmnFactory', 'eventBus', 'bpmnDocumentState', 'layouter', 'injector'];
 
   constructor(
     private readonly elementTypes: BpmnElementTypes,
     private readonly bpmnFactory: BpmnFactory,
     private readonly eventBus: any,
     private readonly state: BpmnDocumentState,
-    private readonly layouter: BaseLayouter
+    private readonly layouter: BaseLayouter,
+    private readonly injector: any
   ) {}
+
+  /**
+   * 事件子流程独立（规范 §13.5.4："MUST not be connected to the rest of
+   * the Sequence Flows … cannot have attached boundary Events"）：morph 进入
+   * 事件子流程形态时，既有进出连线与挂靠边界事件先行摘除——嵌套命令与替换
+   * 同 action 帧=单步撤销，redo 逐命令重放 execute 天然对称（DeleteShape
+   * 命令级联同款模式）。摘除断开连线端点语义，execute 侧 incoming/outgoing
+   * 拷贝与 swapReferences 随空集自然无事。modeling 须懒解析：直注会成
+   * modeling→commandStack→本处理器→modeling 构造期环（didi 拒绝）。
+   */
+  preExecute(context: any): void {
+    const { element, target } = context;
+    if (target.type !== 'bpmn:SubProcess' || target.symbol !== 'subProcessEvent') {
+      return;
+    }
+    const modeling = this.injector.get('modeling');
+    for (const connection of [...(element.incoming ?? []), ...(element.outgoing ?? [])]) {
+      modeling.removeConnection(connection, { nested: true });
+    }
+    for (const attacher of [...(element.attachers ?? [])]) {
+      modeling.removeShape(attacher, { nested: true });
+    }
+  }
 
   execute(context: any): any[] {
     const { element, target } = context;

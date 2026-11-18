@@ -25,6 +25,7 @@ import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vu
 import { Modeler, Viewer, NavigatedViewer } from '@kunpeng-io/dmn-js';
 import { DmnToolbarModule } from '@kunpeng-io/dmn-js-toolbar';
 import type { ToolbarActionSpec } from '@kunpeng-io/dmn-js-toolbar';
+import { dmnI18nConfig, type KunpengLocale } from '@kunpeng-io/i18n';
 import {
   DmnPropertiesPanelModule,
   DmnPropertiesProviderModule,
@@ -83,9 +84,27 @@ function instanceBase() {
   return {
     container: canvasHost.value!,
     additionalModules: [DmnToolbarModule],
+    // 词典走 config 通道（默认模块 __init__ 急切构造，DI 服务替换对早捕获
+    // 消费者不生效——见 @kunpeng-io/i18n 头注释）
+    dmnI18n: dmnI18nConfig(locale.value),
     dmnToolbar: { actions: buildToolbarActions() },
     dmnRenderer: { ...RENDERER_THEMES[dark.value ? 'dark' : 'light'] }
   };
+}
+
+// ---------- 语言（@kunpeng-io/i18n 演示：词典为构造期装配，切换=保内容重建） ----------
+
+const locale = ref<KunpengLocale>('zh-CN');
+
+async function switchLocale(): Promise<void> {
+  if (!modeler.value) {
+    return;
+  }
+  const { xml } = await modeler.value.saveXML();
+  modeler.value.destroy();
+  locale.value = locale.value === 'zh-CN' ? 'en-US' : 'zh-CN';
+  bindInstance(createInstance(form.value));
+  await modeler.value.importXML(xml);
 }
 
 function bindInstance(next: Modeler): void {
@@ -324,6 +343,15 @@ async function runRoundTrip(): Promise<void> {
           </button>
           <button
             class="bar-icon-btn"
+            :class="{ active: locale === 'en-US' }"
+            :title="locale === 'zh-CN' ? '切换英文（i18n 演示）' : 'Switch to Chinese'"
+            aria-label="切换语言"
+            @click="switchLocale()"
+          >
+            <span class="bar-icon bar-locale">{{ locale === 'zh-CN' ? 'En' : '中' }}</span>
+          </button>
+          <button
+            class="bar-icon-btn"
             :class="{ active: dark }"
             title="切换暗色模式"
             aria-label="切换暗色模式"
@@ -511,6 +539,13 @@ async function runRoundTrip(): Promise<void> {
 .bar-icon :deep(svg) {
   width: 15px;
   height: 15px;
+}
+
+/* 语言钮文字图标（与 svg 图标同尺寸量级） */
+.bar-locale {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 15px;
 }
 
 /* XML 视图：藏画布内高图层悬浮件——工具栏 z-150 与角标 overlays 容器都会

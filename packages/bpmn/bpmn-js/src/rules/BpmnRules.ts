@@ -253,6 +253,12 @@ export class BpmnRules extends RuleProvider {
     if (!this.isFlowNode(source) || !this.isFlowNode(target)) {
       return false;
     }
+    // 事件子流程独立（规范 §13.5.4 "MUST not be connected to the rest of the
+    // Sequence Flows"）：双向拒连——作出边/入边均非法（triggeredByEvent 仅
+    // SubProcess 族有值，直查无歧义）
+    if (source.businessObject?.triggeredByEvent === true || target.businessObject?.triggeredByEvent === true) {
+      return false;
+    }
     if (st === 'bpmn:EndEvent') return false;
     if (tt === 'bpmn:StartEvent') return false;
     // 链接捕获不作顺序流目标（规范 §10.3.3：其"入线"是匹配链接名的跳转接续，

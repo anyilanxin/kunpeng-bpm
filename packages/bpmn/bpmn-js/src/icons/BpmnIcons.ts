@@ -27,7 +27,7 @@
  * （调用活动/事件网关/泳道/分组/注记/连线族/循环标记叠加）回退到自绘记法。
  *
  * 自绘分支与画布（render/BpmnRenderer + Symbols）严格同一套记法：以**画布
- * 真实几何**（事件直径 38、网关 52、任务盒 116×78、数据对象 40×56…）调用画布
+ * 真实几何**（事件直径 38、网关 52、任务盒 SIZES.TASK_*（100×80）、数据对象 40×56…）调用画布
  * 字形函数，再经 canvasGroup 整体等比缩放进 36 视框——环重（开始 2 / 结束 4 /
  * 中间双环 r-3）、网关标记（X/+ /O/双圆占 0.72 半宽）、任务字标位（14,14 s=8）、
  * 折叠 [+]（底边跨骑）全部与画布逐比例一致。
@@ -54,7 +54,7 @@ import {
   type StyleTheme
 } from '../render/Symbols';
 import { EventDefinitions } from '../meta/EventDefinitions';
-import { isEventFamily, isGatewayFamily } from '../meta/ElementTypes';
+import { SIZES, isEventFamily, isGatewayFamily } from '../meta/ElementTypes';
 import { loopKindOf, type LoopKind } from '../meta/LoopCharacteristics';
 import { iconSetAsset, iconSetSvg, MARKER_INK, MARKER_OPTICAL, type IconSetKey } from './IconSet';
 import { svgShell, entryShell } from '@kunpeng-io/kernel-shared';
@@ -236,10 +236,10 @@ function plainGroup(draw: (g: Element) => void): string {
 const EVENT_K = 0.68;
 /** 画布网关几何（SIZES.GATEWAY=52）：缩样 0.67 → 对角 52 缩后恰满框留描边余量 */
 const GATEWAY_K = 0.67;
-/** 画布任务盒几何（116×78）：宽向受限 30/116 → 0.26，高 20.3 */
-const TASK_K = 0.26;
+/** 画布任务盒几何（SIZES.TASK_*，100×80）：宽向受限 30/100 → 0.30，高 24 */
+const TASK_K = 0.30;
 /** 画布任务盒局部几何（drawCollapsedMarker/drawLoopMarker 消费） */
-const TASK_BOX = { x: 0, y: 0, width: 116, height: 78 };
+const TASK_BOX = { x: 0, y: 0, width: SIZES.TASK_W, height: SIZES.TASK_H };
 
 /**
  * 类型条目 → 记法缩样 SVG 字符串（viewBox 36，按 size 缩放输出）。
@@ -309,13 +309,13 @@ export function bpmnIconHtml(source: string | BpmnIconMeta, size = 20, fill = 'c
       parts.push(plainGroup((g) => drawLoopMarker(g, { width: 36, height: 32 }, meta.loop!, theme)));
     }
   } else {
-    // 任务族 / 调用活动 / 折叠子流程：画布 116×78 几何等比缩影
-    parts.push(canvasGroup(TASK_K, 116, 78, (g) => {
+    // 任务族 / 调用活动 / 折叠子流程：画布 SIZES.TASK_*（100×80）几何等比缩影
+    parts.push(canvasGroup(TASK_K, SIZES.TASK_W, SIZES.TASK_H, (g) => {
       // 调用活动画布同款加粗边框 4（规范 §10.2.3），其余 2
       const sw = t === 'bpmn:CallActivity' ? 4 : 2;
       const rect = document.createElementNS(SVG_NS, 'rect');
       for (const [k, v] of Object.entries({
-        x: 0, y: 0, width: 116, height: 78, rx: 9, ry: 9,
+        x: 0, y: 0, width: SIZES.TASK_W, height: SIZES.TASK_H, rx: 9, ry: 9,
         fill: '#ffffff', stroke, 'stroke-width': sw
       })) {
         rect.setAttribute(k, String(v));

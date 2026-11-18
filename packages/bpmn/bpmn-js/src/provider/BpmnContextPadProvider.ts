@@ -25,10 +25,11 @@
  * 可整体替换（didi 组件 `contextPadProvider`）。
  */
 import type { BpmnElementTypes } from '../meta/ElementTypes';
-import { isSubProcessFamily, metaId } from '../meta/ElementTypes';
+import { metaId } from '../meta/ElementTypes';
+import { isEventSubProcess } from '../util/ModelUtil';
 import type { AppendPreview } from '../behavior/AppendPreview';
 import { BpmnAlignMenuProvider } from './BpmnAlignMenuProvider';
-import { BpmnAppendMenuProvider, BpmnCreateMenuProvider, BpmnFlowTypeMenuProvider } from './BpmnElementMenuProvider';
+import { BpmnAppendMenuProvider, BpmnFlowTypeMenuProvider } from './BpmnElementMenuProvider';
 import { bpmnEntryHtml } from '../icons/BpmnIcons';
 import { toolEntryHtml } from '../icons/ToolIcons';
 import { alignPadEntryHtml } from '@kunpeng-io/kernel-shared';
@@ -103,7 +104,7 @@ export class BpmnContextPadProvider {
       entries['lane-add-before'] = {
         group: 'lane-insert-above',
         html: toolEntryHtml('lane-insert-above', 18, this.elementTypes.toolFillOf('lane-insert-above')),
-        title: this.i18n.t(`${beforeLabel}添加泳道`),
+        title: this.i18n.t('{direction}添加泳道', { direction: this.i18n.t(beforeLabel) }),
         action: { click: () => this.modeling.addLane(element, 'top') }
       };
       // 分割钮仅初始无道池（2026-11-18 用户终定规：只在初始添加泳道时出现，
@@ -127,13 +128,15 @@ export class BpmnContextPadProvider {
       entries['lane-add-after'] = {
         group: 'lane-insert-below',
         html: toolEntryHtml('lane-insert-below', 18, this.elementTypes.toolFillOf('lane-insert-below')),
-        title: this.i18n.t(`${afterLabel}添加泳道`),
+        title: this.i18n.t('{direction}添加泳道', { direction: this.i18n.t(afterLabel) }),
         action: { click: () => this.modeling.addLane(element, 'bottom') }
       };
     }
 
     // ---- 追加族（流节点；快捷追加序见 APPENDABLE_BY_FAMILY） ----
-    const appendableFlowNode = this.isFlowNode(element) && type !== 'bpmn:EndEvent' && type !== 'bpmn:BoundaryEvent';
+    // 事件子流程独立（规范 §13.5.4）：不作连线端点，追加/连线入口全无
+    const appendableFlowNode = this.isFlowNode(element) && type !== 'bpmn:EndEvent' && type !== 'bpmn:BoundaryEvent'
+      && !isEventSubProcess(element);
     if (appendableFlowNode) {
       const family = this.elementTypes.family(type);
       const appendTargets = APPENDABLE_BY_FAMILY[family ?? ''] ?? ['bpmn:Task'];
@@ -208,18 +211,9 @@ export class BpmnContextPadProvider {
       };
     }
 
-    // ---- "+"：容器内创建弹框（展开子流程；池/泳道参照布局无此钮——
-    //      2026-11-18 用户定规移除） ----
-    if (isSubProcessFamily(type) && element.isExpanded !== false && !this.popupMenu.isEmpty(element, BpmnCreateMenuProvider.MENU_ID)) {
-      entries['create-inside'] = {
-        group: 'edit',
-        html: toolEntryHtml('plus', 18, this.elementTypes.toolFillOf('plus')),
-        title: this.i18n.t('创建元素'),
-        action: {
-          click: (event: MouseEvent) => this.openElementMenu(element, BpmnCreateMenuProvider.MENU_ID, '创建元素', event)
-        }
-      };
-    }
+    // ---- 容器内创建「+」钮：整体移除（2026-11-18 用户定规——「…」追加/创建
+    //      弹框已覆盖添加元素功能，pad 不重复设入口；池/泳道此前已同批移除）。
+    //      创建菜单本体（'bpmn-create'）保留，palette 底部「…」仍是宿主入口 ----
 
     // ---- 文本注释（任意形状元素可注；注记放元素上方，经 Association 关联） ----
     // （已随快捷追加序上移至追加族之后，见上方 annotate 块）
@@ -262,7 +256,8 @@ export class BpmnContextPadProvider {
     };
 
     // ---- 连线（流节点/池；收尾位——手动连线是低频兜底入口，靠后不抢焦点） ----
-    if (this.isFlowNode(element) || type === 'bpmn:Participant') {
+    // 事件子流程不参与连线（规范 §13.5.4，规则层同步双向拒连）
+    if ((this.isFlowNode(element) && !isEventSubProcess(element)) || type === 'bpmn:Participant') {
       entries['connect'] = {
         group: 'connect',
         html: toolEntryHtml('connect', 18, this.elementTypes.toolFillOf('connect')),

@@ -227,6 +227,9 @@ importers:
       '@kunpeng-io/bpmn-js-toolbar':
         specifier: workspace:*
         version: link:../../packages/bpmn/bpmn-js-toolbar
+      '@kunpeng-io/i18n':
+        specifier: workspace:*
+        version: link:../../packages/common/i18n
       '@kunpeng-io/kunpeng-bpmn-moddle':
         specifier: workspace:*
         version: link:../../packages/bpmn/kunpeng-bpmn-moddle
@@ -291,6 +294,9 @@ importers:
       '@kunpeng-io/dmn-js-toolbar':
         specifier: workspace:*
         version: link:../../packages/dmn/dmn-js-toolbar
+      '@kunpeng-io/i18n':
+        specifier: workspace:*
+        version: link:../../packages/common/i18n
       '@kunpeng-io/kunpeng-dmn-moddle':
         specifier: workspace:*
         version: link:../../packages/dmn/kunpeng-dmn-moddle
@@ -768,6 +774,18 @@ importers:
       rimraf:
         specifier: 'catalog:'
         version: 6.1.4
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.6(esbuild@0.28.2)
+
+  packages/common/i18n:
+    devDependencies:
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.4
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
       vite:
         specifier: 'catalog:'
         version: 8.3.6(esbuild@0.28.2)

@@ -239,6 +239,7 @@ export default function BpmnPropertiesPanel(props) {
       <FeelLanguageContext.Provider value={ DEFAULT_FEEL_LANGUAGE_CONTEXT }>
         <PropertiesPanel
           element={ selectedElement }
+          translate={ translate }
           headerProvider={ PanelHeaderProvider(translate) }
           placeholderProvider={ PanelPlaceholderProvider(translate) }
           groups={ groups }

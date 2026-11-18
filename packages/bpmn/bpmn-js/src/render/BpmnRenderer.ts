@@ -35,6 +35,7 @@ import type { BpmnElementTypes } from '../meta/ElementTypes';
 import { EventDefinitions } from '../meta/EventDefinitions';
 import {
   drawEventSymbol,
+  drawEventIcon,
   drawGatewayMarker,
   drawGatewayShape,
   drawTaskMarker,
@@ -51,6 +52,7 @@ import {
   NON_INTERRUPTING_DASH,
   type StyleTheme
 } from './Symbols';
+import type { IconSetKey } from '../icons/IconSet';
 import { loopKindOf } from '../meta/LoopCharacteristics';
 import {
   internalLabelBox,
@@ -61,6 +63,28 @@ import { SIZES, isEventFamily, isGatewayFamily } from '../meta/ElementTypes';
 
 /** 形状绘制策略：(visuals, shape, theme) → 画布局部坐标绘制 */
 type ShapePainter = (visuals: SVGElement, shape: any, theme: StyleTheme) => void;
+
+/**
+ * timer 系四元素 → 整元素剪影键（2026-11-18 用户定规，与 BpmnIcons 面板映射
+ * 同源：开始=单实环、中间捕获与中断边界共用双实环（同记法）、非中断边界=
+ * 双虚环；见 design-docs/定时事件图标样式统一.md）。非中断开始（事件子流程
+ * 内）不在定规范围，返回 null 走常规描边路径。
+ */
+function timerIconKeyOf(type: string, symbol: string | null, nonInterrupting: boolean): IconSetKey | null {
+  if (symbol !== 'timer') {
+    return null;
+  }
+  if (type === 'bpmn:StartEvent') {
+    return nonInterrupting ? null : 'eventStartTimer';
+  }
+  if (type === 'bpmn:IntermediateCatchEvent') {
+    return 'eventIntermediateTimer';
+  }
+  if (type === 'bpmn:BoundaryEvent') {
+    return nonInterrupting ? 'eventIntermediateNonInterruptingTimer' : 'eventIntermediateTimer';
+  }
+  return null;
+}
 
 export interface BpmnRendererConfig {
   defaultStrokeColor?: string;
@@ -415,6 +439,19 @@ export class BpmnRenderer extends BaseRenderer {
 
     // 非中断（规范 §10.5.2/Table 10.86）：外环虚线（推导单一来源，面板图标同源）
     const nonInterrupting = EventDefinitions.nonInterruptingOf(bo);
+    const symbol = EventDefinitions.symbolOf(bo);
+
+    // timer 系四元素=整元素剪影（2026-11-18 用户定规，键映射见 timerIconKeyOf）：
+    // 环+表盘一体按标准图标集整图标绘制，跳过描边环与框内字形两条常规路径
+    const iconKey = timerIconKeyOf(type, symbol, nonInterrupting);
+    if (iconKey) {
+      // 白底保元素底色（theme.fill 随选中态/bioc 着色传导），剪影镂空处透出
+      const bg = create('circle');
+      attr(bg, { cx, cy, r, fill: theme.fill });
+      append(visuals, bg);
+      drawEventIcon(visuals, iconKey, cx, cy, shape.width, theme);
+      return;
+    }
 
     // 规范线型：开始=细单线；中间/边界=细双线；结束=粗单线。
     // 非中断 dash 笔型见 Symbols.NON_INTERRUPTING_DASH 注释
@@ -438,7 +475,6 @@ export class BpmnRenderer extends BaseRenderer {
       append(visuals, inner);
     }
 
-    const symbol = EventDefinitions.symbolOf(bo);
     if (symbol) {
       // 抛出语义（规范 §10.3 抛出=实心）：结束事件与中间抛出事件取实心字形变体
       const throwSemantics = type === 'bpmn:EndEvent' || type === 'bpmn:IntermediateThrowEvent';

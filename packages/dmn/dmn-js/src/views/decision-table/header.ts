@@ -33,9 +33,10 @@ export function createHeaderTools(opts: {
   table: any;
   commands: TableCommands;
   columns: ColumnTools;
+  t: (text: string, params?: Record<string, string>) => string;
 }) {
   const h = createElement;
-  const { table, commands, columns } = opts;
+  const { table, commands, columns, t } = opts;
   let clauseEditorPop: HTMLElement | null = null;
 
   const openClauseEditor = (anchor: HTMLElement, spec: ColSpec): void => {
@@ -80,7 +81,7 @@ export function createHeaderTools(opts: {
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'remove-clause-action';
-    removeBtn.textContent = `删除${isInput ? '输入' : '输出'}列`;
+    removeBtn.textContent = t(isInput ? '删除输入列' : '删除输出列');
     if (familyClauses.length <= 1) removeBtn.disabled = true;
     removeBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -164,7 +165,7 @@ export function createHeaderTools(opts: {
         class: 'edit-button tjs-pencil',
         type: 'button',
         'aria-label': 'Edit clause',
-        title: '编辑列',
+        title: t('编辑列'),
         onClick: (e: MouseEvent) => {
           e.preventDefault();
           e.stopPropagation();
