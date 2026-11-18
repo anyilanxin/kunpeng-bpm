@@ -81,8 +81,8 @@
   margin: 0; /* 引擎 0 2px 2px 0 外距让位 flex gap */
 }
 
-/* 泳道操作组金字塔排布（2026-11-18 用户参照定规）：上插 1 钮 → 分割
-   2/3 段两钮并排 → 下插 1 钮，各占一整行居中成 1/2/1 金字塔；三组脱离
+/* 泳道操作组金字塔排布（2026-11-18 用户定规）：上插 1 钮 → 分割 2/3 段
+   两钮并排 → 下插 1 钮，各占一整行、与其余组同左对齐；三组脱离
    display:contents 恢复块级（width:100% 强制独占换行），中行 row 向
    并排。其余组维持透明流式三列不动。 */
 .djs-context-pad .group[data-group='lane-insert-above'],
@@ -90,7 +90,7 @@
 .djs-context-pad .group[data-group='lane-divide'] {
   display: flex;
   flex-direction: row;
-  justify-content: center;
+  justify-content: flex-start;
   width: 100%;
 }
 
