@@ -56,9 +56,10 @@ const EDIT_MIN_WIDTH = 46;
 /** 编辑字号缩放下限：过小无法读/选 */
 const MIN_EDIT_FONT = 8;
 
-/** 池/泳道头带半宽/半高（模型像素）：编辑框罩住头带可视区 */
-const BAND_HALF_W = 60;
-const BAND_HALF_H = 14;
+/** 泳道竖排标签带宽（模型像素）：与渲染 drawLane 同参（池带=SIZES.POOL_HEADER） */
+const LANE_BAND_W = 28;
+/** 竖排编辑框文本向长度下限（模型像素）：矮池/道防退化 */
+const BAND_TEXT_MIN = 46;
 
 /** 垂直池/道 'band' 标签带盒（与渲染 drawInternalLabel 'band' 模式同参） */
 function bandBox(element: { x: number; y: number; width: number }): { x: number; y: number; width: number; height: number } {
@@ -173,20 +174,26 @@ export class BpmnLabelEditingProvider {
     }
 
     if (bo.$type === 'bpmn:Participant' || bo.$type === 'bpmn:Lane') {
-      // 头带位置随布局朝向：水平=左侧竖排标签带（旋转标签按横排编辑）；垂直=
-      // 顶部横带，编辑框与渲染 'band' 标签盒同位同对齐（左上+左对齐，顶流），
-      // 编辑所见即所得。水平"居中"=渲染竖排标签带中心（drawRotatedLabel 同参：
-      // 池带宽 POOL_HEADER、道带宽 28、带中心=bandW/2 与元素高的中线），编辑框
-      // 居中于该处——曾误置整元素几何中心，编辑位与显示位脱节
+      // 头带位置随布局朝向：水平=左侧竖排标签带；垂直=顶部横带，编辑框与渲染
+      // 'band' 标签盒同位同对齐（左上+左对齐，顶流），编辑所见即所得。
+      // 水平池/道=竖排编辑（2026-11-18 用户定规，取代横排编辑）：编辑框按
+      // 横排几何放置后绕中心转 -90°（与渲染 drawRotatedLabel 同构：文本自下
+      // 而上、带宽为行高向），框中心=标签带中心（bandW/2, 元素高中线），
+      // TextBox 父级透传 transform；指针/光标随元素局部坐标系纵向
       if (horizontal) {
-        const bandW = bo.$type === 'bpmn:Participant' ? SIZES.POOL_HEADER : 28;
+        const bandW = bo.$type === 'bpmn:Participant' ? SIZES.POOL_HEADER : LANE_BAND_W;
+        const textExtent = Math.max(element.height - 12, BAND_TEXT_MIN);
         const box = {
-          x: element.x + bandW / 2 - BAND_HALF_W,
-          y: element.y + element.height / 2 - BAND_HALF_H,
-          width: BAND_HALF_W * 2,
-          height: BAND_HALF_H * 2
+          x: element.x + bandW / 2 - textExtent / 2,
+          y: element.y + element.height / 2 - bandW / 2,
+          width: textExtent,
+          height: bandW
         };
-        return this.toViewport(box, text, { ...INTERNAL_FONT, ...TRANSPARENT_STYLE }, {});
+        return this.toViewport(
+          box, text,
+          { ...INTERNAL_FONT, ...TRANSPARENT_STYLE, transform: 'rotate(-90deg)' },
+          {}
+        );
       }
       const box = bandBox(element);
       return this.toViewport(
