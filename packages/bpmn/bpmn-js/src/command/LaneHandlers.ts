@@ -38,7 +38,6 @@ import type { OrientationService } from '../meta/Orientation';
 import { SIZES } from '../meta/ElementTypes';
 import {
   LANE_EPS,
-  MIN_LANE_BAND,
   growPoolAlong,
   growPoolFront,
   laneStackAxis,
@@ -151,10 +150,12 @@ export class AddLaneHandler implements CommandHandler {
     const inner = poolInnerRect(participant, SIZES.POOL_HEADER, horizontal);
     const siblings = sortedLanes(participant, axis);
 
-    context.oldPool = rectOf(participant);
-    context.shifted = [];
-    context.carved = null;
-    context.created = [];
+    // 幂等合并（分割=组合插入复用本方法）：oldPool 只在首次快照（多次
+    // 生长回退一步还原原池），shifted 保留首快照（重复让位还原到位）
+    context.oldPool ??= rectOf(participant);
+    context.shifted ??= [];
+    context.carved ??= null;
+    context.created ??= [];
 
     // (1) 无道池插道（2026-11-18 用户定规"首击即见带"）：先建铺满内容区的
     // 首道（池进入泳道形态），随即落入下方"全池首道"让位分支完成插入——
@@ -211,7 +212,9 @@ export class AddLaneHandler implements CommandHandler {
     // (3) 常规插入：插入点及之后的既有带平移让位，池沿堆叠轴增长
     for (const lane of siblings) {
       if (spanStart(lane, axis) >= insertAt - LANE_EPS) {
-        context.shifted.push({ lane, rect: rectOf(lane) });
+        if (!context.shifted.some((e: any) => e.lane === lane)) {
+          context.shifted.push({ lane, rect: rectOf(lane) });
+        }
         applyRect(lane, shiftAlongAxis(lane, axis, thickness));
       }
     }
@@ -221,68 +224,41 @@ export class AddLaneHandler implements CommandHandler {
   }
 
   /**
-   * 分割：目标带沿堆叠轴均分为 parts 段（首段留原带，其余新建）。均分段厚
-   * 下限=最小带厚——原带不足以均分出合法段时（默认 250 带 ÷2/÷3 必不足），
-   * 目标带生长到 parts×each，下方带等量让位、池沿同步增长（同常规插入的
-   * 让位语义；2026-11-18 用户定规：600×250 下限恒立，分割靠生长不靠降限）。
+   * 分割=组合插入（2026-11-18 用户定规新语义，取代均分）：分割 2 段=当前
+   * 泳道上方插一条；分割 3 段=上插一条+下插一条（当前泳道居中）；无道池=
+   * 先建铺满首道作"当前泳道"再同法组合。纵向布局（垂直池）由 axis 语义
+   * 天然覆盖（上/下=列带左/右）。单命令单步撤销：复用 insert 的幂等合并
+   * context（oldPool 首照、shifted 首快照去重、created 累积）。
    */
   private divide(context: any, target: any, participant: any, axis: 'x' | 'y', horizontal: boolean): any[] {
-    // parts 合法性由 assertAddLaneAllowed 保证；段厚生长后必 ≥ 下限，无再校验
+    // parts 合法性由 assertAddLaneAllowed 保证（2|3；对象=泳道或无道池）
     const parts = context.count ?? 2;
+    context.oldPool ??= rectOf(participant);
+    context.created ??= [];
+    context.shifted ??= [];
+    context.carved ??= null;
+    context.target = null;
+    context.oldTarget = null;
 
-    // 无道池分割（2026-11-18 用户定规：初始池也有分割 2/3 段钮）：内容区直接
-    // 铺 N 条道，每条=max(内容区均分, 最小带厚)，不足池沿堆叠轴生长
-    // （target 即池本体；assert 已保证其无道——分割对象为池本身而非某条道）
+    let anchor = target;
     if (target === participant) {
       const inner = poolInnerRect(participant, SIZES.POOL_HEADER, horizontal);
-      const innerStart = spanStart(inner, axis);
-      const innerLen = spanLength(inner, axis);
-      const each = Math.max(innerLen / parts, MIN_LANE_BAND);
-      const growth = each * parts - innerLen;
-      context.target = null;
-      context.oldTarget = null;
-      context.created = [];
-      context.shifted = [];
-      context.carved = null;
-      context.oldPool = growth > LANE_EPS ? rectOf(participant) : null;
-      if (growth > LANE_EPS) {
-        growPoolAlong(participant, axis, growth);
-      }
-      for (let i = 0; i < parts; i++) {
-        context.created.push(this.createLane(context, participant, laneBandRect(inner, innerStart + i * each, each, horizontal)));
-      }
-      return [participant, ...context.created];
+      anchor = this.createLane(context, participant, inner);
+      context.created.push(anchor);
     }
-
-    const start = spanStart(target, axis);
-    const originLen = spanLength(target, axis);
-    const each = Math.max(originLen / parts, MIN_LANE_BAND);
-    const growth = each * parts - originLen;
-
-    context.target = target;
-    context.oldTarget = rectOf(target);
-    context.created = [];
-    context.shifted = [];
-    context.carved = null;
-    context.oldPool = null;
-
-    if (growth > LANE_EPS) {
-      const targetBack = start + originLen;
-      for (const lane of sortedLanes(participant, axis)) {
-        if (lane !== target && spanStart(lane, axis) >= targetBack - LANE_EPS) {
-          context.shifted.push({ lane, rect: rectOf(lane) });
-          applyRect(lane, shiftAlongAxis(lane, axis, growth));
+    const changed: any[] = [participant];
+    const merge = (els: any[]): void => {
+      for (const el of els) {
+        if (!changed.includes(el)) {
+          changed.push(el);
         }
       }
-      context.oldPool = rectOf(participant);
-      growPoolAlong(participant, axis, growth);
+    };
+    merge(this.insert(context, anchor, participant, axis, horizontal, 'before'));
+    if (parts === 3) {
+      merge(this.insert(context, anchor, participant, axis, horizontal, 'after'));
     }
-    applyRect(target, withSpan(target, axis, start, each));
-    const inner = poolInnerRect(participant, SIZES.POOL_HEADER, horizontal);
-    for (let i = 1; i < parts; i++) {
-      context.created.push(this.createLane(context, participant, laneBandRect(inner, start + i * each, each, horizontal)));
-    }
-    return [participant, target, ...context.created, ...context.shifted.map((s: any) => s.lane)];
+    return changed;
   }
 
   private createLane(context: any, participant: any, rect: RectLike): any {
