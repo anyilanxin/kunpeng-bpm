@@ -466,9 +466,18 @@ const BODIES: Record<IconSetKey, IconSetAsset> = {
  */
 export function iconSetSvg(key: IconSetKey, size = 20, fill = 'currentColor'): string {
   const a = BODIES[key];
-  // 描边风资产（timer 系刻度表盘）颜色走 stroke，剪影资产走 fill
-  const wrap = a.stroke ? `<g fill="none" stroke="${fill}">` : `<g fill="${fill}">`;
-  return svgShellRect(`${wrap}${a.body}</g>`, a.w, a.h, size);
+  // 描边风资产（timer 系刻度表盘）颜色走 stroke；外环中心线贴 w×h 边缘、外缘
+  // 再超半描边（最大 sw2 → 1px），独立 <svg> 根 overflow hidden 会裁掉超出
+  // 弧段（菜单/面板图标外圆缺口的根因）——视框四边扩 1px 余量并平移内容居中；
+  // 剪影资产墨迹本就含在盒内，走 fill 常规包装
+  if (a.stroke) {
+    const pad = 1;
+    return svgShellRect(
+      `<g fill="none" stroke="${fill}" transform="translate(${pad} ${pad})">${a.body}</g>`,
+      a.w + pad * 2, a.h + pad * 2, size
+    );
+  }
+  return svgShellRect(`<g fill="${fill}">${a.body}</g>`, a.w, a.h, size);
 }
 
 /** 图标集资产（画布字形/工具缩放消费：按 w/h 等比计算缩放系数） */
