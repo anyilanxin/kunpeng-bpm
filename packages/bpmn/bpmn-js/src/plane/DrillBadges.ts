@@ -104,7 +104,7 @@ export class DrillBadges {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'bpmn-drill-badge';
-    button.title = this.i18n.t('下钻进入子流程');
+    button.title = this.i18n.t('Drill down into sub-process');
     button.innerHTML = DRILL_ICON;
     button.addEventListener('click', (event) => {
       event.stopPropagation();

@@ -39,7 +39,7 @@ export function createColumnTools(
 
   const resizeHandleVdom = (spec: ColSpec): any => h('div', {
     class: 'tjs-colresize',
-    title: t('拖拽调整列宽'),
+    title: t('Drag to resize column'),
     onPointerdown: (e: PointerEvent) => startColumnDrag(e, spec)
   }, null);
 

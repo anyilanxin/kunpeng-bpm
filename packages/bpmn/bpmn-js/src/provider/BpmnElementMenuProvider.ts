@@ -343,9 +343,9 @@ export class BpmnCreateMenuProvider {
  * 当前态不出条目（菜单只列可切目标，2-3 项不设搜索不设组头）。
  */
 const FLOW_TYPE_LABELS: Record<'sequence' | 'conditional' | 'default', string> = {
-  sequence: '顺序流',
-  conditional: '条件流',
-  default: '默认流'
+  sequence: 'Sequence flow',
+  conditional: 'Conditional flow',
+  default: 'Default flow'
 };
 
 /** 三态条目图标=标准图标集资产（bpmn-icon-connection=顺序流、

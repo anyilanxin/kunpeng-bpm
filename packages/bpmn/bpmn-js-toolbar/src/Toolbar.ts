@@ -203,7 +203,7 @@ export class BpmnToolbar {
     // 校验单钮：宿主装配 @kunpeng-io/linting/modeler（linting 服务）时才有——
     // 非严格解析缺失即无钮，工具栏对未装校验的宿主零变化；激活态高亮随开关
     if (this.linting) {
-      this.lintBtn = iconButton('lint', t('开启校验'), ICONS.lint, () => this.toggleLint());
+      this.lintBtn = iconButton('lint', t('Enable linting'), ICONS.lint, () => this.toggleLint());
       this.root.appendChild(this.lintBtn);
       this.root.appendChild(separator());
     }
@@ -213,15 +213,15 @@ export class BpmnToolbar {
     }
     if (this.commandStack) {
       const history = group('history', true);
-      this.undoBtn = iconButton('undo', t('撤销 (Ctrl+Z)'), ICONS.undo, () => this.commandStack!.undo());
-      this.redoBtn = iconButton('redo', t('重做 (Ctrl+Shift+Z)'), ICONS.redo, () => this.commandStack!.redo());
+      this.undoBtn = iconButton('undo', t('Undo (Ctrl+Z)'), ICONS.undo, () => this.commandStack!.undo());
+      this.redoBtn = iconButton('redo', t('Redo (Ctrl+Shift+Z)'), ICONS.redo, () => this.commandStack!.redo());
       history.append(this.undoBtn, this.redoBtn);
       // 重置画布（编辑动作，随组 data-edit-only 只读态隐藏）：经门面重导模板——
       // importXML 清命令栈即不可撤销，2026-11-18 评审裁定直重置无确认；门面
       // 缺失（宿主自拼 modules 无 bpmnjs）则不建钮。编辑门控挂 commandStack 组
       // 而非门面：Viewer/NavigatedViewer 继承 Modeler 同样注册 bpmnjs
       if (this.facade) {
-        history.append(iconButton('reset', t('重置画布'), ICONS.reset, () => void this.resetCanvas()));
+        history.append(iconButton('reset', t('Reset canvas'), ICONS.reset, () => void this.resetCanvas()));
       }
       this.root.appendChild(history);
       // 撤销重做独立成组，与缩放组以分隔线划界
@@ -234,7 +234,7 @@ export class BpmnToolbar {
     if (this.modeling) {
       this.orientationBtn = iconButton(
         'orientation',
-        t('切换为纵向布局'),
+        t('Switch to vertical layout'),
         ICONS.orientationHorizontal,
         () =>
           this.modeling!.setOrientation(
@@ -249,16 +249,16 @@ export class BpmnToolbar {
     this.zoomLabel = document.createElement('button');
     this.zoomLabel.type = 'button';
     this.zoomLabel.className = 'bpmn-toolbar-val';
-    this.zoomLabel.title = t('重置缩放 (Ctrl+0)');
+    this.zoomLabel.title = t('Reset zoom (Ctrl+0)');
     // zoom 第二参缺省即取视口中心（'center' 语义）；fit 的中心锚只判真值（_fitViewport
     // 忽略具体坐标），传零点字面量与 'auto' 等价且不破 Point 类型
     this.zoomLabel.addEventListener('click', () => this.canvas.zoom(1));
     zoom.append(
-      iconButton('zoom-out', t('缩小 (Ctrl+-)'), ICONS.zoomOut, () => this.canvas.zoom(this.canvas.zoom() / ZOOM_STEP)),
+      iconButton('zoom-out', t('Zoom out (Ctrl+-)'), ICONS.zoomOut, () => this.canvas.zoom(this.canvas.zoom() / ZOOM_STEP)),
       this.zoomLabel,
-      iconButton('zoom-in', t('放大 (Ctrl++)'), ICONS.zoomIn, () => this.canvas.zoom(this.canvas.zoom() * ZOOM_STEP)),
+      iconButton('zoom-in', t('Zoom in (Ctrl++)'), ICONS.zoomIn, () => this.canvas.zoom(this.canvas.zoom() * ZOOM_STEP)),
       ...(this.orientationBtn ? [this.orientationBtn] : []),
-      iconButton('zoom-fit', t('适应画布'), ICONS.zoomFit, () => this.canvas.zoom('fit-viewport', { x: 0, y: 0 }))
+      iconButton('zoom-fit', t('Fit viewport'), ICONS.zoomFit, () => this.canvas.zoom('fit-viewport', { x: 0, y: 0 }))
     );
     this.root.appendChild(zoom);
 
@@ -266,7 +266,7 @@ export class BpmnToolbar {
 
     // —— 溢出收纳（更多）：宽度上限 min(画布½, 视口⅓)，装不下的尾段落弹层收纳 ——
     this.sections.push(...Array.from(this.root.children) as HTMLElement[]);
-    this.moreBtn = iconButton('more', t('更多'), ICONS.more, () => this.togglePopup());
+    this.moreBtn = iconButton('more', t('More'), ICONS.more, () => this.togglePopup());
     this.popup = document.createElement('div');
     this.popup.className = 'bpmn-toolbar-popup';
     this.popup.hidden = true;
@@ -438,7 +438,7 @@ export class BpmnToolbar {
 
     const wrap = document.createElement('span');
     wrap.className = 'bpmn-color-action';
-    this.colorSetBtn = iconButton('set-colors', t('设置选中元素颜色'), ICONS.setColor, () => this.toggleColorPopup());
+    this.colorSetBtn = iconButton('set-colors', t('Set color of selected elements'), ICONS.setColor, () => this.toggleColorPopup());
 
     this.colorPop = document.createElement('div');
     this.colorPop.className = 'bpmn-color-pop';
@@ -448,7 +448,7 @@ export class BpmnToolbar {
       const row = document.createElement('label');
       row.className = 'bpmn-color-row';
       const text = document.createElement('span');
-      text.textContent = t(kind === 'fill' ? '填充' : '描边');
+      text.textContent = t(kind === 'fill' ? 'Fill' : 'Stroke');
       const input = document.createElement('input');
       input.type = 'color';
       input.addEventListener('input', () => {
@@ -472,7 +472,7 @@ export class BpmnToolbar {
     const ok = document.createElement('button');
     ok.type = 'button';
     ok.className = 'bpmn-color-ok';
-    ok.textContent = t('确定');
+    ok.textContent = t('OK');
     ok.addEventListener('click', () => {
       this.commitColors();
       this.closeColorPopup();
@@ -482,7 +482,7 @@ export class BpmnToolbar {
     this.colorPop.append(makeRow('fill'), makeRow('stroke'), foot);
     wrap.append(this.colorSetBtn, this.colorPop);
 
-    this.colorClearBtn = iconButton('clear-colors', t('清除选中元素颜色'), ICONS.clearColor, () => this.clearColors());
+    this.colorClearBtn = iconButton('clear-colors', t('Clear color of selected elements'), ICONS.clearColor, () => this.clearColors());
     colors.append(wrap, this.colorClearBtn);
     this.syncColors();
     return colors;
@@ -611,7 +611,7 @@ export class BpmnToolbar {
     }
     const horizontal = this.orientationService.getOrientation() === 'horizontal';
     this.orientationBtn.innerHTML = horizontal ? ICONS.orientationHorizontal : ICONS.orientationVertical;
-    this.orientationBtn.title = this.bpmnI18n.t(horizontal ? '切换为纵向布局' : '切换为横向布局');
+    this.orientationBtn.title = this.bpmnI18n.t(horizontal ? 'Switch to vertical layout' : 'Switch to horizontal layout');
   }
 
   /** 校验钮：激活高亮 + 提示写明点击将切到的目标态 */
@@ -633,7 +633,7 @@ export class BpmnToolbar {
     }
     const active = this.linting.isActive();
     this.lintBtn.classList.toggle('bpmn-toolbar-btn--active', active);
-    this.lintBtn.title = this.bpmnI18n.t(active ? '关闭校验' : '开启校验');
+    this.lintBtn.title = this.bpmnI18n.t(active ? 'Disable linting' : 'Enable linting');
   }
 
   private syncMode(): void {

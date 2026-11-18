@@ -49,13 +49,13 @@ export const DEFAULT_COL_WIDTH = 192;
 
 /** 命中策略词表（DMN 1.6 §7.2.4；label/explanation 对齐 kunpeng-modeler） */
 export const HIT_POLICIES: Array<{ value: string; label: string; explanation: string }> = [
-  { value: 'UNIQUE', label: 'Unique', explanation: '最多命中一条规则（多条命中即报错）' },
-  { value: 'FIRST', label: 'First', explanation: '自上而下取首条命中规则' },
-  { value: 'PRIORITY', label: 'Priority', explanation: '按输出优先级取最高的一条' },
-  { value: 'ANY', label: 'Any', explanation: '任意命中（多条须同输出，否则报错）' },
-  { value: 'COLLECT', label: 'Collect', explanation: '收集全部命中输出（可聚合）' },
-  { value: 'RULE ORDER', label: 'Rule order', explanation: '按规则声明序返回全部命中' },
-  { value: 'OUTPUT ORDER', label: 'Output order', explanation: '按输出优先级序返回全部命中' }
+  { value: 'UNIQUE', label: 'Unique', explanation: 'At most one rule matches (multiple matches raise an error)' },
+  { value: 'FIRST', label: 'First', explanation: 'First matching rule from top to bottom' },
+  { value: 'PRIORITY', label: 'Priority', explanation: 'Highest-priority output wins' },
+  { value: 'ANY', label: 'Any', explanation: 'Any match (multiple matches must share the same output, else error)' },
+  { value: 'COLLECT', label: 'Collect', explanation: 'Collect all matched outputs (aggregable)' },
+  { value: 'RULE ORDER', label: 'Rule order', explanation: 'Return all matches in rule declaration order' },
+  { value: 'OUTPUT ORDER', label: 'Output order', explanation: 'Return all matches in output priority order' }
 ];
 
 /** 内建类型集（DMN 1.6 §10.3.1） */

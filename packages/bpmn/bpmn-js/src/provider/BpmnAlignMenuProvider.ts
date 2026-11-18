@@ -53,12 +53,12 @@ export class BpmnAlignMenuProvider {
 
     if (this.rules.allowed('elements.align', { elements }) !== false) {
       const titles: Record<string, string> = {
-        left: '左对齐',
-        center: '水平居中',
-        right: '右对齐',
-        top: '上对齐',
-        middle: '垂直居中',
-        bottom: '下对齐'
+        left: 'Align left',
+        center: 'Align center',
+        right: 'Align right',
+        top: 'Align top',
+        middle: 'Align middle',
+        bottom: 'Align bottom'
       };
       for (const alignment of ['left', 'center', 'right', 'top', 'middle', 'bottom'] as const) {
         entries[`align-${alignment}`] = {
@@ -79,7 +79,7 @@ export class BpmnAlignMenuProvider {
         entries[`distribute-${direction}`] = {
           group: 'distribute',
           className: 'kp-align-menu-entry',
-          title: this.i18n.t(direction === 'horizontal' ? '水平分布' : '垂直分布'),
+          title: this.i18n.t(direction === 'horizontal' ? 'Distribute horizontally' : 'Distribute vertically'),
           imageHtml: alignIconHtml(`distribute-${direction}`),
           action: () => {
             this.distributeElements.trigger(elements, direction);

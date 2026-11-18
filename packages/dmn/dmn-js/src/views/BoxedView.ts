@@ -56,7 +56,7 @@ function setBkmBody(bo: any, kind: string, deps: EditorDeps): void {
 function renderBkmBody(body: HTMLElement, bo: any, deps: EditorDeps, rerender: () => void): void {
   const logic = bo.get('encapsulatedLogic');
   if (!logic) {
-    body.append(el('div', 'dmn-editor-empty', deps.t('Empty（无表达式）——pad 切回 Literal expression 以编辑')));
+    body.append(el('div', 'dmn-editor-empty', deps.t('Empty (no expression) — switch back to Literal expression via pad to edit')));
     return;
   }
   const host = el('div', 'dmn-boxed-expression-container viewer-container');
@@ -88,7 +88,7 @@ function renderBkmBody(body: HTMLElement, bo: any, deps: EditorDeps, rerender: (
   formalParameters.forEach((p) => {
     const chip = el('span', 'parameter-chip');
     const nameSpan = el('span', 'parameter-chip-name', p.name || 'param');
-    nameSpan.title = deps.t('参数名（点击编辑）');
+    nameSpan.title = deps.t('Parameter name (click to edit)');
     nameSpan.addEventListener('click', () => {
       const input = document.createElement('input');
       input.className = 'parameter-chip-input';
@@ -112,7 +112,7 @@ function renderBkmBody(body: HTMLElement, bo: any, deps: EditorDeps, rerender: (
     });
     chip.append(nameSpan);
     const typeSpan = el('span', 'parameter-chip-type', p.typeRef || 'unspecified');
-    typeSpan.title = deps.t('参数类型（点击选择）');
+    typeSpan.title = deps.t('Parameter type (click to select)');
     typeSpan.addEventListener('click', () => {
       const sel = buildTypeSelect(p.typeRef, (v) => {
         deps.modeling.updateModdleProperties(logic, p, { typeRef: v });
@@ -124,7 +124,7 @@ function renderBkmBody(body: HTMLElement, bo: any, deps: EditorDeps, rerender: (
     });
     chip.append(typeSpan);
     const del = el('button', 'parameter-chip-remove', '\u2715');
-    del.title = deps.t('删除参数');
+    del.title = deps.t('Delete parameter');
     del.addEventListener('click', () => {
       deps.modeling.listRemove(logic, logic, 'formalParameter', p);
       rerender();
@@ -134,7 +134,7 @@ function renderBkmBody(body: HTMLElement, bo: any, deps: EditorDeps, rerender: (
   });
   const addParam = el('button', 'parameter-add tjs-plus', '+');
   addParam.setAttribute('type', 'button');
-  addParam.title = deps.t('添加参数');
+  addParam.title = deps.t('Add parameter');
   addParam.addEventListener('click', () => {
     deps.modeling.listAdd(logic, logic, 'formalParameter', deps.factory.create<any>({ $type: 'dmn:InformationItem', name: '' }));
     rerender();
@@ -148,16 +148,16 @@ function renderBkmBody(body: HTMLElement, bo: any, deps: EditorDeps, rerender: (
     const ta = document.createElement('textarea');
     ta.className = 'textarea';
     ta.value = bodyExpr.text ?? '';
-    ta.placeholder = deps.t('输入 FEEL 表达式');
+    ta.placeholder = deps.t('Enter FEEL expression');
     ta.addEventListener('change', () => {
       deps.modeling.updateModdleProperties(logic, bodyExpr, { text: ta.value });
       rerender();
     });
     bodyCell.append(ta);
   } else if (bodyExpr) {
-    bodyCell.append(el('div', 'dmn-editor-empty', deps.t('暂不支持形态 {type}（本期 boxed 占位）', { type: bodyExpr.$type })));
+    bodyCell.append(el('div', 'dmn-editor-empty', deps.t('{type} not supported yet (boxed placeholder this iteration)', { type: bodyExpr.$type })));
   } else {
-    bodyCell.append(el('div', 'dmn-editor-empty', deps.t('无体表达式')));
+    bodyCell.append(el('div', 'dmn-editor-empty', deps.t('No body expression')));
   }
   fn.append(bodyCell);
   host.append(fn);
@@ -177,7 +177,7 @@ function renderBkmBody(body: HTMLElement, bo: any, deps: EditorDeps, rerender: (
       });
     }
     rerender();
-  }, deps.t('结果名')));
+  }, deps.t('Result name')));
   const typeLabel = el('div', '');
   typeLabel.append(el('span', 'element-variable-type-label', 'Variable type'));
   typeLabel.append(buildTypeSelect(logic.get('variable')?.typeRef, (v) => {

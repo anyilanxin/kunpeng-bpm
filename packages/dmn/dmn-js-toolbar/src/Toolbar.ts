@@ -180,15 +180,15 @@ export class DmnToolbar {
     }
     if (this.commandStack) {
       const history = group('history', true);
-      this.undoBtn = iconButton('undo', t('撤销 (Ctrl+Z)'), ICONS.undo, () => this.commandStack!.undo());
-      this.redoBtn = iconButton('redo', t('重做 (Ctrl+Shift+Z)'), ICONS.redo, () => this.commandStack!.redo());
+      this.undoBtn = iconButton('undo', t('Undo (Ctrl+Z)'), ICONS.undo, () => this.commandStack!.undo());
+      this.redoBtn = iconButton('redo', t('Redo (Ctrl+Shift+Z)'), ICONS.redo, () => this.commandStack!.redo());
       history.append(this.undoBtn, this.redoBtn);
       // 重置画布（编辑动作，随组 data-edit-only 只读态隐藏）：经门面重导模板——
       // importXML 清命令栈即不可撤销，2026-11-18 评审裁定直重置无确认；门面
       // 缺失（宿主自拼 modules 无 dmnjs）则不建钮。编辑门控挂 commandStack 组
       // 而非门面：Viewer/NavigatedViewer 继承 Modeler 同样注册 dmnjs
       if (this.facade) {
-        history.append(iconButton('reset', t('重置画布'), ICONS.reset, () => void this.resetCanvas()));
+        history.append(iconButton('reset', t('Reset canvas'), ICONS.reset, () => void this.resetCanvas()));
       }
       this.root.appendChild(history);
       // 撤销重做独立成组，与缩放组以分隔线划界
@@ -200,13 +200,13 @@ export class DmnToolbar {
     this.zoomLabel = document.createElement('button');
     this.zoomLabel.type = 'button';
     this.zoomLabel.className = 'dmn-toolbar-val';
-    this.zoomLabel.title = t('重置缩放 (Ctrl+0)');
+    this.zoomLabel.title = t('Reset zoom (Ctrl+0)');
     this.zoomLabel.addEventListener('click', () => this.canvas.zoom(1));
     zoom.append(
-      iconButton('zoom-out', t('缩小 (Ctrl+-)'), ICONS.zoomOut, () => this.canvas.zoom(this.canvas.zoom() / ZOOM_STEP)),
+      iconButton('zoom-out', t('Zoom out (Ctrl+-)'), ICONS.zoomOut, () => this.canvas.zoom(this.canvas.zoom() / ZOOM_STEP)),
       this.zoomLabel,
-      iconButton('zoom-in', t('放大 (Ctrl++)'), ICONS.zoomIn, () => this.canvas.zoom(this.canvas.zoom() * ZOOM_STEP)),
-      iconButton('zoom-fit', t('适应画布'), ICONS.zoomFit, () => this.canvas.zoom('fit-viewport', { x: 0, y: 0 }))
+      iconButton('zoom-in', t('Zoom in (Ctrl++)'), ICONS.zoomIn, () => this.canvas.zoom(this.canvas.zoom() * ZOOM_STEP)),
+      iconButton('zoom-fit', t('Fit viewport'), ICONS.zoomFit, () => this.canvas.zoom('fit-viewport', { x: 0, y: 0 }))
     );
     this.root.appendChild(zoom);
 
@@ -214,7 +214,7 @@ export class DmnToolbar {
 
     // —— 溢出收纳（更多）：宽度上限 min(画布½, 视口⅓)，装不下的尾段落弹层收纳 ——
     this.sections.push(...Array.from(this.root.children) as HTMLElement[]);
-    this.moreBtn = iconButton('more', t('更多'), ICONS.more, () => this.togglePopup());
+    this.moreBtn = iconButton('more', t('More'), ICONS.more, () => this.togglePopup());
     this.popup = document.createElement('div');
     this.popup.className = 'dmn-toolbar-popup';
     this.popup.hidden = true;
@@ -372,7 +372,7 @@ export class DmnToolbar {
 
     const wrap = document.createElement('span');
     wrap.className = 'dmn-color-action';
-    this.colorSetBtn = iconButton('set-colors', t('设置选中元素颜色'), ICONS.setColor, () => this.toggleColorPopup());
+    this.colorSetBtn = iconButton('set-colors', t('Set color of selected elements'), ICONS.setColor, () => this.toggleColorPopup());
 
     this.colorPop = document.createElement('div');
     this.colorPop.className = 'dmn-color-pop';
@@ -382,7 +382,7 @@ export class DmnToolbar {
       const row = document.createElement('label');
       row.className = 'dmn-color-row';
       const text = document.createElement('span');
-      text.textContent = t(kind === 'fill' ? '填充' : '描边');
+      text.textContent = t(kind === 'fill' ? 'Fill' : 'Stroke');
       const input = document.createElement('input');
       input.type = 'color';
       input.addEventListener('input', () => {
@@ -406,7 +406,7 @@ export class DmnToolbar {
     const ok = document.createElement('button');
     ok.type = 'button';
     ok.className = 'dmn-color-ok';
-    ok.textContent = t('确定');
+    ok.textContent = t('OK');
     ok.addEventListener('click', () => {
       this.commitColors();
       this.closeColorPopup();
@@ -416,7 +416,7 @@ export class DmnToolbar {
     this.colorPop.append(makeRow('fill'), makeRow('stroke'), foot);
     wrap.append(this.colorSetBtn, this.colorPop);
 
-    this.colorClearBtn = iconButton('clear-colors', t('清除选中元素颜色'), ICONS.clearColor, () => this.clearColors());
+    this.colorClearBtn = iconButton('clear-colors', t('Clear color of selected elements'), ICONS.clearColor, () => this.clearColors());
     colors.append(wrap, this.colorClearBtn);
     this.syncColors();
     return colors;

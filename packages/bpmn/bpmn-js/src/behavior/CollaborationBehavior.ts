@@ -64,7 +64,7 @@ export class CollaborationBehavior extends CommandInterceptor {
       const process = adoptExisting
         ? existingProcesses[0]
         : this.bpmnFactory.createProcess({
-          name: this.i18n.t('流程 {n}', { n: String(existingProcesses.length + 1) })
+          name: this.i18n.t('Process {n}', { n: String(existingProcesses.length + 1) })
         });
       if (!adoptExisting) {
         this.state.definitions.rootElements.push(process);

@@ -43,7 +43,7 @@ export function openLiteralView(element: any, deps: EditorDeps): void {
 function renderLiteralBody(body: HTMLElement, bo: any, deps: EditorDeps, rerender: () => void): void {
   const logic = bo.get('decisionLogic');
   if (!logic) {
-    const empty = el('div', 'dmn-editor-empty', deps.t('无表达式 — 点击切换形态'));
+    const empty = el('div', 'dmn-editor-empty', deps.t('No expression — click to switch kind'));
     empty.style.cursor = 'pointer';
     empty.addEventListener('click', () =>
       openKindMenu(empty, '', (kind) => {
@@ -57,7 +57,7 @@ function renderLiteralBody(body: HTMLElement, bo: any, deps: EditorDeps, rerende
   if (logic.$type === 'dmn:LiteralExpression') {
     renderLiteralExpression(body, bo, logic, deps, rerender);
   } else {
-    const ph = el('div', 'dmn-editor-empty', deps.t('暂不支持形态 {type} 的网格编辑（本期 boxed 四族占位）', { type: logic.$type }));
+    const ph = el('div', 'dmn-editor-empty', deps.t('Grid editing for {type} not supported yet (boxed placeholder this iteration)', { type: logic.$type }));
     ph.style.cursor = 'pointer';
     ph.addEventListener('click', () =>
       openKindMenu(ph, logic.$type, (kind) => {
@@ -141,7 +141,7 @@ function renderLiteralExpression(
   const ta = document.createElement('textarea');
   ta.className = 'textarea';
   ta.value = logic.text ?? '';
-  ta.placeholder = deps.t('输入 FEEL 表达式');
+  ta.placeholder = deps.t('Enter FEEL expression');
   ta.addEventListener('change', () => {
     deps.modeling.updateModdleProperties(logic, logic, { text: ta.value });
     rerender();

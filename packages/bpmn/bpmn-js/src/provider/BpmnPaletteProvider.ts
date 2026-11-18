@@ -91,7 +91,7 @@ export class BpmnPaletteProvider {
     entries['tool-hand'] = {
       group: 'tools',
       html: toolEntryHtml('hand', 22, this.elementTypes.toolFillOf('hand')),
-      title: this.i18n.t('抓手工具（按住拖动画布）'),
+      title: this.i18n.t('Hand tool (drag to pan canvas)'),
       action: {
         click: (event: any) => this.handTool.activateHand(event)
       }
@@ -99,7 +99,7 @@ export class BpmnPaletteProvider {
     entries['tool-lasso'] = {
       group: 'tools',
       html: toolEntryHtml('lasso', 22, this.elementTypes.toolFillOf('lasso')),
-      title: this.i18n.t('套索工具（框选）'),
+      title: this.i18n.t('Lasso tool (rubber-band select)'),
       action: {
         // seata/bpmn-js 同款：点击激活套索（crosshair 光标），随后在画布拖拽出框选。
         // 只调 activateSelection——与 activateLasso 叠加会双重 dragging.init，
@@ -110,7 +110,7 @@ export class BpmnPaletteProvider {
     entries['tool-space'] = {
       group: 'tools',
       html: toolEntryHtml('space', 22, this.elementTypes.toolFillOf('space')),
-      title: this.i18n.t('空间工具（腾挪空间）'),
+      title: this.i18n.t('Space tool (make space)'),
       action: {
         click: (event: any) => this.spaceTool.activateMakeSpace(event)
       }
@@ -118,7 +118,7 @@ export class BpmnPaletteProvider {
     entries['tool-connect'] = {
       group: 'tools',
       html: toolEntryHtml('connect', 22, this.elementTypes.toolFillOf('connect')),
-      title: this.i18n.t('全局连线'),
+      title: this.i18n.t('Global connect'),
       action: {
         click: (event: any) => this.globalConnect.start(event)
       }
@@ -144,8 +144,8 @@ export class BpmnPaletteProvider {
         group: `quick-${index}`,
         html: bpmnEntryHtml(meta, 26, this.elementTypes.iconFillOf(meta)),
         title: isPlainIntermediate
-          ? this.i18n.t('创建中间/边界事件（拖到活动上为边界事件）')
-          : this.i18n.t('创建{label}', { label: this.i18n.t(meta.label) }),
+          ? this.i18n.t('Create intermediate/boundary event (drop on activity for boundary)')
+          : this.i18n.t('Create {label}', { label: this.i18n.t(meta.label) }),
         action: {
           click: (event: any) => this.startCreate(event, meta),
           dragstart: (event: any) => this.startCreate(event, meta)
@@ -159,13 +159,13 @@ export class BpmnPaletteProvider {
     entries['create-more'] = {
       group: 'more',
       html: toolEntryHtml('more', 22, this.elementTypes.toolFillOf('more', true)),
-      title: this.i18n.t('更多元素'),
+      title: this.i18n.t('More elements'),
       action: {
         click: () => this.bpmnPopup.open(
           this.canvas.getRootElement(),
           BpmnCreateMenuProvider.MENU_ID,
           { kind: 'palette' },
-          this.i18n.t('创建元素')
+          this.i18n.t('Create element')
         )
       }
     };

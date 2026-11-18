@@ -56,7 +56,7 @@ export function createBodyCell(opts: {
         h('button', {
           class: 'rule-index-remove',
           type: 'button',
-          title: t('删除规则'),
+          title: t('Delete rule'),
           onClick: (e: MouseEvent) => {
             e.preventDefault();
             e.stopPropagation();

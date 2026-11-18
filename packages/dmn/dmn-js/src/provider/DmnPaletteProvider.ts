@@ -33,10 +33,10 @@ import { toolEntryHtml, type ToolIconName } from '../icons/ToolIcons';
 
 /** palette 定规四形状（顺序=面板序：Decision → InputData → KS → BKM；图标=用户资产 dmnicons 定名） */
 const CREATE_ENTRIES: Array<{ type: string; label: string; icon: ToolIconName }> = [
-  { type: 'dmn:Decision', label: '创建决策', icon: 'decision' },
-  { type: 'dmn:InputData', label: '创建输入数据', icon: 'input-data' },
-  { type: 'dmn:KnowledgeSource', label: '创建知识源', icon: 'knowledge-source' },
-  { type: 'dmn:BusinessKnowledgeModel', label: '创建业务知识模型', icon: 'business-knowledge' }
+  { type: 'dmn:Decision', label: 'Create decision', icon: 'decision' },
+  { type: 'dmn:InputData', label: 'Create input data', icon: 'input-data' },
+  { type: 'dmn:KnowledgeSource', label: 'Create knowledge source', icon: 'knowledge-source' },
+  { type: 'dmn:BusinessKnowledgeModel', label: 'Create business knowledge model', icon: 'business-knowledge' }
 ];
 
 export class DmnPaletteProvider implements PaletteProvider {
@@ -64,7 +64,7 @@ export class DmnPaletteProvider implements PaletteProvider {
     const entries: Record<string, any> = {
       'tool-hand': {
         group: 'tools',
-        title: t('抓手工具（按住拖动画布）'),
+        title: t('Hand tool (drag to pan canvas)'),
         html: toolEntryHtml('hand', 22),
         action: {
           click: (event: any) => this.handTool.activateHand(event)
@@ -72,7 +72,7 @@ export class DmnPaletteProvider implements PaletteProvider {
       },
       'tool-lasso': {
         group: 'tools',
-        title: t('套索工具（框选）'),
+        title: t('Lasso tool (rubber-band select)'),
         html: toolEntryHtml('lasso', 22),
         action: {
           // activateSelection（两段式武装 lasso.selection 前缀）在 diagram-js 15

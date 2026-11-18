@@ -27,19 +27,19 @@ import type { BpmnFactory } from '../factory/BpmnFactory';
 import type { BpmnDocument, DefinitionsSemantic } from '../Types';
 
 export class BpmnDocumentState {
-  static $inject = ['bpmnFactory', 'bpmnIds'];
+  static $inject = ['bpmnFactory', 'bpmnIds', 'bpmnI18n'];
 
   definitions!: DefinitionsSemantic;
   /** BPMNPlane 指向的根元素 id（collaboration 或 process） */
   planeTargetId = '';
 
-  constructor(private readonly bpmnFactory: BpmnFactory, private readonly ids: any) {}
+  constructor(private readonly bpmnFactory: BpmnFactory, private readonly ids: any, private readonly i18n: any) {}
 
   /** 新建空文档：单 Process（无协作）+ 主图 DI 骨架（新元素的 DI 节点挂接点） */
   createEmpty(): void {
     this.resetIds();
     const definitions = this.bpmnFactory.createDefinitions('http://bpmn.io/schema/bpmn');
-    const process = this.bpmnFactory.createProcess({ name: '主流程' });
+    const process = this.bpmnFactory.createProcess({ name: this.i18n.t('Main process') });
     definitions.rootElements.push(process);
     definitions.diagrams?.push(this.bpmnFactory.createDiagram(process));
     this.definitions = definitions;

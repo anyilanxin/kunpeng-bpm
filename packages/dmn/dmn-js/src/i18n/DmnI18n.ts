@@ -20,7 +20,8 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /**
- * 词典服务（默认 zh-CN 透传）。插件可整体替换（覆盖 `dmnI18n`）实现任意语言/文案。
+ * 词典服务（key=英文源码原文，未装配=英文透传；2026-11-19 契约翻转）。语言包经
+ * config `dmnI18n` 词典装配（@kunpeng-io/i18n；DI 整替被默认模块 __init__ 早捕获，不可靠）。
  * t 第二参支持 `{token}` 占位替换（查词典后按 params 替换，未命中 token 原样保留）。
  */
 export class DmnI18n {

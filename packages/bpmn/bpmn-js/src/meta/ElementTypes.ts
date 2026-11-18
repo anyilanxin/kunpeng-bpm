@@ -170,357 +170,357 @@ export const SIZES = {
 export const SHAPE_TYPES: ShapeTypeMeta[] = [
   // ---- 开始事件（细单线圆；规范：仅可捕获类定义） ----
   {
-    type: 'bpmn:StartEvent', label: '开始事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:StartEvent', label: 'Start event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventStart', paletteGroup: 'startEvents', order: 10, replaceFamily: 'startEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:StartEvent', label: '消息开始事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:StartEvent', label: 'Message start event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventStart', eventSymbol: 'message', paletteGroup: 'startEvents', order: 20, replaceFamily: 'startEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:StartEvent', label: '定时开始事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:StartEvent', label: 'Timer start event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventStart', eventSymbol: 'timer', paletteGroup: 'startEvents', order: 30, replaceFamily: 'startEvent',
     family: 'event', labelMode: 'external'
   },
   // 规范 §10.5.1 Table 10.5 其余触发（补齐全矩阵，2026-10-21 规范全量对齐）
   {
-    type: 'bpmn:StartEvent', label: '错误开始事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:StartEvent', label: 'Error start event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventStart', eventSymbol: 'error', paletteGroup: 'startEvents', order: 40, replaceFamily: 'startEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:StartEvent', label: '升级开始事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:StartEvent', label: 'Escalation start event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventStart', eventSymbol: 'escalation', paletteGroup: 'startEvents', order: 50, replaceFamily: 'startEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:StartEvent', label: '条件开始事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:StartEvent', label: 'Conditional start event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventStart', eventSymbol: 'conditional', paletteGroup: 'startEvents', order: 60, replaceFamily: 'startEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:StartEvent', label: '信号开始事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:StartEvent', label: 'Signal start event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventStart', eventSymbol: 'signal', paletteGroup: 'startEvents', order: 70, replaceFamily: 'startEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:StartEvent', label: '多实例开始事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:StartEvent', label: 'Multiple start event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventStart', eventSymbol: 'multiple', paletteGroup: 'startEvents', order: 80, replaceFamily: 'startEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:StartEvent', label: '并行多实例开始事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:StartEvent', label: 'Parallel multiple start event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventStart', eventSymbol: 'parallelMultiple', paletteGroup: 'startEvents', order: 90, replaceFamily: 'startEvent',
     family: 'event', labelMode: 'external'
   },
   {
     // 规范 §10.5：补偿开始仅事件子流程内合法
-    type: 'bpmn:StartEvent', label: '补偿开始事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:StartEvent', label: 'Compensation start event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventStart', eventSymbol: 'compensation', paletteGroup: 'startEvents', order: 95, replaceFamily: 'startEvent',
     family: 'event', labelMode: 'external'
   },
   // 非中断开始（事件子流程专用；规范 Table 10.86：虚线外环 + isInterrupting=false）
   {
-    type: 'bpmn:StartEvent', label: '非中断消息开始事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:StartEvent', label: 'Non-interrupting message start event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventStart', eventSymbol: 'message', nonInterrupting: true, paletteGroup: 'startEvents', order: 110, replaceFamily: 'startEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:StartEvent', label: '非中断定时开始事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:StartEvent', label: 'Non-interrupting timer start event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventStart', eventSymbol: 'timer', nonInterrupting: true, paletteGroup: 'startEvents', order: 120, replaceFamily: 'startEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:StartEvent', label: '非中断信号开始事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:StartEvent', label: 'Non-interrupting signal start event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventStart', eventSymbol: 'signal', nonInterrupting: true, paletteGroup: 'startEvents', order: 130, replaceFamily: 'startEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:StartEvent', label: '非中断条件开始事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:StartEvent', label: 'Non-interrupting conditional start event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventStart', eventSymbol: 'conditional', nonInterrupting: true, paletteGroup: 'startEvents', order: 140, replaceFamily: 'startEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:StartEvent', label: '非中断升级开始事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:StartEvent', label: 'Non-interrupting escalation start event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventStart', eventSymbol: 'escalation', nonInterrupting: true, paletteGroup: 'startEvents', order: 150, replaceFamily: 'startEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:StartEvent', label: '非中断多实例开始事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:StartEvent', label: 'Non-interrupting multiple start event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventStart', eventSymbol: 'multiple', nonInterrupting: true, paletteGroup: 'startEvents', order: 160, replaceFamily: 'startEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:StartEvent', label: '非中断并行多实例开始事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:StartEvent', label: 'Non-interrupting parallel multiple start event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventStart', eventSymbol: 'parallelMultiple', nonInterrupting: true, paletteGroup: 'startEvents', order: 170, replaceFamily: 'startEvent',
     family: 'event', labelMode: 'external'
   },
   // ---- 中间捕获（细双线圆） ----
   {
-    type: 'bpmn:IntermediateCatchEvent', label: '定时中间捕获', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:IntermediateCatchEvent', label: 'Timer intermediate catch', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventCatch', eventSymbol: 'timer', paletteGroup: 'intermediateCatch', order: 10, replaceFamily: 'intermediateCatch',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:IntermediateCatchEvent', label: '消息中间捕获', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:IntermediateCatchEvent', label: 'Message intermediate catch', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventCatch', eventSymbol: 'message', paletteGroup: 'intermediateCatch', order: 20, replaceFamily: 'intermediateCatch',
     family: 'event', labelMode: 'external'
   },
   // 规范 §10.5.2 其余捕获触发（错误/升级捕获以边界语境为主，此处按记法补齐）
   {
-    type: 'bpmn:IntermediateCatchEvent', label: '条件中间捕获', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:IntermediateCatchEvent', label: 'Conditional intermediate catch', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventCatch', eventSymbol: 'conditional', paletteGroup: 'intermediateCatch', order: 30, replaceFamily: 'intermediateCatch',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:IntermediateCatchEvent', label: '链接中间捕获', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:IntermediateCatchEvent', label: 'Link intermediate catch', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventCatch', eventSymbol: 'link', paletteGroup: 'intermediateCatch', order: 40, replaceFamily: 'intermediateCatch',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:IntermediateCatchEvent', label: '信号中间捕获', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:IntermediateCatchEvent', label: 'Signal intermediate catch', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventCatch', eventSymbol: 'signal', paletteGroup: 'intermediateCatch', order: 50, replaceFamily: 'intermediateCatch',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:IntermediateCatchEvent', label: '错误中间捕获', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:IntermediateCatchEvent', label: 'Error intermediate catch', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventCatch', eventSymbol: 'error', paletteGroup: 'intermediateCatch', order: 60, replaceFamily: 'intermediateCatch',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:IntermediateCatchEvent', label: '升级中间捕获', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:IntermediateCatchEvent', label: 'Escalation intermediate catch', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventCatch', eventSymbol: 'escalation', paletteGroup: 'intermediateCatch', order: 70, replaceFamily: 'intermediateCatch',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:IntermediateCatchEvent', label: '多实例中间捕获', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:IntermediateCatchEvent', label: 'Multiple intermediate catch', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventCatch', eventSymbol: 'multiple', paletteGroup: 'intermediateCatch', order: 80, replaceFamily: 'intermediateCatch',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:IntermediateCatchEvent', label: '并行多实例中间捕获', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:IntermediateCatchEvent', label: 'Parallel multiple intermediate catch', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventCatch', eventSymbol: 'parallelMultiple', paletteGroup: 'intermediateCatch', order: 90, replaceFamily: 'intermediateCatch',
     family: 'event', labelMode: 'external'
   },
   // ---- 中间抛出 ----
   {
-    type: 'bpmn:IntermediateThrowEvent', label: '无定义中间抛出', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:IntermediateThrowEvent', label: 'None intermediate throw', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventThrow', paletteGroup: 'intermediateThrow', order: 10, replaceFamily: 'intermediateThrow',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:IntermediateThrowEvent', label: '消息中间抛出', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:IntermediateThrowEvent', label: 'Message intermediate throw', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventThrow', eventSymbol: 'message', paletteGroup: 'intermediateThrow', order: 20, replaceFamily: 'intermediateThrow',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:IntermediateThrowEvent', label: '升级中间抛出', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:IntermediateThrowEvent', label: 'Escalation intermediate throw', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventThrow', eventSymbol: 'escalation', paletteGroup: 'intermediateThrow', order: 30, replaceFamily: 'intermediateThrow',
     family: 'event', labelMode: 'external'
   },
   // 规范 §10.5.2 抛出族其余结果（link/signal/compensation/multiple）
   {
-    type: 'bpmn:IntermediateThrowEvent', label: '链接中间抛出', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:IntermediateThrowEvent', label: 'Link intermediate throw', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventThrow', eventSymbol: 'link', paletteGroup: 'intermediateThrow', order: 40, replaceFamily: 'intermediateThrow',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:IntermediateThrowEvent', label: '信号中间抛出', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:IntermediateThrowEvent', label: 'Signal intermediate throw', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventThrow', eventSymbol: 'signal', paletteGroup: 'intermediateThrow', order: 50, replaceFamily: 'intermediateThrow',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:IntermediateThrowEvent', label: '补偿中间抛出', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:IntermediateThrowEvent', label: 'Compensation intermediate throw', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventThrow', eventSymbol: 'compensation', paletteGroup: 'intermediateThrow', order: 60, replaceFamily: 'intermediateThrow',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:IntermediateThrowEvent', label: '多实例中间抛出', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:IntermediateThrowEvent', label: 'Multiple intermediate throw', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventThrow', eventSymbol: 'multiple', paletteGroup: 'intermediateThrow', order: 70, replaceFamily: 'intermediateThrow',
     family: 'event', labelMode: 'external'
   },
   // ---- 边界事件（吸附宿主） ----
   {
-    type: 'bpmn:BoundaryEvent', label: '定时边界事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:BoundaryEvent', label: 'Timer boundary event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventBoundary', eventSymbol: 'timer', paletteGroup: 'boundaryEvents', order: 10, replaceFamily: 'boundaryEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:BoundaryEvent', label: '消息边界事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:BoundaryEvent', label: 'Message boundary event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventBoundary', eventSymbol: 'message', paletteGroup: 'boundaryEvents', order: 20, replaceFamily: 'boundaryEvent',
     family: 'event', labelMode: 'external'
   },
   // 规范 §10.5.2 Table 10.90 边界全矩阵（补偿/取消恒为中断型）
   {
-    type: 'bpmn:BoundaryEvent', label: '错误边界事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:BoundaryEvent', label: 'Error boundary event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventBoundary', eventSymbol: 'error', paletteGroup: 'boundaryEvents', order: 30, replaceFamily: 'boundaryEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:BoundaryEvent', label: '升级边界事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:BoundaryEvent', label: 'Escalation boundary event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventBoundary', eventSymbol: 'escalation', paletteGroup: 'boundaryEvents', order: 40, replaceFamily: 'boundaryEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:BoundaryEvent', label: '条件边界事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:BoundaryEvent', label: 'Conditional boundary event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventBoundary', eventSymbol: 'conditional', paletteGroup: 'boundaryEvents', order: 50, replaceFamily: 'boundaryEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:BoundaryEvent', label: '信号边界事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:BoundaryEvent', label: 'Signal boundary event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventBoundary', eventSymbol: 'signal', paletteGroup: 'boundaryEvents', order: 60, replaceFamily: 'boundaryEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:BoundaryEvent', label: '多实例边界事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:BoundaryEvent', label: 'Multiple boundary event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventBoundary', eventSymbol: 'multiple', paletteGroup: 'boundaryEvents', order: 70, replaceFamily: 'boundaryEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:BoundaryEvent', label: '并行多实例边界事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:BoundaryEvent', label: 'Parallel multiple boundary event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventBoundary', eventSymbol: 'parallelMultiple', paletteGroup: 'boundaryEvents', order: 80, replaceFamily: 'boundaryEvent',
     family: 'event', labelMode: 'external'
   },
   {
     // 规范 §10.5：取消边界仅事务子流程边界合法
-    type: 'bpmn:BoundaryEvent', label: '取消边界事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:BoundaryEvent', label: 'Cancel boundary event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventBoundary', eventSymbol: 'cancel', paletteGroup: 'boundaryEvents', order: 90, replaceFamily: 'boundaryEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:BoundaryEvent', label: '补偿边界事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:BoundaryEvent', label: 'Compensation boundary event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventBoundary', eventSymbol: 'compensation', paletteGroup: 'boundaryEvents', order: 95, replaceFamily: 'boundaryEvent',
     family: 'event', labelMode: 'external'
   },
   // 非中断边界（规范 Table 10.90：虚线外环 + cancelActivity=false）
   {
-    type: 'bpmn:BoundaryEvent', label: '非中断定时边界事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:BoundaryEvent', label: 'Non-interrupting timer boundary event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventBoundary', eventSymbol: 'timer', nonInterrupting: true, paletteGroup: 'boundaryEvents', order: 110, replaceFamily: 'boundaryEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:BoundaryEvent', label: '非中断消息边界事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:BoundaryEvent', label: 'Non-interrupting message boundary event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventBoundary', eventSymbol: 'message', nonInterrupting: true, paletteGroup: 'boundaryEvents', order: 120, replaceFamily: 'boundaryEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:BoundaryEvent', label: '非中断升级边界事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:BoundaryEvent', label: 'Non-interrupting escalation boundary event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventBoundary', eventSymbol: 'escalation', nonInterrupting: true, paletteGroup: 'boundaryEvents', order: 130, replaceFamily: 'boundaryEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:BoundaryEvent', label: '非中断条件边界事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:BoundaryEvent', label: 'Non-interrupting conditional boundary event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventBoundary', eventSymbol: 'conditional', nonInterrupting: true, paletteGroup: 'boundaryEvents', order: 140, replaceFamily: 'boundaryEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:BoundaryEvent', label: '非中断信号边界事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:BoundaryEvent', label: 'Non-interrupting signal boundary event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventBoundary', eventSymbol: 'signal', nonInterrupting: true, paletteGroup: 'boundaryEvents', order: 150, replaceFamily: 'boundaryEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:BoundaryEvent', label: '非中断多实例边界事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:BoundaryEvent', label: 'Non-interrupting multiple boundary event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventBoundary', eventSymbol: 'multiple', nonInterrupting: true, paletteGroup: 'boundaryEvents', order: 160, replaceFamily: 'boundaryEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:BoundaryEvent', label: '非中断并行多实例边界事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:BoundaryEvent', label: 'Non-interrupting parallel multiple boundary event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventBoundary', eventSymbol: 'parallelMultiple', nonInterrupting: true, paletteGroup: 'boundaryEvents', order: 170, replaceFamily: 'boundaryEvent',
     family: 'event', labelMode: 'external'
   },
   // ---- 结束事件（粗单线圆） ----
   {
-    type: 'bpmn:EndEvent', label: '结束事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:EndEvent', label: 'End event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventEnd', paletteGroup: 'endEvents', order: 10, replaceFamily: 'endEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:EndEvent', label: '错误结束事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:EndEvent', label: 'Error end event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventEnd', eventSymbol: 'error', paletteGroup: 'endEvents', order: 20, replaceFamily: 'endEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:EndEvent', label: '终止结束事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:EndEvent', label: 'Terminate end event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventEnd', eventSymbol: 'terminate', paletteGroup: 'endEvents', order: 30, replaceFamily: 'endEvent',
     family: 'event', labelMode: 'external'
   },
   // 规范 §10.5.3 Table 10.88 九种结果补齐（cancel 仅事务子流程内合法）
   {
-    type: 'bpmn:EndEvent', label: '消息结束事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:EndEvent', label: 'Message end event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventEnd', eventSymbol: 'message', paletteGroup: 'endEvents', order: 40, replaceFamily: 'endEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:EndEvent', label: '升级结束事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:EndEvent', label: 'Escalation end event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventEnd', eventSymbol: 'escalation', paletteGroup: 'endEvents', order: 50, replaceFamily: 'endEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:EndEvent', label: '补偿结束事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:EndEvent', label: 'Compensation end event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventEnd', eventSymbol: 'compensation', paletteGroup: 'endEvents', order: 60, replaceFamily: 'endEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:EndEvent', label: '信号结束事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:EndEvent', label: 'Signal end event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventEnd', eventSymbol: 'signal', paletteGroup: 'endEvents', order: 70, replaceFamily: 'endEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:EndEvent', label: '多实例结束事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:EndEvent', label: 'Multiple end event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventEnd', eventSymbol: 'multiple', paletteGroup: 'endEvents', order: 80, replaceFamily: 'endEvent',
     family: 'event', labelMode: 'external'
   },
   {
-    type: 'bpmn:EndEvent', label: '取消结束事件', width: SIZES.EVENT, height: SIZES.EVENT,
+    type: 'bpmn:EndEvent', label: 'Cancel end event', width: SIZES.EVENT, height: SIZES.EVENT,
     symbol: 'eventEnd', eventSymbol: 'cancel', paletteGroup: 'endEvents', order: 90, replaceFamily: 'endEvent',
     family: 'event', labelMode: 'external'
   },
   // ---- 活动族 ----
-  { type: 'bpmn:Task', label: '任务', width: SIZES.TASK_W, height: SIZES.TASK_H, paletteGroup: 'activities', order: 10, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
-  { type: 'bpmn:UserTask', label: '用户任务', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'taskUser', paletteGroup: 'activities', order: 20, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
-  { type: 'bpmn:ServiceTask', label: '服务任务', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'taskService', paletteGroup: 'activities', order: 30, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
-  { type: 'bpmn:ScriptTask', label: '脚本任务', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'taskScript', paletteGroup: 'activities', order: 40, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
-  { type: 'bpmn:ManualTask', label: '手工任务', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'taskManual', paletteGroup: 'activities', order: 50, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
-  { type: 'bpmn:SendTask', label: '发送任务', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'taskSend', paletteGroup: 'activities', order: 60, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
-  { type: 'bpmn:ReceiveTask', label: '接收任务', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'taskReceive', paletteGroup: 'activities', order: 70, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
-  { type: 'bpmn:BusinessRuleTask', label: '业务规则任务', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'taskBusinessRule', paletteGroup: 'activities', order: 75, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
-  { type: 'bpmn:CallActivity', label: '调用活动', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'callActivity', paletteGroup: 'activities', order: 80, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
+  { type: 'bpmn:Task', label: 'Task', width: SIZES.TASK_W, height: SIZES.TASK_H, paletteGroup: 'activities', order: 10, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
+  { type: 'bpmn:UserTask', label: 'User task', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'taskUser', paletteGroup: 'activities', order: 20, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
+  { type: 'bpmn:ServiceTask', label: 'Service task', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'taskService', paletteGroup: 'activities', order: 30, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
+  { type: 'bpmn:ScriptTask', label: 'Script task', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'taskScript', paletteGroup: 'activities', order: 40, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
+  { type: 'bpmn:ManualTask', label: 'Manual task', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'taskManual', paletteGroup: 'activities', order: 50, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
+  { type: 'bpmn:SendTask', label: 'Send task', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'taskSend', paletteGroup: 'activities', order: 60, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
+  { type: 'bpmn:ReceiveTask', label: 'Receive task', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'taskReceive', paletteGroup: 'activities', order: 70, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
+  { type: 'bpmn:BusinessRuleTask', label: 'Business rule task', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'taskBusinessRule', paletteGroup: 'activities', order: 75, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
+  { type: 'bpmn:CallActivity', label: 'Call activity', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'callActivity', paletteGroup: 'activities', order: 80, replaceFamily: 'activity', resizable: true, family: 'activity', labelMode: 'internal' },
   // ---- 子流程 ----
-  { type: 'bpmn:SubProcess', label: '展开子流程', width: SIZES.SUBPROCESS_W, height: SIZES.SUBPROCESS_H, symbol: 'subProcessExpanded', paletteGroup: 'subProcesses', order: 10, replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
-  { type: 'bpmn:SubProcess', label: '折叠子流程', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'subProcessCollapsed', paletteGroup: 'subProcesses', order: 20, replaceFamily: 'subProcess', resizable: true, family: 'activity', labelMode: 'internal' },
+  { type: 'bpmn:SubProcess', label: 'Expanded sub-process', width: SIZES.SUBPROCESS_W, height: SIZES.SUBPROCESS_H, symbol: 'subProcessExpanded', paletteGroup: 'subProcesses', order: 10, replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
+  { type: 'bpmn:SubProcess', label: 'Collapsed sub-process', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'subProcessCollapsed', paletteGroup: 'subProcesses', order: 20, replaceFamily: 'subProcess', resizable: true, family: 'activity', labelMode: 'internal' },
   // 事件子流程（SubProcess triggeredByEvent=true，规范 §10.5.4：虚线边框）
-  { type: 'bpmn:SubProcess', label: '事件子流程', width: SIZES.SUBPROCESS_W, height: SIZES.SUBPROCESS_H, symbol: 'subProcessEvent', paletteGroup: 'subProcesses', order: 30, replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
+  { type: 'bpmn:SubProcess', label: 'Event sub-process', width: SIZES.SUBPROCESS_W, height: SIZES.SUBPROCESS_H, symbol: 'subProcessEvent', paletteGroup: 'subProcesses', order: 30, replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
   // 事务子流程（规范 §10.5.6：双线边框；恒展开态。创建尺寸=任务盒：2026-11-04 用户定规
   // "临时/事务与用户任务一样"——恒展开但缺省小盒，容器内容靠用户展开拖放归位后 resize）
-  { type: 'bpmn:Transaction', label: '事务子流程', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'transaction', paletteGroup: 'subProcesses', order: 40, replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
+  { type: 'bpmn:Transaction', label: 'Transaction sub-process', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'transaction', paletteGroup: 'subProcesses', order: 40, replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
   // Ad-hoc 子流程（规范 §10.5.5：底部波浪号标记）。无 paletteGroup=不进创建菜单（「更多元素」
   // 弹框创建走下方折叠条目 100×80（尺寸随 SIZES；2026-11-04 用户定规，原 116×78）；展开形态仍为替换目标（折叠⇄展开，
   // 替换菜单按 replaceFamily/五轴匹配不经 paletteGroup）
-  { type: 'bpmn:AdHocSubProcess', label: 'Ad-hoc 子流程', width: SIZES.SUBPROCESS_W, height: SIZES.SUBPROCESS_H, symbol: 'adHocSubProcess', replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
+  { type: 'bpmn:AdHocSubProcess', label: 'Ad-hoc sub-process', width: SIZES.SUBPROCESS_W, height: SIZES.SUBPROCESS_H, symbol: 'adHocSubProcess', replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
   // 折叠形态排在展开之后：shapeByType 取数组首条，展开态（容器/大尺寸）须胜出
-  { type: 'bpmn:AdHocSubProcess', label: 'Ad-hoc 子流程（折叠）', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'adHocSubProcessCollapsed', paletteGroup: 'subProcesses', order: 55, replaceFamily: 'subProcess', resizable: true, family: 'activity', labelMode: 'internal' },
+  { type: 'bpmn:AdHocSubProcess', label: 'Ad-hoc sub-process (collapsed)', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'adHocSubProcessCollapsed', paletteGroup: 'subProcesses', order: 55, replaceFamily: 'subProcess', resizable: true, family: 'activity', labelMode: 'internal' },
   // ---- 网关 ----
-  { type: 'bpmn:ExclusiveGateway', label: '排他网关', width: SIZES.GATEWAY, height: SIZES.GATEWAY, symbol: 'gatewayExclusive', paletteGroup: 'gateways', order: 10, replaceFamily: 'gateway', family: 'gateway', labelMode: 'external' },
-  { type: 'bpmn:ParallelGateway', label: '并行网关', width: SIZES.GATEWAY, height: SIZES.GATEWAY, symbol: 'gatewayParallel', paletteGroup: 'gateways', order: 20, replaceFamily: 'gateway', family: 'gateway', labelMode: 'external' },
-  { type: 'bpmn:InclusiveGateway', label: '包容网关', width: SIZES.GATEWAY, height: SIZES.GATEWAY, symbol: 'gatewayInclusive', paletteGroup: 'gateways', order: 30, replaceFamily: 'gateway', family: 'gateway', labelMode: 'external' },
-  { type: 'bpmn:EventBasedGateway', label: '事件网关', width: SIZES.GATEWAY, height: SIZES.GATEWAY, symbol: 'gatewayEventBased', paletteGroup: 'gateways', order: 40, replaceFamily: 'gateway', family: 'gateway', labelMode: 'external' },
-  { type: 'bpmn:ComplexGateway', label: '复杂网关', width: SIZES.GATEWAY, height: SIZES.GATEWAY, symbol: 'gatewayComplex', paletteGroup: 'gateways', order: 50, replaceFamily: 'gateway', family: 'gateway', labelMode: 'external' },
+  { type: 'bpmn:ExclusiveGateway', label: 'Exclusive gateway', width: SIZES.GATEWAY, height: SIZES.GATEWAY, symbol: 'gatewayExclusive', paletteGroup: 'gateways', order: 10, replaceFamily: 'gateway', family: 'gateway', labelMode: 'external' },
+  { type: 'bpmn:ParallelGateway', label: 'Parallel gateway', width: SIZES.GATEWAY, height: SIZES.GATEWAY, symbol: 'gatewayParallel', paletteGroup: 'gateways', order: 20, replaceFamily: 'gateway', family: 'gateway', labelMode: 'external' },
+  { type: 'bpmn:InclusiveGateway', label: 'Inclusive gateway', width: SIZES.GATEWAY, height: SIZES.GATEWAY, symbol: 'gatewayInclusive', paletteGroup: 'gateways', order: 30, replaceFamily: 'gateway', family: 'gateway', labelMode: 'external' },
+  { type: 'bpmn:EventBasedGateway', label: 'Event-based gateway', width: SIZES.GATEWAY, height: SIZES.GATEWAY, symbol: 'gatewayEventBased', paletteGroup: 'gateways', order: 40, replaceFamily: 'gateway', family: 'gateway', labelMode: 'external' },
+  { type: 'bpmn:ComplexGateway', label: 'Complex gateway', width: SIZES.GATEWAY, height: SIZES.GATEWAY, symbol: 'gatewayComplex', paletteGroup: 'gateways', order: 50, replaceFamily: 'gateway', family: 'gateway', labelMode: 'external' },
   // ---- 容器 ----
-  { type: 'bpmn:Participant', label: '池/参与者', width: SIZES.POOL_W, height: SIZES.POOL_H, symbol: 'participant', paletteGroup: 'containers', order: 10, resizable: true, family: 'container', labelMode: 'internal' },
+  { type: 'bpmn:Participant', label: 'Pool / participant', width: SIZES.POOL_W, height: SIZES.POOL_H, symbol: 'participant', paletteGroup: 'containers', order: 10, resizable: true, family: 'container', labelMode: 'internal' },
   // ---- 数据与制品 ----
-  { type: 'bpmn:DataObjectReference', label: '数据对象', width: SIZES.DATA_W, height: SIZES.DATA_H, symbol: 'dataObject', paletteGroup: 'artifacts', order: 10, family: 'data', labelMode: 'external' },
-  { type: 'bpmn:DataStoreReference', label: '数据存储', width: SIZES.DATASTORE, height: SIZES.DATASTORE, symbol: 'dataStore', paletteGroup: 'artifacts', order: 15, family: 'data', labelMode: 'external' },
-  { type: 'bpmn:TextAnnotation', label: '文本注记', width: SIZES.ANNOTATION_W, height: SIZES.ANNOTATION_H, symbol: 'textAnnotation', paletteGroup: 'artifacts', order: 20, resizable: true, family: 'artifact', labelMode: 'internal' },
-  { type: 'bpmn:Group', label: '分组', width: SIZES.GROUP_W, height: SIZES.GROUP_H, symbol: 'group', paletteGroup: 'artifacts', order: 30, resizable: true, family: 'artifact', labelMode: 'external' }
+  { type: 'bpmn:DataObjectReference', label: 'Data object', width: SIZES.DATA_W, height: SIZES.DATA_H, symbol: 'dataObject', paletteGroup: 'artifacts', order: 10, family: 'data', labelMode: 'external' },
+  { type: 'bpmn:DataStoreReference', label: 'Data store', width: SIZES.DATASTORE, height: SIZES.DATASTORE, symbol: 'dataStore', paletteGroup: 'artifacts', order: 15, family: 'data', labelMode: 'external' },
+  { type: 'bpmn:TextAnnotation', label: 'Text annotation', width: SIZES.ANNOTATION_W, height: SIZES.ANNOTATION_H, symbol: 'textAnnotation', paletteGroup: 'artifacts', order: 20, resizable: true, family: 'artifact', labelMode: 'internal' },
+  { type: 'bpmn:Group', label: 'Group', width: SIZES.GROUP_W, height: SIZES.GROUP_H, symbol: 'group', paletteGroup: 'artifacts', order: 30, resizable: true, family: 'artifact', labelMode: 'external' }
 ];
 
 export const CONNECTION_TYPES: ConnectionTypeMeta[] = [
-  { type: 'bpmn:SequenceFlow', label: '顺序流', paletteGroup: 'connectors', order: 10, family: 'flow' },
-  { type: 'bpmn:MessageFlow', label: '消息流', paletteGroup: 'connectors', order: 20, family: 'flow' },
-  { type: 'bpmn:Association', label: '关联', paletteGroup: 'connectors', order: 30, family: 'flow' },
-  { type: 'bpmn:DataAssociation', label: '数据关联', paletteGroup: 'connectors', order: 40, family: 'flow' }
+  { type: 'bpmn:SequenceFlow', label: 'Sequence flow', paletteGroup: 'connectors', order: 10, family: 'flow' },
+  { type: 'bpmn:MessageFlow', label: 'Message flow', paletteGroup: 'connectors', order: 20, family: 'flow' },
+  { type: 'bpmn:Association', label: 'Association', paletteGroup: 'connectors', order: 30, family: 'flow' },
+  { type: 'bpmn:DataAssociation', label: 'Data association', paletteGroup: 'connectors', order: 40, family: 'flow' }
 ];
 
 // ---------------- 类型族谓词（单一事实源） ----------------
@@ -839,16 +839,16 @@ export class BpmnElementTypes {
 
   /** 面板分组定义（顺序即展示顺序） */
   static readonly PALETTE_GROUPS: { id: string; label: string }[] = [
-    { id: 'startEvents', label: '开始事件' },
-    { id: 'intermediateCatch', label: '中间捕获' },
-    { id: 'intermediateThrow', label: '中间抛出' },
-    { id: 'boundaryEvents', label: '边界事件' },
-    { id: 'endEvents', label: '结束事件' },
-    { id: 'activities', label: '活动' },
-    { id: 'subProcesses', label: '子流程' },
-    { id: 'gateways', label: '网关' },
-    { id: 'containers', label: '容器' },
-    { id: 'artifacts', label: '数据与制品' },
-    { id: 'connectors', label: '连线' }
+    { id: 'startEvents', label: 'Start event' },
+    { id: 'intermediateCatch', label: 'Intermediate catch' },
+    { id: 'intermediateThrow', label: 'Intermediate throw' },
+    { id: 'boundaryEvents', label: 'Boundary event' },
+    { id: 'endEvents', label: 'End event' },
+    { id: 'activities', label: 'Activities' },
+    { id: 'subProcesses', label: 'Sub-process' },
+    { id: 'gateways', label: 'Gateways' },
+    { id: 'containers', label: 'Containers' },
+    { id: 'artifacts', label: 'Data & artifacts' },
+    { id: 'connectors', label: 'Connect' }
   ];
 }

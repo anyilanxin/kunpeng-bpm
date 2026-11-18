@@ -112,27 +112,27 @@ export const SIZES = {
 /** DRG 形状（palette 定规 4 项 + DecisionService 注册表登记 + 注记制品） */
 export const SHAPE_TYPES: ShapeTypeMeta[] = [
   {
-    type: 'dmn:Decision', label: '决策', width: SIZES.DECISION_W, height: SIZES.DECISION_H,
+    type: 'dmn:Decision', label: 'Decision', width: SIZES.DECISION_W, height: SIZES.DECISION_H,
     paletteGroup: 'drg', order: 10, replaceFamily: 'drg', family: 'decision', drillable: true
   },
   {
-    type: 'dmn:InputData', label: '输入数据', width: SIZES.INPUT_W, height: SIZES.INPUT_H,
+    type: 'dmn:InputData', label: 'Input data', width: SIZES.INPUT_W, height: SIZES.INPUT_H,
     paletteGroup: 'drg', order: 20, replaceFamily: 'drg', family: 'input'
   },
   {
-    type: 'dmn:KnowledgeSource', label: '知识源', width: SIZES.KS_W, height: SIZES.KS_H,
+    type: 'dmn:KnowledgeSource', label: 'Knowledge source', width: SIZES.KS_W, height: SIZES.KS_H,
     paletteGroup: 'drg', order: 30, replaceFamily: 'drg', family: 'knowledge'
   },
   {
-    type: 'dmn:BusinessKnowledgeModel', label: '业务知识模型', width: SIZES.BKM_W, height: SIZES.BKM_H,
+    type: 'dmn:BusinessKnowledgeModel', label: 'Business knowledge model', width: SIZES.BKM_W, height: SIZES.BKM_H,
     paletteGroup: 'drg', order: 40, replaceFamily: 'drg', family: 'invocable', drillable: true
   },
   {
-    type: 'dmn:DecisionService', label: '决策服务', width: SIZES.SERVICE_W, height: SIZES.SERVICE_H,
+    type: 'dmn:DecisionService', label: 'Decision service', width: SIZES.SERVICE_W, height: SIZES.SERVICE_H,
     isContainer: true, resizable: true, family: 'service'
   },
   {
-    type: 'dmn:TextAnnotation', label: '注记', width: SIZES.ANNOTATION_W, height: SIZES.ANNOTATION_H,
+    type: 'dmn:TextAnnotation', label: 'Text annotation', width: SIZES.ANNOTATION_W, height: SIZES.ANNOTATION_H,
     family: 'artifact'
   }
 ];
@@ -143,19 +143,19 @@ export const SHAPE_TYPES: ShapeTypeMeta[] = [
  */
 export const CONNECTION_TYPES: ConnectionTypeMeta[] = [
   {
-    type: 'dmn:InformationRequirement', label: '信息需求',
+    type: 'dmn:InformationRequirement', label: 'Information requirement',
     replaceFamily: 'requirement', family: 'requirement'
   },
   {
-    type: 'dmn:KnowledgeRequirement', label: '知识需求',
+    type: 'dmn:KnowledgeRequirement', label: 'Knowledge requirement',
     replaceFamily: 'requirement', family: 'requirement'
   },
   {
-    type: 'dmn:AuthorityRequirement', label: '权威需求',
+    type: 'dmn:AuthorityRequirement', label: 'Authority requirement',
     replaceFamily: 'requirement', family: 'requirement'
   },
   {
-    type: 'dmn:Association', label: '关联',
+    type: 'dmn:Association', label: 'Association',
     family: 'association'
   }
 ];

@@ -92,7 +92,7 @@ export class DrillBadgeBehavior {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'dmn-drill-badge';
-    button.title = this.dmnI18n.t('编辑{label}', { label: this.dmnI18n.t(shapeMetaOf(type)?.label ?? '元素') });
+    button.title = this.dmnI18n.t('Edit {label}', { label: this.dmnI18n.t(shapeMetaOf(type)?.label ?? 'element') });
     button.innerHTML = badgeSvg(type);
     button.addEventListener('click', (event) => {
       event.stopPropagation();

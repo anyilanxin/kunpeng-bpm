@@ -81,7 +81,7 @@ export function createHeaderTools(opts: {
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'remove-clause-action';
-    removeBtn.textContent = t(isInput ? '删除输入列' : '删除输出列');
+    removeBtn.textContent = t(isInput ? 'Delete input column' : 'Delete output column');
     if (familyClauses.length <= 1) removeBtn.disabled = true;
     removeBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -165,7 +165,7 @@ export function createHeaderTools(opts: {
         class: 'edit-button tjs-pencil',
         type: 'button',
         'aria-label': 'Edit clause',
-        title: t('编辑列'),
+        title: t('Edit column'),
         onClick: (e: MouseEvent) => {
           e.preventDefault();
           e.stopPropagation();

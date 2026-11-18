@@ -57,14 +57,14 @@ export class DmnContextPadProvider {
     const entries: Record<string, unknown> = {};
 
     if (element.waypoints) {
-      entries.delete = this.deleteEntry(element, t('删除'));
+      entries.delete = this.deleteEntry(element, t('Delete'));
       return entries;
     }
 
     entries.connect = {
       group: 'connect',
       html: toolEntryHtml('connect'),
-      title: t('连线（按落点自动裁决需求类型）'),
+      title: t('Connect (requirement type resolved by drop target)'),
       action: {
         click: (event: Event, _e: unknown) => this.connect.start(event, element),
         dragstart: (event: Event, _e: unknown) => this.connect.start(event, element)
@@ -77,7 +77,7 @@ export class DmnContextPadProvider {
       entries.switchExpression = {
         group: 'model',
         html: toolEntryHtml('wrench'),
-        title: t('切换表达式'),
+        title: t('Switch expression'),
         action: {
           click: (event: Event, _e: unknown) =>
             this.popupMenu.open(element, EXPRESSION_MENU_ID, this.menuPosition(event))
@@ -88,7 +88,7 @@ export class DmnContextPadProvider {
     entries.annotate = {
       group: 'model',
       html: toolEntryHtml('note'),
-      title: t('添加注记'),
+      title: t('Add text annotation'),
       action: {
         click: (event: Event) => {
           const shape = this.elementFactory.createShape({
@@ -101,7 +101,7 @@ export class DmnContextPadProvider {
       }
     };
 
-    entries.delete = this.deleteEntry(element, t('删除'));
+    entries.delete = this.deleteEntry(element, t('Delete'));
     return entries;
   }
 

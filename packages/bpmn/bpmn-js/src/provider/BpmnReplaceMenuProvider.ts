@@ -71,9 +71,9 @@ export class BpmnReplaceMenuProvider {
       if (!pBo?.processRef) {
         return {
           'to-filled-pool': {
-            label: this.i18n.t('切换为非空泳道'),
+            label: this.i18n.t('Switch to non-empty lane'),
             imageHtml: participantMenuIconHtml(),
-            title: this.i18n.t('切换为非空泳道'),
+            title: this.i18n.t('Switch to non-empty lane'),
             action: () => {
               const definitions = this.documentState.definitions;
               const isEmptyProcess = (r: any): boolean =>
@@ -83,7 +83,7 @@ export class BpmnReplaceMenuProvider {
               const existing = (definitions.rootElements ?? []).find(isEmptyProcess);
               const process = existing
                 ?? this.bpmnFactory.createProcess({
-                  name: this.i18n.t('流程 {n}', { n: String(this.documentState.processes().length + 1) })
+                  name: this.i18n.t('Process {n}', { n: String(this.documentState.processes().length + 1) })
                 });
               if (!existing) {
                 definitions.rootElements.push(process);
@@ -97,9 +97,9 @@ export class BpmnReplaceMenuProvider {
       const isPool = bo.$type === 'bpmn:Participant';
       return {
         'clear-container': {
-          label: this.i18n.t(isPool ? '清空池（删除内容）' : '清空泳道（删除内容）'),
+          label: this.i18n.t(isPool ? 'Empty pool (delete contents)' : 'Empty lane (delete contents)'),
           imageHtml: laneMenuIconHtml(),
-          title: this.i18n.t(isPool ? '清空池（删除内容）' : '清空泳道（删除内容）'),
+          title: this.i18n.t(isPool ? 'Empty pool (delete contents)' : 'Empty lane (delete contents)'),
           action: () => {
             const contents = collectContents(participant);
             if (contents.length) {
@@ -188,9 +188,9 @@ export class BpmnReplaceMenuProvider {
       action: { click: toggle(kind) }
     });
     return {
-      'toggle-parallel-mi': entry('parallel', '并行多实例'),
-      'toggle-sequential-mi': entry('sequential', '顺序多实例'),
-      'toggle-loop': entry('loop', '标准循环')
+      'toggle-parallel-mi': entry('parallel', 'Parallel multi-instance'),
+      'toggle-sequential-mi': entry('sequential', 'Sequential multi-instance'),
+      'toggle-loop': entry('loop', 'Standard loop')
     };
   }
 }
