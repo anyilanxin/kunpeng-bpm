@@ -98,10 +98,7 @@ export function assertAddLaneAllowed(
     if (parts !== 2 && parts !== 3) {
       throw new Error(`分割只支持 2 或 3 段，收到：${parts}`);
     }
-    const each = spanLength(container, laneStackAxis(horizontal)) / parts;
-    if (each < MIN_LANE_BAND) {
-      throw new Error(`泳道跨度不足以分割为 ${parts} 段`);
-    }
+    // 跨度不校验：均分段厚不足最小带厚时 divide 侧生长目标带（见其注释）
   }
 }
 
@@ -208,22 +205,44 @@ export class AddLaneHandler implements CommandHandler {
     return [participant, ...context.created, ...context.shifted.map((s: any) => s.lane)];
   }
 
-  /** 分割：目标带沿堆叠轴均分为 parts 段（首段留原带，其余新建），总跨度与池形不变 */
+  /**
+   * 分割：目标带沿堆叠轴均分为 parts 段（首段留原带，其余新建）。均分段厚
+   * 下限=最小带厚——原带不足以均分出合法段时（默认 250 带 ÷2/÷3 必不足），
+   * 目标带生长到 parts×each，下方带等量让位、池沿同步增长（同常规插入的
+   * 让位语义；2026-11-18 用户定规：600×250 下限恒立，分割靠生长不靠降限）。
+   */
   private divide(context: any, target: any, participant: any, axis: 'x' | 'y', horizontal: boolean): any[] {
-    // parts 与最小带宽由 assertAddLaneAllowed 保证
+    // parts 合法性由 assertAddLaneAllowed 保证；段厚生长后必 ≥ 下限，无再校验
     const parts = context.count ?? 2;
     const start = spanStart(target, axis);
-    const each = spanLength(target, axis) / parts;
+    const originLen = spanLength(target, axis);
+    const each = Math.max(originLen / parts, MIN_LANE_BAND);
+    const growth = each * parts - originLen;
 
     context.target = target;
     context.oldTarget = rectOf(target);
     context.created = [];
+    context.shifted = [];
+    context.carved = null;
+    context.oldPool = null;
+
+    if (growth > LANE_EPS) {
+      const targetBack = start + originLen;
+      for (const lane of sortedLanes(participant, axis)) {
+        if (lane !== target && spanStart(lane, axis) >= targetBack - LANE_EPS) {
+          context.shifted.push({ lane, rect: rectOf(lane) });
+          applyRect(lane, shiftAlongAxis(lane, axis, growth));
+        }
+      }
+      context.oldPool = rectOf(participant);
+      growPoolAlong(participant, axis, growth);
+    }
     applyRect(target, withSpan(target, axis, start, each));
     const inner = poolInnerRect(participant, SIZES.POOL_HEADER, horizontal);
     for (let i = 1; i < parts; i++) {
       context.created.push(this.createLane(context, participant, laneBandRect(inner, start + i * each, each, horizontal)));
     }
-    return [target, ...context.created];
+    return [participant, target, ...context.created, ...context.shifted.map((s: any) => s.lane)];
   }
 
   private createLane(context: any, participant: any, rect: RectLike): any {

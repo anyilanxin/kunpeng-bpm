@@ -145,7 +145,7 @@ export const SIZES = {
   POOL_W: 634,
   POOL_H: 250,
   POOL_HEADER: 34,
-  /** 插入泳道带的默认厚度（带厚下限另见 PoolGeometry.MIN_LANE_BAND=80） */
+  /** 插入泳道带的默认厚度=最小带厚（产品下限，见 PoolGeometry.MIN_LANE_BAND） */
   LANE_H: 250,
   DATA_W: 40,
   DATA_H: 56,
