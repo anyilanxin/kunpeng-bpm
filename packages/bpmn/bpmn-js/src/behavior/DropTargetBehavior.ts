@@ -66,6 +66,17 @@ export class DropTargetBehavior {
         }
         return;
       }
+      // 越缘拖拽保持原池为目标（元素碰到池缘→自动扩池，2026-11-18 用户定规）：
+      // 悬停空白根时若拖拽集投影矩形仍与共同原池相交，落点归一回原池——
+      // 放行后由 AutoResize 扩池覆盖（带随池重铺）；完全脱离原池才维持根
+      // 落点被拒弹回。跨池拖动悬停他池/其泳道时不进此分支
+      if (!hover.parent) {
+        const pool = sharedOriginPool(dragging);
+        if (pool && dragging.every((s: any) => rectsOverlap(shiftedBy(s, event.context?.delta), pool))) {
+          event.hover = pool;
+          return;
+        }
+      }
       if (isDropContainer(hover)) {
         return;
       }
@@ -100,4 +111,35 @@ function isDropContainer(element: any): boolean {
     return true; // 画布根
   }
   return isContainerType(element.businessObject?.$type, element.isExpanded);
+}
+
+/** 拖拽集的共同原池：全部成员沿父链归到同一参与者才有效，否则 null */
+function sharedOriginPool(dragging: any[]): any | null {
+  let pool: any = null;
+  for (const s of dragging) {
+    let cur = s?.parent;
+    while (cur && cur.businessObject?.$type !== 'bpmn:Participant') {
+      cur = cur.parent;
+    }
+    if (!cur || (pool && cur !== pool)) {
+      return null;
+    }
+    pool = cur;
+  }
+  return pool;
+}
+
+/** 拖拽投影矩形：元素当前边界 + 拖拽增量（缺省零增量——激活探测不带 delta） */
+function shiftedBy(shape: any, delta: any): { x: number; y: number; width: number; height: number } {
+  return {
+    x: shape.x + (delta?.x ?? 0),
+    y: shape.y + (delta?.y ?? 0),
+    width: shape.width,
+    height: shape.height
+  };
+}
+
+/** 严格相交（贴边不算——贴边拖拽仍由原池落点与扩池语义接管） */
+function rectsOverlap(a: { x: number; y: number; width: number; height: number }, b: any): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }

@@ -33,7 +33,8 @@ import type { BpmnFactory } from '../factory/BpmnFactory';
 
 /**
  * 首池语义包装：无协作图上创建第一个参与者 → 生成 <collaboration>、
- * 首池领养现有唯一流程；平面目标切换到协作。
+ * 首池领养现有唯一流程；平面目标切换到协作。跨池拖动后两端不同池的
+ * 连线就地断开（连线语义限同池，跨池属消息流范畴不在本内核）。
  */
 export class CollaborationBehavior extends CommandInterceptor {
   static $inject = ['eventBus', 'bpmnDocumentState', 'bpmnFactory', 'canvas', 'orientationService', 'modeling'];
@@ -94,6 +95,32 @@ export class CollaborationBehavior extends CommandInterceptor {
       }
       this.adoptLooseShapes(shape);
     });
+
+    // 跨池断链（2026-11-18 用户定规）：元素可跨池拖动，但连线两端必须同池
+    // ——同池跨泳道连线保留，移动后两端分属不同参与者的连线就地删除。
+    // postExecuted（handler 之后、_popAction 之前——postExecute 相位事件在
+    // handler 前触发，此时换父未发生两端恒同池）与移动命令同处一个 action
+    // 帧，撤销单步还原（断链命令栈内后入先出）
+    this.on('elements.move', 'postExecuted', (event: any) => {
+      this.severCrossPoolLinks(event.context.shapes ?? []);
+    });
+  }
+
+  /** 移动集两端跨池的连线删除（源/目标任一端被移入另一池即断） */
+  private severCrossPoolLinks(shapes: any[]): void {
+    const links = new Set<any>();
+    for (const shape of shapes) {
+      for (const conn of [...(shape.incoming ?? []), ...(shape.outgoing ?? [])]) {
+        links.add(conn);
+      }
+    }
+    for (const conn of links) {
+      const sourcePool = participantOf(conn.source);
+      const targetPool = participantOf(conn.target);
+      if (sourcePool && targetPool && sourcePool !== targetPool) {
+        this.modeling.removeConnection(conn);
+      }
+    }
   }
 
   /**
@@ -136,4 +163,16 @@ export class CollaborationBehavior extends CommandInterceptor {
       }
     }
   }
+}
+
+/** 元素所属参与者（沿父链；根平面元素返回 null） */
+function participantOf(element: any): any | null {
+  let cur = element?.parent;
+  while (cur) {
+    if (cur.businessObject?.$type === 'bpmn:Participant') {
+      return cur;
+    }
+    cur = cur.parent;
+  }
+  return null;
 }
