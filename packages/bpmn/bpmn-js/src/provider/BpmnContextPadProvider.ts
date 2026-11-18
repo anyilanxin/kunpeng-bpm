@@ -25,7 +25,7 @@
  * 可整体替换（didi 组件 `contextPadProvider`）。
  */
 import type { BpmnElementTypes } from '../meta/ElementTypes';
-import { isContainerType, metaId } from '../meta/ElementTypes';
+import { isSubProcessFamily, metaId } from '../meta/ElementTypes';
 import type { AppendPreview } from '../behavior/AppendPreview';
 import { BpmnAlignMenuProvider } from './BpmnAlignMenuProvider';
 import { BpmnAppendMenuProvider, BpmnCreateMenuProvider, BpmnFlowTypeMenuProvider } from './BpmnElementMenuProvider';
@@ -91,6 +91,40 @@ export class BpmnContextPadProvider {
     }
     const type = bo.$type;
     const entries: Record<string, any> = {};
+
+    // ---- 泳道操作（池/泳道；朝向感知：水平池行带=上/下插，垂直池列带=左/右插。
+    //      参照布局 2026-11-18：首组置顶，序=上插 → 分割（泳道限定）→ 下插，
+    //      三组独立 data-group 与参照一一对应） ----
+    if (type === 'bpmn:Participant' || type === 'bpmn:Lane') {
+      const beforeLabel = this.orientationService.isHorizontal() ? '向上' : '向左';
+      const afterLabel = this.orientationService.isHorizontal() ? '向下' : '向右';
+      entries['lane-add-before'] = {
+        group: 'lane-insert-above',
+        html: toolEntryHtml('lane-insert-above', 18, this.elementTypes.toolFillOf('lane-insert-above')),
+        title: this.i18n.t(`${beforeLabel}添加泳道`),
+        action: { click: () => this.modeling.addLane(element, 'top') }
+      };
+      if (type === 'bpmn:Lane') {
+        entries['lane-divide-two'] = {
+          group: 'lane-divide',
+          html: toolEntryHtml('lane-divide-two', 18, this.elementTypes.toolFillOf('lane-divide-two')),
+          title: this.i18n.t('分割泳道为 2 段'),
+          action: { click: () => this.modeling.addLane(element, 'divide', 2) }
+        };
+        entries['lane-divide-three'] = {
+          group: 'lane-divide',
+          html: toolEntryHtml('lane-divide-three', 18, this.elementTypes.toolFillOf('lane-divide-three')),
+          title: this.i18n.t('分割泳道为 3 段'),
+          action: { click: () => this.modeling.addLane(element, 'divide', 3) }
+        };
+      }
+      entries['lane-add-after'] = {
+        group: 'lane-insert-below',
+        html: toolEntryHtml('lane-insert-below', 18, this.elementTypes.toolFillOf('lane-insert-below')),
+        title: this.i18n.t(`${afterLabel}添加泳道`),
+        action: { click: () => this.modeling.addLane(element, 'bottom') }
+      };
+    }
 
     // ---- 追加族（流节点；快捷追加序见 APPENDABLE_BY_FAMILY） ----
     const appendableFlowNode = this.isFlowNode(element) && type !== 'bpmn:EndEvent' && type !== 'bpmn:BoundaryEvent';
@@ -168,8 +202,9 @@ export class BpmnContextPadProvider {
       };
     }
 
-    // ---- "+"：容器内创建弹框（池/泳道/展开子流程） ----
-    if (isContainerType(type, element.isExpanded) && !this.popupMenu.isEmpty(element, BpmnCreateMenuProvider.MENU_ID)) {
+    // ---- "+"：容器内创建弹框（展开子流程；池/泳道参照布局无此钮——
+    //      2026-11-18 用户定规移除） ----
+    if (isSubProcessFamily(type) && element.isExpanded !== false && !this.popupMenu.isEmpty(element, BpmnCreateMenuProvider.MENU_ID)) {
       entries['create-inside'] = {
         group: 'edit',
         html: toolEntryHtml('plus', 18, this.elementTypes.toolFillOf('plus')),
@@ -185,47 +220,16 @@ export class BpmnContextPadProvider {
 
     // ---- 替换（可替换族）：pad 锚定（与追加/创建弹框同锚；切换钮重开亦用此锚） ----
     // SubProcess 折叠/展开替换（同族同型不同尺寸）——可替换族直接查注册表
-    if (this.elementTypes.shapeMeta(type)?.replaceFamily) {
+    const laneLike = type === 'bpmn:Participant' || type === 'bpmn:Lane';
+    if (this.elementTypes.shapeMeta(type)?.replaceFamily || laneLike) {
       entries['replace'] = {
         group: 'edit',
         html: toolEntryHtml('wrench', 18, this.elementTypes.toolFillOf('wrench')),
-        title: this.i18n.t('替换类型'),
+        title: this.i18n.t(laneLike ? '更改元素' : '替换类型'),
         action: {
           click: () => this.openElementMenu(element, 'bpmn-replace', '更改元素类型')
         }
       };
-    }
-
-    // ---- 泳道操作（朝向感知：水平池行带=上/下插，垂直池列带=左/右插） ----
-    if (type === 'bpmn:Participant' || type === 'bpmn:Lane') {
-      const beforeLabel = this.orientationService.isHorizontal() ? '向上' : '向左';
-      const afterLabel = this.orientationService.isHorizontal() ? '向下' : '向右';
-      entries['lane-add-before'] = {
-        group: 'lanes',
-        html: toolEntryHtml('lane-insert-above', 18, this.elementTypes.toolFillOf('lane-insert-above')),
-        title: this.i18n.t(`${beforeLabel}添加泳道`),
-        action: { click: () => this.modeling.addLane(element, 'top') }
-      };
-      entries['lane-add-after'] = {
-        group: 'lanes',
-        html: toolEntryHtml('lane-insert-below', 18, this.elementTypes.toolFillOf('lane-insert-below')),
-        title: this.i18n.t(`${afterLabel}添加泳道`),
-        action: { click: () => this.modeling.addLane(element, 'bottom') }
-      };
-      if (type === 'bpmn:Lane') {
-        entries['lane-divide-two'] = {
-          group: 'lanes',
-          html: toolEntryHtml('lane-divide-two', 18, this.elementTypes.toolFillOf('lane-divide-two')),
-          title: this.i18n.t('分割泳道为 2 段'),
-          action: { click: () => this.modeling.addLane(element, 'divide', 2) }
-        };
-        entries['lane-divide-three'] = {
-          group: 'lanes',
-          html: toolEntryHtml('lane-divide-three', 18, this.elementTypes.toolFillOf('lane-divide-three')),
-          title: this.i18n.t('分割泳道为 3 段'),
-          action: { click: () => this.modeling.addLane(element, 'divide', 3) }
-        };
-      }
     }
 
     // ---- 连线类型切换（规则见 BpmnFlowTypeMenuProvider：事件源出线无选项

@@ -33,6 +33,7 @@ import { bpmnIconHtml, loopMarkerIconHtml } from '../icons/BpmnIcons';
 import { loopKindOf, type LoopKind } from '../meta/LoopCharacteristics';
 import { replaceTarget } from '../command/ReplaceElementHandler';
 import { planeHasContent } from '../plane/PlaneService';
+import { iconSetAsset } from '../icons/IconSet';
 import { PopupMenuEntriesCache } from './BpmnElementMenuProvider';
 
 export class BpmnReplaceMenuProvider {
@@ -56,6 +57,24 @@ export class BpmnReplaceMenuProvider {
 
   getPopupMenuEntries(target: any): Record<string, any> {
     const bo = target.businessObject;
+    // 池/泳道：无 morph 族，唯一条目=清空内容（2026-11-18 用户参照定规；
+    // 图标=icons/bpmn-icon-lane.svg）。内容收集在动作触发时进行，条目静态
+    if (bo?.$type === 'bpmn:Participant' || bo?.$type === 'bpmn:Lane') {
+      const isPool = bo.$type === 'bpmn:Participant';
+      return {
+        'clear-container': {
+          label: this.i18n.t(isPool ? '清空池（删除内容）' : '清空泳道（删除内容）'),
+          imageHtml: laneMenuIconHtml(),
+          title: this.i18n.t(isPool ? '清空池（删除内容）' : '清空泳道（删除内容）'),
+          action: () => {
+            const contents = collectContents(target);
+            if (contents.length) {
+              this.modeling.removeElements(contents);
+            }
+          }
+        }
+      };
+    }
     const meta = this.elementTypes.shapeMeta(bo?.$type);
     if (!meta?.replaceFamily) {
       return {};
@@ -125,4 +144,44 @@ export class BpmnReplaceMenuProvider {
       'toggle-loop': entry('loop', '标准循环')
     };
   }
+}
+
+/** 清空条目图标：icons/bpmn-icon-lane.svg（IconSet 'lane'，用户指认） */
+function laneMenuIconHtml(): string {
+  const a = iconSetAsset('lane');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${a.w} ${a.h}" width="20" height="20" fill="currentColor" aria-hidden="true">${a.body}</svg>`;
+}
+
+/**
+ * 容器内容收集（清空池/泳道用）：流节点/数据/注记真实删除，泳道结构保留；
+ * 标签/连线不取（随宿主级联删除）。归属按几何中心落带（与
+ * recomputePoolMembership 同规则）——节点画布父级可能是池也可能是道
+ * （领养先于建道的节点恒为池子），故一律从池后代全量扫描再按带过滤；
+ * 跨带容器只收带内子节点（带外部分不动），入列节点整棵收（级联删）。
+ */
+function collectContents(container: any): any[] {
+  const isLane = container.businessObject?.$type === 'bpmn:Lane';
+  const pool = isLane ? container.parent : container;
+  const inBand = (el: any): boolean =>
+    el.x + el.width / 2 >= container.x && el.x + el.width / 2 <= container.x + container.width &&
+    el.y + el.height / 2 >= container.y && el.y + el.height / 2 <= container.y + container.height;
+  const out: any[] = [];
+  const walk = (parent: any): void => {
+    for (const child of parent.children ?? []) {
+      if (child.labelTarget || child.waypoints) {
+        continue;
+      }
+      if (child.businessObject?.$type === 'bpmn:Lane') {
+        walk(child);
+        continue;
+      }
+      if (isLane && !inBand(child)) {
+        walk(child);
+        continue;
+      }
+      out.push(child);
+    }
+  };
+  walk(pool);
+  return out;
 }
