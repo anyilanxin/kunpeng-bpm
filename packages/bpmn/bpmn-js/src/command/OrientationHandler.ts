@@ -32,12 +32,14 @@
  * 棱上——**无需重布线、无需重裁剪、无需共线拉直、无需标签重摆**。
  *
  * 尺寸不随点转置是唯一失配源：非方形元素在流向轴上的占地变了（任务
- * 78→116），链式相邻对的边到边边距收缩 |宽−高|，需两道有界修正：
- *  - 流向轴边距下限（spreadFlowGaps）：仅"轴向直线"相连对沿流向推开，
- *    横轴不动保证直线不破；被推元素的连线端点随端元素同轴平移（折线
- *    形态原样保留）；
- *  - 挂靠贴边（snapAttachers）：挂靠边界事件点转置后会落入宿主形内，
- *    按宿主中心方向投影回宿主棱。
+ * 78→116），引发两处失配，各一道有界修正：
+ *  - 已裁剪端点错位：旧上/左棱上的点恰落新左/上棱（精确），旧下/右棱
+ *    上的点偏 |宽−高|（任务 38px，方形成员零误差）——转置后对全部连
+ *    线端点重裁一次（getCroppedWaypoints 沿线段方向投回两端棱，直线
+ *    恒直、正交恒正交；裁剪的对偶步骤：旧坐标系的裁剪结果在新坐标系
+ *    重裁）；
+ *  - 流向轴边距收缩（spreadFlowGaps）：链式相邻对沿流向推开，横轴不
+ *    动保证直线不破；挂靠形状（snapAttachers）点转置后投影回宿主棱。
  *
  * 步骤：
  *  1. 翻转朝向标记与服务状态；
@@ -46,9 +48,10 @@
  *     下钻平面），非当前平面的元素同步转置；
  *  3. 流向轴边距下限 + 容器随内容扩展；
  *  4. 挂靠形状贴边；
- *  5. 重锚定：整体平移到固定种子锚位 (159,159)（与空图种子一致）——
+ *  5. 全部连线端点重裁（等距映射保走线形态，重裁只钉端点位置）；
+ *  6. 重锚定：整体平移到固定种子锚位 (159,159)（与空图种子一致）——
  *     锚位不依赖视口，连续切换不漂移；居中观感由视口适配承担；
- *  6. 适配视口（按元素新几何直算，不读图层 bbox 缓存——缓存失效要等
+ *  7. 适配视口（按元素新几何直算，不读图层 bbox 缓存——缓存失效要等
  *     命令外的 elements.changed，读到的会是转置前的旧 bbox）。
  *
  * 撤销恢复执行时快照（几何/航点/朝向），非重演式。
@@ -176,10 +179,25 @@ export class OrientationHandler implements CommandHandler {
     // 4. 挂靠形状贴边（点转置后投影回宿主棱）
     this.snapAttachers();
 
-    // 5. 重锚定（平移到固定种子锚位，见 reAnchorContent 说明）
+    // 5. 连线端点重钉：旧下/右棱上的裁剪点转置后偏 |宽−高|（落在形内或
+    //    形外背侧，交点式裁剪对背侧段无解），按终端段方向钉回源/目标背
+    //    向棱——走线形态（含弯点）原样保留
+    connections.forEach((connection: any) => {
+      const waypoints = connection.waypoints;
+      if (waypoints.length >= 2) {
+        OrientationHandler.reclampTerminal(waypoints[0], waypoints[1], connection.source);
+        OrientationHandler.reclampTerminal(
+          waypoints[waypoints.length - 1],
+          waypoints[waypoints.length - 2],
+          connection.target
+        );
+      }
+    });
+
+    // 6. 重锚定（平移到固定种子锚位，见 reAnchorContent 说明）
     this.reAnchorContent(context);
 
-    // 6. 适配视口（按元素新几何直接计算，见 fitToContent 说明）
+    // 7. 适配视口（按元素新几何直接计算，见 fitToContent 说明）
     this.fitToContent();
 
     return [...shapes, ...connections];
@@ -273,9 +291,8 @@ export class OrientationHandler implements CommandHandler {
    * |宽−高| 把边到边边距吃到个位数甚至负值。仅整理"轴向直线"的相连对
    * （弯折扇形保持原样）：两端横轴（直线共中轴）交叠（链堆叠而非并排）
    * 且流向边距不足时，把目标沿流向（直线走向轴）推开到最小边距。直线
-   * 共中轴不动 → 直线恒直；被推元素上所有连线的端点随端元素同轴平移
-   * （首/末点各自跟随源/目标，折线形态与中间弯点原样保留）。定界扫描：
-   * 推移中间节点后与下游的边距在后续轮次补齐。
+   * 共中轴不动 → 直线恒直；推移产生的端点滞后由其后的端点重裁统一收
+   * 口。定界扫描：推移中间节点后与下游的边距在后续轮次补齐。
    */
   private spreadFlowGaps(context: any, connections: any[]): void {
     const clear = OrientationHandler.FLOW_GAP;
@@ -324,15 +341,6 @@ export class OrientationHandler implements CommandHandler {
         });
         (target.attachers ?? []).forEach((attacher: any) => {
           attacher[flowKey] += delta;
-        });
-        // 被推元素的连线端点随端元素同轴平移（源侧首点/目标侧末点）
-        connections.forEach((connection: any) => {
-          if (connection.target === target && connection.waypoints.length) {
-            connection.waypoints[connection.waypoints.length - 1][flowKey] += delta;
-          }
-          if (connection.source === target && connection.waypoints.length) {
-            connection.waypoints[0][flowKey] += delta;
-          }
         });
         moved = true;
       });
@@ -421,6 +429,32 @@ export class OrientationHandler implements CommandHandler {
       end = Math.max(end, OrientationHandler.contentAxisEnd(child, key, sizeKey));
     });
     return end;
+  }
+
+  /**
+   * 连线端点重钉：终端段（首段/末段）是轴向段，端点钉回宿主"背向连线
+   * 一侧"的棱（段从宿主出发的出棱/入宿主的入棱），另一维坐标钳进宿主
+   * 跨度（钉在棱段内而非延长线上）。幂等：已贴棱的点重钉不变；非轴向
+   * 终端段（转置产物不会出现，用户手拖斜段防御）保持原样。
+   */
+  private static reclampTerminal(point: any, toward: any, shape: any): void {
+    if (!shape) {
+      return;
+    }
+    const dx = Math.abs(point.x - toward.x);
+    const dy = Math.abs(point.y - toward.y);
+    if (dx > 0.5 && dy > 0.5) {
+      return;
+    }
+    if (dx <= 0.5) {
+      // 竖直终端段：出/入棱 = 上下棱
+      point.y = toward.y > point.y ? shape.y + shape.height : shape.y;
+      point.x = Math.min(Math.max(point.x, shape.x), shape.x + shape.width);
+    } else {
+      // 水平终端段：出/入棱 = 左右棱
+      point.x = toward.x > point.x ? shape.x + shape.width : shape.x;
+      point.y = Math.min(Math.max(point.y, shape.y), shape.y + shape.height);
+    }
   }
 
   /**
