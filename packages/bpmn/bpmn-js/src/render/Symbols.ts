@@ -237,15 +237,30 @@ export function drawEventSymbol(
 }
 
 /**
- * 整元素剪影（timer 系例外通道，2026-11-18 用户定规，见 design-docs/定时事件
- * 图标样式统一.md）：环+框内符号一体按标准图标集整图标等比填充，颜色取
- * theme.stroke（bioc 元素色/暗色主题与原环 stroke 同路传导）。仅限用户指定
- * 的 timer 系四元素（BpmnRenderer.drawEvent 判定），其余事件仍循「框=规范
- * 描边记法、框内=glyph 字形」常规路径——本文件头定规的显式例外。
- * size=图标目标边长（整图标 32 盒环外缘贴边，等比满铺元素 bounds 即传 width）。
+ * 整元素图标（timer 系例外通道，2026-11-18 用户定规，资产=用户提供的
+ * fragment 原几何——描边环+12 刻度表盘，见 design-docs/定时事件图标样式
+ * 统一.md）：环+表盘一体按图标集整图标等比绘制，颜色取 theme.stroke
+ * （bioc 元素色/暗色主题与原环 stroke 同路传导）。仅限用户指定的 timer 系
+ * 四元素（BpmnRenderer.drawEvent 判定），其余事件仍循「框=规范描边记法、
+ * 框内=glyph 字形」常规路径——本文件头定规的显式例外。
+ * size=图标目标边长（36 盒资产等比满铺 36px 元素即 1:1 复刻）。
+ * 描边资产（asset.stroke）：fill=none + stroke=颜色；剪影资产：fill=颜色。
  */
 export function drawEventIcon(g: Element, key: IconSetKey, cx: number, cy: number, size: number, theme: StyleTheme): void {
-  iconSetGlyph(g, key, cx, cy, size, theme.stroke);
+  const asset = iconSetAsset(key);
+  const k = size / asset.w;
+  const group = create('g');
+  attr(group, {
+    transform: `translate(${(cx - (asset.w / 2) * k).toFixed(2)} ${(cy - (asset.h / 2) * k).toFixed(2)}) scale(${k.toFixed(5)})`,
+    ...(asset.stroke
+      ? { fill: 'none', stroke: theme.stroke }
+      : { fill: theme.stroke })
+  });
+  const template = glyphTemplate(key);
+  for (let i = 0; i < template.childNodes.length; i++) {
+    group.appendChild(template.childNodes[i].cloneNode(true));
+  }
+  append(g, group);
 }
 
 /** 网关标记字形（源自对应 gateway 图标内部字形；实例化变体=多实例开始记法） */
