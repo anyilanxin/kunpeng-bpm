@@ -31,27 +31,30 @@
  * y，与元素尺寸无关）、曼哈顿折线恒曼哈顿、已裁剪端点落在转置后的对应
  * 棱上——**无需重布线、无需重裁剪、无需共线拉直、无需标签重摆**。
  *
- * 尺寸不随点转置是唯一失配源：非方形元素在流向轴上的占地变了（任务
- * 78→116），引发两处失配，各一道有界修正：
- *  - 已裁剪端点错位：旧上/左棱上的点恰落新左/上棱（精确），旧下/右棱
- *    上的点偏 |宽−高|（任务 38px，方形成员零误差）——转置后对全部连
- *    线端点重裁一次（getCroppedWaypoints 沿线段方向投回两端棱，直线
- *    恒直、正交恒正交；裁剪的对偶步骤：旧坐标系的裁剪结果在新坐标系
- *    重裁）；
- *  - 流向轴边距收缩（spreadFlowGaps）：链式相邻对沿流向推开，横轴不
- *    动保证直线不破；挂靠形状（snapAttachers）点转置后投影回宿主棱。
+ * 尺寸不随点转置是唯一失配源（非方形元素新轴占地换维），引出三处失
+ * 配，各一道有界修正：
+ *  - 直线链横轴错位：原图两端横轴中心一致（中点对中点直线），转置后
+ *    各端中心按"坐标+半尺寸"映射、异尺寸对（网关 52 对任务 116）差
+ *    半尺寸差——straightenColinearLinks 把直线对目标横轴中心对齐源，
+ *    恢复"中点对中点"的直线（弯折扇形不动）；
+ *  - 流向轴边距收缩 |宽−高|：spreadFlowGaps 沿流向推开（横轴不动保
+ *    直线不破）；挂靠形状 snapAttachers 投影回宿主棱；
+ *  - 端点横向偏心：转置把旧棱中点映到新棱的偏心位置（差 (宽−高)/2），
+ *    reclampTerminal 沿终端段方向钉回背向棱，centerTerminalDockings
+ *    再把端点横向坐标钉到宿主棱中点（肘点随动保持正交）。
  *
  * 步骤：
  *  1. 翻转朝向标记与服务状态；
  *  2. 全量点转置：形状位置（结构容器宽高互换）、标签中心（盒尺寸服务
  *     文字度量不变）、连线航点逐点；注册表覆盖所有平面（含折叠子流程
  *     下钻平面），非当前平面的元素同步转置；
- *  3. 流向轴边距下限 + 容器随内容扩展；
- *  4. 挂靠形状贴边；
- *  5. 全部连线端点重裁（等距映射保走线形态，重裁只钉端点位置）；
- *  6. 重锚定：整体平移到固定种子锚位 (159,159)（与空图种子一致）——
+ *  3. 直线对横轴中心对齐（中点对中点恢复）；
+ *  4. 流向轴边距下限 + 容器随内容扩展；
+ *  5. 挂靠形状贴边；
+ *  6. 连线端点重钉（钉回背向棱）+ 端点横向居中（钉到棱中点）；
+ *  7. 重锚定：整体平移到固定种子锚位 (159,159)（与空图种子一致）——
  *     锚位不依赖视口，连续切换不漂移；居中观感由视口适配承担；
- *  7. 适配视口（按元素新几何直算，不读图层 bbox 缓存——缓存失效要等
+ *  8. 适配视口（按元素新几何直算，不读图层 bbox 缓存——缓存失效要等
  *     命令外的 elements.changed，读到的会是转置前的旧 bbox）。
  *
  * 撤销恢复执行时快照（几何/航点/朝向），非重演式。
@@ -173,15 +176,16 @@ export class OrientationHandler implements CommandHandler {
       });
     });
 
-    // 3. 流向轴边距下限（尺寸失配的消解 + 容器随内容扩展）
+    // 3. 直线对横轴中心对齐（原图中点对中点直线的恢复）
+    this.straightenColinearLinks();
+
+    // 4. 流向轴边距下限（尺寸失配的消解 + 容器随内容扩展）
     this.spreadFlowGaps(context, connections);
 
-    // 4. 挂靠形状贴边（点转置后投影回宿主棱）
+    // 5. 挂靠形状贴边（点转置后投影回宿主棱）
     this.snapAttachers();
 
-    // 5. 连线端点重钉：旧下/右棱上的裁剪点转置后偏 |宽−高|（落在形内或
-    //    形外背侧，交点式裁剪对背侧段无解），按终端段方向钉回源/目标背
-    //    向棱——走线形态（含弯点）原样保留
+    // 6. 连线端点重钉（终端段方向钉回背向棱）+ 横向居中（钉到棱中点）
     connections.forEach((connection: any) => {
       const waypoints = connection.waypoints;
       if (waypoints.length >= 2) {
@@ -191,13 +195,19 @@ export class OrientationHandler implements CommandHandler {
           waypoints[waypoints.length - 2],
           connection.target
         );
+        OrientationHandler.centerTerminalDocking(waypoints[0], waypoints[1], connection.source);
+        OrientationHandler.centerTerminalDocking(
+          waypoints[waypoints.length - 1],
+          waypoints[waypoints.length - 2],
+          connection.target
+        );
       }
     });
 
-    // 6. 重锚定（平移到固定种子锚位，见 reAnchorContent 说明）
+    // 7. 重锚定（平移到固定种子锚位，见 reAnchorContent 说明）
     this.reAnchorContent(context);
 
-    // 7. 适配视口（按元素新几何直接计算，见 fitToContent 说明）
+    // 8. 适配视口（按元素新几何直接计算，见 fitToContent 说明）
     this.fitToContent();
 
     return [...shapes, ...connections];
@@ -283,6 +293,77 @@ export class OrientationHandler implements CommandHandler {
       width: outer.width / scale,
       height: outer.height / scale
     });
+  }
+
+  /**
+   * 直线对横轴中心对齐：原图直线 = 两端横轴中心一致（中点对中点），转
+   * 置把中心按"坐标+半尺寸"映射、异尺寸对（网关 52 对任务 116）差半尺
+   * 寸差，直线变台阶弯。把目标的"直线横轴"（垂直于走向）中心对齐源即
+   * 恢复中点对中点直线；按航点共轴判定（水平/垂直直线两类都处理，弯折
+   * 扇形不动）；目标外部标签随宿主同轴平移；定界扫描：注册表序不必是
+   * 链序，扫到不动点为止。它是其后续正（端点横向居中）的前置——对齐
+   * 后两端棱中点重合，居中随动才不破直线。
+   */
+  private straightenColinearLinks(): void {
+    const flows = this.elementRegistry.filter(
+      (e: any) => !!e.waypoints && e.businessObject?.$type === 'bpmn:SequenceFlow'
+    );
+
+    let moved = true;
+    let pass = 0;
+    while (moved && pass <= flows.length) {
+      moved = false;
+      pass++;
+      flows.forEach((flow: any) => {
+        const { source, target } = flow;
+        if (!source || !target) {
+          return;
+        }
+        const sharedAxis = straightAlignAxis(flow.waypoints);
+        if (!sharedAxis) {
+          return;
+        }
+        // 直线横轴 = 共享轴本身（竖直直线共 x → 中点对中点即两端 x 中心一致）
+        const alignKey = sharedAxis;
+        const sizeKey = alignKey === 'x' ? 'width' : 'height';
+        const delta = source[alignKey] + source[sizeKey] / 2 - (target[alignKey] + target[sizeKey] / 2);
+        if (Math.abs(delta) < 1) {
+          return;
+        }
+        target[alignKey] += delta;
+        (target.labels ?? []).forEach((label: any) => {
+          label[alignKey] += delta;
+        });
+        moved = true;
+      });
+    }
+  }
+
+  /**
+   * 端点横向居中：终端段（首段/末段）的横向坐标钉到宿主棱中点，相邻点
+   * （肘点或对端点）同轴随动保持正交。两点直线两端经 straighten 对齐后
+   * 棱中点重合，两次随动叠加恒等（直线保持）；三段折线肘点被两向各调
+   * 一次（两终端段轴向互垂），折线恒正交。幂等：已居中的端点不再动。
+   */
+  private static centerTerminalDocking(terminal: any, adjacent: any, shape: any): void {
+    if (!shape) {
+      return;
+    }
+    if (Math.abs(terminal.x - adjacent.x) <= 0.5) {
+      // 竖直终端段：横向坐标 = x（左右棱上的位置），钉到宿主竖直中轴
+      const delta = shape.x + shape.width / 2 - terminal.x;
+      if (Math.abs(delta) >= 0.5) {
+        terminal.x += delta;
+        adjacent.x += delta;
+      }
+    } else if (Math.abs(terminal.y - adjacent.y) <= 0.5) {
+      // 水平终端段：横向坐标 = y，钉到宿主水平中轴
+      const delta = shape.y + shape.height / 2 - terminal.y;
+      if (Math.abs(delta) >= 0.5) {
+        terminal.y += delta;
+        adjacent.y += delta;
+      }
+    }
   }
 
   /**
