@@ -81,6 +81,19 @@
   margin: 0; /* 引擎 0 2px 2px 0 外距让位 flex gap */
 }
 
+/* 泳道操作组金字塔排布（2026-11-18 用户参照定规）：上插 1 钮 → 分割
+   2/3 段两钮并排 → 下插 1 钮，各占一整行居中成 1/2/1 金字塔；三组脱离
+   display:contents 恢复块级（width:100% 强制独占换行），中行 row 向
+   并排。其余组维持透明流式三列不动。 */
+.djs-context-pad .group[data-group='lane-insert-above'],
+.djs-context-pad .group[data-group='lane-insert-below'],
+.djs-context-pad .group[data-group='lane-divide'] {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  width: 100%;
+}
+
 /* 底色与 palette 同面：引擎默认条目底/白晕取 --bio-surface（纯白），在
    点阵画布与浅灰面板（--bio-surface-subtle）之间偏白扎眼，暗色下同理
    偏亮一档——对齐面板同面后令牌级联动（白晕阴影同变量，暗色随宿主令牌） */
