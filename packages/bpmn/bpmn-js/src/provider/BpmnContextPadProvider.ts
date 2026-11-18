@@ -95,7 +95,9 @@ export class BpmnContextPadProvider {
     // ---- 泳道操作（池/泳道；朝向感知：水平池行带=上/下插，垂直池列带=左/右插。
     //      参照布局 2026-11-18：首组置顶，序=上插 → 分割（泳道限定）→ 下插，
     //      三组独立 data-group 与参照一一对应） ----
-    if (type === 'bpmn:Participant' || type === 'bpmn:Lane') {
+    // 空泳道（参与者无 processRef 的清空终态）不出加道/分割钮（2026-11-18
+    // 用户定规：仅剩更改元素可切回非空泳道）
+    if ((type === 'bpmn:Participant' && bo.processRef) || type === 'bpmn:Lane') {
       const beforeLabel = this.orientationService.isHorizontal() ? '向上' : '向左';
       const afterLabel = this.orientationService.isHorizontal() ? '向下' : '向右';
       entries['lane-add-before'] = {

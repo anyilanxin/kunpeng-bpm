@@ -145,6 +145,9 @@ export const SIZES = {
   POOL_W: 634,
   POOL_H: 250,
   POOL_HEADER: 34,
+  /** 空泳道（无 processRef）形态：流向长 600、堆叠轴厚 60（参照定规 2026-11-18） */
+  POOL_EMPTY_SPAN: 600,
+  POOL_EMPTY_BAND: 60,
   /** 插入泳道带的默认厚度=最小带厚（产品下限，见 PoolGeometry.MIN_LANE_BAND） */
   LANE_H: 250,
   DATA_W: 40,

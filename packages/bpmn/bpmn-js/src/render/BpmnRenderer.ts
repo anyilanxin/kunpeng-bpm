@@ -498,6 +498,12 @@ export class BpmnRenderer extends BaseRenderer {
   }
 
   private drawParticipant(visuals: SVGElement, shape: any, theme: any): void {
+    // 空泳道（无 processRef）：仅一个长方形框（2026-11-18 用户定规——清空池/
+    // 泳道的终态，无头带无标签；扳手可切回非空泳道=默认池形）
+    if (!shape.businessObject?.processRef) {
+      drawBox(visuals, 0, 0, shape.width, shape.height, theme, { strokeWidth: 2 });
+      return;
+    }
     const horizontal = this.orientationService.isHorizontal();
     // 池体实底：内容区遮住画布网格（与业界设计器一致，头带同色靠分隔线区分）
     drawBox(visuals, 0, 0, shape.width, shape.height, theme, { strokeWidth: 2 });
