@@ -100,6 +100,19 @@ export function growPoolAlong(participant: RectLike, axis: 'x' | 'y', delta: num
   }
 }
 
+/** 沿堆叠轴前缘生长（起点外扩、终点不动）：前插让位用——既有带与内容绝对
+ * 位全不动，新带占池前方长出的空间（2026-11-18 用户报"上插下插都向下追加"
+ * 的对症修法） */
+export function growPoolFront(participant: RectLike, axis: 'x' | 'y', delta: number): void {
+  if (axis === 'y') {
+    participant.y -= delta;
+    participant.height += delta;
+  } else {
+    participant.x -= delta;
+    participant.width += delta;
+  }
+}
+
 /** 矩形四字段全等比对（x/y/width/height 逐一严格相等） */
 export function rectsEqual(a: RectLike, b: RectLike): boolean {
   return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;

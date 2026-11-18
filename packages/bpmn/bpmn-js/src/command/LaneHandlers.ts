@@ -40,6 +40,7 @@ import {
   LANE_EPS,
   MIN_LANE_BAND,
   growPoolAlong,
+  growPoolFront,
   laneStackAxis,
   laneBandRect,
   normalizeLanePosition,
@@ -183,17 +184,28 @@ export class AddLaneHandler implements CommandHandler {
     // 最小厚度；"收缩+增长"则会留出带覆盖不到的尾部缺口）
     if (siblings.length === 1 && spanLength(siblings[0], axis) >= spanLength(inner, axis) - LANE_EPS) {
       const full = siblings[0];
-      context.carved = { lane: full, rect: rectOf(full) };
       const fullStart = spanStart(full, axis);
       const fullLen = spanLength(full, axis);
       if (direction === 'before') {
-        applyRect(full, shiftAlongAxis(full, axis, thickness));
-        context.created.push(this.createLane(context, participant, laneBandRect(inner, fullStart, thickness, horizontal)));
+        // 前缘生长（2026-11-18 修"上插视觉恒向下追加"）：既有带与内容绝对位
+        // 全不动，池沿前缘长出，新带占长出的空间——新带恒在内容上方
+        context.carved = null;
+        growPoolFront(participant, axis, thickness);
+        context.created.push(this.createLane(context, participant, laneBandRect(inner, fullStart - thickness, thickness, horizontal)));
       } else {
+        context.carved = { lane: full, rect: rectOf(full) };
         context.created.push(this.createLane(context, participant, laneBandRect(inner, fullStart + fullLen, thickness, horizontal)));
+        growPoolAlong(participant, axis, thickness);
       }
-      growPoolAlong(participant, axis, thickness);
       return [participant, full, ...context.created];
+    }
+
+    // (3) 前端前插（目标=池的 before，或首道前缘 before）：池前缘生长、
+    // 既有带与内容全不动，新带占长出的空间（同全池首道前插语义）
+    if (direction === 'before' && insertAt <= spanStart(inner, axis) + LANE_EPS) {
+      growPoolFront(participant, axis, thickness);
+      context.created.push(this.createLane(context, participant, laneBandRect(inner, spanStart(inner, axis) - thickness, thickness, horizontal)));
+      return [participant, ...context.created];
     }
 
     // (3) 常规插入：插入点及之后的既有带平移让位，池沿堆叠轴增长
