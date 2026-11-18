@@ -225,12 +225,6 @@ export class BpmnContextPadProvider {
           title: this.i18n.t('分割泳道为 3 段'),
           action: { click: () => this.modeling.addLane(element, 'divide', 3) }
         };
-        entries['lane-remove'] = {
-          group: 'lanes',
-          html: toolEntryHtml('lane', 18, this.elementTypes.toolFillOf('lane')),
-          title: this.i18n.t('删除泳道'),
-          action: { click: () => this.modeling.removeLane(element) }
-        };
       }
     }
 

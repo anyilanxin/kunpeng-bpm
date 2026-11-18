@@ -24,8 +24,8 @@
  *
  * 图标基准=标准图标集（icons/IconSet）：集合已确认的动作图标（抓手/套索/
  * 空间/连线/扳手/垃圾桶）直接内嵌集合 path（1026 坐标系经 scale 进 18 视框，
- * 用户指认文件见 IconSet 各条目注释）；集合未覆盖的（泳道系/折叠钮/更多/
- * 创建）保留自有设计；泳道系：横带 + 头带刻线，插入方向用 + 号位置表达；
+ * 用户指认文件见 IconSet 各条目注释）；集合未覆盖的（折叠钮/创建）保留自有设计（泳道系
+ * 四钮 2026-11-18 改用 icon2 指认资产）；泳道系：横带 + 头带刻线，插入方向用 + 号位置表达；
  * 子流程折叠钮：盒内 +/-（规范折叠标记语义）。
  * 入口机制（toolIconHtml/toolEntryHtml）由 @kunpeng-io/kernel-shared 共享。
  */
@@ -52,24 +52,12 @@ const ICON_BODIES: Record<string, string> = {
   connect: setScaled18('connection'),
   // 替换：开口扳手（图标集 toolWrench——头部开口钳口，替换/服务动作族同语言）
   wrench: setScaled18('toolWrench'),
-  // 泳道插入（上/下）：横带 + 头带刻线，+ 号位置示方向
-  'lane-insert-above':
-    `<rect x="2.5" y="7" width="13" height="7.5" rx="0.8" ${S}/>` +
-    `<path d="M6.2,7 V14.5 M9,1.5 V4.5 M7.5,3 H10.5" ${S} stroke-linecap="round"/>`,
-  'lane-insert-below':
-    `<rect x="2.5" y="3.5" width="13" height="7.5" rx="0.8" ${S}/>` +
-    `<path d="M6.2,3.5 V11 M9,13.5 V16.5 M7.5,15 H10.5" ${S} stroke-linecap="round"/>`,
-  // 泳道本体：横带 + 头带
-  lane:
-    `<rect x="2.5" y="5" width="13" height="8" rx="0.8" ${S}/>` +
-    `<path d="M6.2,5 V13" ${S}/>`,
-  // 泳道分割（2/3 段）：横带内画 1/2 条分隔线示意均分（旧线 lane-divide 契约）
-  'lane-divide-two':
-    `<rect x="2.5" y="5" width="13" height="8" rx="0.8" ${S}/>` +
-    `<path d="M6.2,5 V13 M2.5,9 H15.5" ${S}/>`,
-  'lane-divide-three':
-    `<rect x="2.5" y="5" width="13" height="8" rx="0.8" ${S}/>` +
-    `<path d="M6.2,5 V13 M2.5,7.67 H15.5 M2.5,10.33 H15.5" ${S}/>`,
+  // 泳道动作（icon2 用户指认四钮：顶/底虚线示插入位，带内 1/2 条虚线示均分；
+  // 2026-11-18 取代自有设计——原自绘图名称与语义错位）
+  'lane-insert-above': setScaled18('toolLaneInsertAbove'),
+  'lane-insert-below': setScaled18('toolLaneInsertBelow'),
+  'lane-divide-two': setScaled18('toolLaneDivideTwo'),
+  'lane-divide-three': setScaled18('toolLaneDivideThree'),
   // 更多（…）：图标集 tool-more 三点，打开全量弹框（追加/创建）
   more: setScaled18('toolMore'),
   // 创建：粗十字（在选中容器内部新建元素）
