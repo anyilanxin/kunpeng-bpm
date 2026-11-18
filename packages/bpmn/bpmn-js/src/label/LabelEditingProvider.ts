@@ -43,6 +43,7 @@ import {
   EXTERNAL_FONT,
   INTERNAL_FONT
 } from '../label/LabelGeometry';
+import { SIZES } from '../meta/ElementTypes';
 import type TextUtil from 'diagram-js/lib/util/Text';
 import type Canvas from 'diagram-js/lib/core/Canvas';
 import type { BpmnMode } from '../mode/BpmnMode';
@@ -172,12 +173,15 @@ export class BpmnLabelEditingProvider {
     }
 
     if (bo.$type === 'bpmn:Participant' || bo.$type === 'bpmn:Lane') {
-      // 头带位置随布局朝向：水平=左侧竖排标签带（旋转标签按横排编辑，居中）；
-      // 垂直=顶部横带，编辑框与渲染 'band' 标签盒同位同对齐（左上+左对齐，
-      // 顶流），编辑所见即所得
+      // 头带位置随布局朝向：水平=左侧竖排标签带（旋转标签按横排编辑）；垂直=
+      // 顶部横带，编辑框与渲染 'band' 标签盒同位同对齐（左上+左对齐，顶流），
+      // 编辑所见即所得。水平"居中"=渲染竖排标签带中心（drawRotatedLabel 同参：
+      // 池带宽 POOL_HEADER、道带宽 28、带中心=bandW/2 与元素高的中线），编辑框
+      // 居中于该处——曾误置整元素几何中心，编辑位与显示位脱节
       if (horizontal) {
+        const bandW = bo.$type === 'bpmn:Participant' ? SIZES.POOL_HEADER : 28;
         const box = {
-          x: element.x + element.width / 2 - BAND_HALF_W,
+          x: element.x + bandW / 2 - BAND_HALF_W,
           y: element.y + element.height / 2 - BAND_HALF_H,
           width: BAND_HALF_W * 2,
           height: BAND_HALF_H * 2
