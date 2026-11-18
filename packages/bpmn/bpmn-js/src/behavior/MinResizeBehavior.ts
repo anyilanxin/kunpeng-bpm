@@ -16,7 +16,7 @@ import { isSubProcessFamily, SIZES } from '../meta/ElementTypes';
  *
  * 取值：SubProcess（展开/事件子流程）与展开 Ad-hoc = SIZES.SUBPROCESS_W/H
  * （350×200，与创建缺省同值）；事务恒展开但创建即任务盒（同日定规），下限
- * 取任务盒 116×78 而非 350×200——否则刚创建的 116×78 事务任何 resize 只能
+ * 取任务盒 SIZES.TASK_*（100×80）而非 350×200——否则刚创建的任务盒尺寸事务任何 resize 只能
  * 先跳涨到 350。折叠态不开放缩放（规则层 resizePolicies 已拒），此处跳过。
  */
 export class MinResizeBehavior {

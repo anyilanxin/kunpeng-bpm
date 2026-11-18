@@ -24,7 +24,7 @@
  *
  * 尺寸体系为自有设计（规范未规定像素尺寸，仅规定形状与比例语义），取值理由随常量注明：
  * - 事件直径 38：内部符号 20px 上下仍留 9px 视觉余量；
- * - 任务盒 116×78：可容纳两行 12px 标签（含 8px 上下内边距），宽约为事件直径 3 倍，横排连线视觉均衡；
+ * - 任务盒 100×80（2026-11-18 用户定规，对齐主流建模器缺省；此前 116×78）；
  * - 网关 52：对角线约 73，X/O/+ 标记占 45% 仍不触边；
  * - 池 420×220 / 头带 34：头带 34 = 两行竖排标签（12px×1.4 行高）+ 8 余量；
  * - 展开子流程 240×160：容纳一个完整"开始→任务→结束"种子布局；
@@ -135,8 +135,8 @@ export function subProcessExpandedOf(meta: ShapeTypeMeta): boolean | undefined {
 export const SIZES = {
   EVENT: 38,
   GATEWAY: 52,
-  TASK_W: 116,
-  TASK_H: 78,
+  TASK_W: 100,
+  TASK_H: 80,
   // 展开态子流程族缺省（2026-11-04 用户定规"默认尺寸 350×200"，对齐老线 palette 拖拽行为契约
   // ——上游 bpmn-js 18 展开子流程同值；此前 240×160 被评"展开子流程太小"）
   SUBPROCESS_W: 350,
@@ -496,7 +496,7 @@ export const SHAPE_TYPES: ShapeTypeMeta[] = [
   // "临时/事务与用户任务一样"——恒展开但缺省小盒，容器内容靠用户展开拖放归位后 resize）
   { type: 'bpmn:Transaction', label: '事务子流程', width: SIZES.TASK_W, height: SIZES.TASK_H, symbol: 'transaction', paletteGroup: 'subProcesses', order: 40, replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
   // Ad-hoc 子流程（规范 §10.5.5：底部波浪号标记）。无 paletteGroup=不进创建菜单（「更多元素」
-  // 弹框创建走下方折叠条目 116×78，2026-11-04 用户定规）；展开形态仍为替换目标（折叠⇄展开，
+  // 弹框创建走下方折叠条目 100×80（尺寸随 SIZES；2026-11-04 用户定规，原 116×78）；展开形态仍为替换目标（折叠⇄展开，
   // 替换菜单按 replaceFamily/五轴匹配不经 paletteGroup）
   { type: 'bpmn:AdHocSubProcess', label: 'Ad-hoc 子流程', width: SIZES.SUBPROCESS_W, height: SIZES.SUBPROCESS_H, symbol: 'adHocSubProcess', replaceFamily: 'subProcess', isContainer: true, resizable: true, family: 'activity', labelMode: 'internal' },
   // 折叠形态排在展开之后：shapeByType 取数组首条，展开态（容器/大尺寸）须胜出
