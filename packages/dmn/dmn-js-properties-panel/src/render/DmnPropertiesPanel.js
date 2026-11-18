@@ -204,6 +204,7 @@ export default function DmnPropertiesPanel(props) {
   return <DmnPropertiesPanelContext.Provider value={ dmnPropertiesPanelContext }>
     <PropertiesPanel
       element={ selectedElement }
+      translate={ translate }
       headerProvider={ PanelHeaderProvider }
       placeholderProvider={ PanelPlaceholderProvider(translate) }
       groups={ groups }

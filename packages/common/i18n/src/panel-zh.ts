@@ -43,6 +43,8 @@ export const panelZhCN: Record<string, string> = {
   'Multiple elements are selected. Select a single element to edit its properties.': '已选择多个元素。请选择单个元素以编辑其属性。',
   '<empty>': '（空）',
   '<none>': '（无）',
+  'Section contains edits': '分组含未保存修改',
+  'Section contains an error': '分组含错误项',
 
   // ---- 通用字段 ----
   'General': '常规',
